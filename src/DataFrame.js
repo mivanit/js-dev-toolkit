@@ -73,6 +73,21 @@ class DataFrame {
 	}
 
 	/**
+	 * Apply a function to transform values in a specific column
+	 * @param {string} name - Column name
+	 * @param {Function} fn - Function to apply to each value (value, rowIndex) => newValue
+	 */
+	col_apply(name, fn) {
+		if (!this.columns.includes(name)) {
+			throw new Error(`Column '${name}' not found in columns: ${this.columns.join(', ')}`);
+		}
+
+		for (let i = 0; i < this.data.length; i++) {
+			this.data[i][name] = fn(this.data[i][name], i);
+		}
+	}
+
+	/**
 	 * Parses a CSV string into a DataFrame
 	 * 
 	 * @param {string} text - CSV text content

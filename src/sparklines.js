@@ -1,13 +1,15 @@
 /**
  * Generate an SVG sparkline chart from data
- * 
+ *
  * Creates a small inline chart suitable for embedding in tables, dashboards, or text.
  * The sparkline automatically scales to fit the data range and supports various
  * visual customizations including gradients, markers, and optional axes.
- * 
+ *
  * # Parameters:
- *  - `data : number[]`
- *     Array of numeric values to plot
+ *  - `yvalues : number[]`
+ *     Array of numeric y-values to plot
+ *  - `xvalues : number[]|null`
+ *     Array of numeric x-values (defaults to null, which uses 0..n-1)
  *  - `options : object`
  *     Configuration object with the following properties:
  *     - `width : number` - SVG width in pixels (defaults to `120`)
@@ -35,13 +37,16 @@
  *     Complete SVG element as an HTML string
  * 
  * # Usage:
- * 
+ *
  * ```javascript
- * // Basic sparkline
+ * // Basic sparkline with auto x-values (0, 1, 2, 3, 4)
  * document.getElementById('chart').innerHTML = sparkline([1, 5, 2, 8, 3]);
- * 
+ *
+ * // Sparkline with custom x-values
+ * document.getElementById('chart').innerHTML = sparkline([10, 25, 15, 30, 20], [0, 2, 4, 6, 8]);
+ *
  * // Customized sparkline with axes
- * document.getElementById('chart').innerHTML = sparkline([10, 25, 15, 30, 20], {
+ * document.getElementById('chart').innerHTML = sparkline([10, 25, 15, 30, 20], null, {
  *     width: 200,
  *     height: 60,
  *     color: '#22c55e',
@@ -52,7 +57,7 @@
  * });
  * ```
  */
-function sparkline(data, options = {}) {
+function sparkline(yvalues, xvalues = null, options = {}) {
 	// Default options
 	const opts = {
 		width: 120,
@@ -67,6 +72,16 @@ function sparkline(data, options = {}) {
 		...options
 	};
 
+	// Generate default x-values if not provided
+	if (xvalues === null) {
+		xvalues = Array.from({ length: yvalues.length }, (_, i) => i);
+	}
+
+	// Validate that x and y arrays have same length
+	if (xvalues.length !== yvalues.length) {
+		throw new Error(`xvalues length (${xvalues.length}) must match yvalues length (${yvalues.length})`);
+	}
+
 	// Calculate margins based on what's shown
 	const needsLeftMargin = opts.yAxis.ticks;
 	const needsBottomMargin = opts.xAxis.ticks;
@@ -75,9 +90,14 @@ function sparkline(data, options = {}) {
 	const topMargin = opts.margin;
 	const bottomMargin = needsBottomMargin ? opts.margin + 15 : opts.margin;
 
-	const min = Math.min(...data);
-	const max = Math.max(...data);
-	const range = max - min || 1;
+	const ymin = Math.min(...yvalues);
+	const ymax = Math.max(...yvalues);
+	const yrange = ymax - ymin || 1;
+
+	const xmin = Math.min(...xvalues);
+	const xmax = Math.max(...xvalues);
+	const xrange = xmax - xmin || 1;
+
 	const chartWidth = opts.width - leftMargin - rightMargin;
 	const chartHeight = opts.height - topMargin - bottomMargin;
 
@@ -86,10 +106,11 @@ function sparkline(data, options = {}) {
 	let dots = '';
 	const points = [];
 
-	data.forEach((val, i) => {
-		const x = leftMargin + (i / (data.length - 1)) * chartWidth;
-		const y = topMargin + (1 - (val - min) / range) * chartHeight;
-		points.push({ x, y, val });
+	yvalues.forEach((yval, i) => {
+		const xval = xvalues[i];
+		const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
+		const y = topMargin + (1 - (yval - ymin) / yrange) * chartHeight;
+		points.push({ x, y, xval, yval });
 
 		path += `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
 
@@ -141,8 +162,8 @@ function sparkline(data, options = {}) {
                       stroke="#ccc" stroke-width="1"/>`;
 	}
 	if (opts.yAxis.ticks) {
-		svg += `<text x="${leftMargin - 3}" y="${topMargin + 3}" font-size="9" fill="#666" text-anchor="end">${max}</text>`;
-		svg += `<text x="${leftMargin - 3}" y="${opts.height - bottomMargin + 3}" font-size="9" fill="#666" text-anchor="end">${min}</text>`;
+		svg += `<text x="${leftMargin - 3}" y="${topMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymax}</text>`;
+		svg += `<text x="${leftMargin - 3}" y="${opts.height - bottomMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymin}</text>`;
 	}
 
 	// Add x-axis
@@ -150,9 +171,9 @@ function sparkline(data, options = {}) {
 		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${opts.width - rightMargin}" y2="${opts.height - bottomMargin}" 
                       stroke="#ccc" stroke-width="1"/>`;
 	}
-	if (opts.xAxis.ticks && data.length > 0) {
-		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">0</text>`;
-		svg += `<text x="${opts.width - rightMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${data.length - 1}</text>`;
+	if (opts.xAxis.ticks && yvalues.length > 0) {
+		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmin}</text>`;
+		svg += `<text x="${opts.width - rightMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmax}</text>`;
 	}
 
 	// Add the line
