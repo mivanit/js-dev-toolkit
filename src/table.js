@@ -467,7 +467,7 @@ class DataTable {
                 }
             };
             btn.addEventListener('click', handler);
-            this.paginationListeners.push({element: btn, event: 'click', handler});
+            this.paginationListeners.push({ element: btn, event: 'click', handler });
         });
 
         // Add page size selector listener
@@ -477,7 +477,7 @@ class DataTable {
                 this.setPageSize(parseInt(e.target.value));
             };
             pageSizeSelect.addEventListener('change', handler);
-            this.paginationListeners.push({element: pageSizeSelect, event: 'change', handler});
+            this.paginationListeners.push({ element: pageSizeSelect, event: 'change', handler });
         }
 
         // Add export CSV button listener
@@ -487,7 +487,7 @@ class DataTable {
                 this.exportAndDownloadCSV();
             };
             exportBtn.addEventListener('click', handler);
-            this.paginationListeners.push({element: exportBtn, event: 'click', handler});
+            this.paginationListeners.push({ element: exportBtn, event: 'click', handler });
         }
 
         // Add clear filters button listener
@@ -497,7 +497,7 @@ class DataTable {
                 this.clearAllFilters();
             };
             clearBtn.addEventListener('click', handler);
-            this.paginationListeners.push({element: clearBtn, event: 'click', handler});
+            this.paginationListeners.push({ element: clearBtn, event: 'click', handler });
         }
     }
 
@@ -547,14 +547,14 @@ class DataTable {
     generatePageButtons(totalPages) {
         if (totalPages <= 10) {
             // Show all pages
-            return Array.from({length: totalPages}, (_, i) => ({type: 'page', page: i + 1}));
+            return Array.from({ length: totalPages }, (_, i) => ({ type: 'page', page: i + 1 }));
         }
 
         // Always show exactly 10 elements (pages + dots)
         const items = [];
 
         // Always show page 1
-        items.push({type: 'page', page: 1});
+        items.push({ type: 'page', page: 1 });
 
         // Determine the window around current page
         let start = Math.max(2, this.currentPage - 3);
@@ -562,7 +562,7 @@ class DataTable {
 
         // Add dots after 1 if needed
         if (start > 2) {
-            items.push({type: 'dots'});
+            items.push({ type: 'dots' });
             // Adjust to maintain 10 elements total
             if (end === totalPages - 1) start = Math.max(start, totalPages - 7);
         } else {
@@ -571,17 +571,17 @@ class DataTable {
 
         // Add middle pages
         for (let i = start; i <= end && items.length < 9; i++) {
-            items.push({type: 'page', page: i});
+            items.push({ type: 'page', page: i });
         }
 
         // Add dots before last page if needed
         if (end < totalPages - 1) {
-            items.push({type: 'dots'});
+            items.push({ type: 'dots' });
         }
 
         // Always show last page (if different from 1)
         if (totalPages > 1) {
-            items.push({type: 'page', page: totalPages});
+            items.push({ type: 'page', page: totalPages });
         }
 
         // Pad with pages if we have less than 10 items
@@ -590,9 +590,9 @@ class DataTable {
 
             // Find gaps and fill them
             for (let i = 1; i < items.length; i++) {
-                if (items[i].type === 'page' && items[i-1].type === 'page' &&
-                    items[i].page - items[i-1].page > 1) {
-                    items.splice(i, 0, {type: 'page', page: items[i-1].page + 1});
+                if (items[i].type === 'page' && items[i - 1].type === 'page' &&
+                    items[i].page - items[i - 1].page > 1) {
+                    items.splice(i, 0, { type: 'page', page: items[i - 1].page + 1 });
                     break;
                 }
             }
