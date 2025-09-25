@@ -198,7 +198,7 @@ class DataFrame {
 
 	/**
 	 * Returns a string representation of the DataFrame
-	 * 
+	 *
 	 * @returns {string} - String representation
 	 */
 	toString() {
@@ -207,5 +207,44 @@ class DataFrame {
 		}
 
 		return `DataFrame with ${this.data.length} rows and ${this.columns.length} columns: ${this.columns.join(', ')}`;
+	}
+
+	/**
+	 * Returns HTML code for displaying the DataFrame as a simple table
+	 *
+	 * @returns {string} - HTML table representation
+	 * @throws {Error} - If the DataFrame is empty
+	 */
+	display_simple() {
+		if (this.data.length === 0) {
+			throw new Error('Cannot display empty DataFrame');
+		}
+
+		let html = '<table>\n';
+
+		html += '  <thead>\n    <tr>\n';
+		for (const column of this.columns) {
+			html += `      <th>${column}</th>\n`;
+		}
+		html += '    </tr>\n  </thead>\n';
+
+		html += '  <tbody>\n';
+		for (let i = 0; i < this.data.length; i++) {
+			const row = this.data[i];
+			html += '    <tr>\n';
+
+			for (const column of this.columns) {
+				const value = row[column];
+				const displayValue = value === null || value === undefined ? '' : String(value);
+				html += `      <td>${displayValue}</td>\n`;
+			}
+
+			html += '    </tr>\n';
+		}
+		html += '  </tbody>\n';
+
+		html += '</table>';
+
+		return html;
 	}
 }

@@ -498,35 +498,39 @@ Bob,35,Chicago</textarea>
         }
 
         function displayDataFrame(df) {
-            const table = document.getElementById('dataframe-table');
-            const thead = table.querySelector('thead');
-            const tbody = table.querySelector('tbody');
+            const tableContainer = document.getElementById('dataframe-table').parentNode;
+            const existingTable = document.getElementById('dataframe-table');
 
-            // Clear existing content
-            thead.innerHTML = '';
-            tbody.innerHTML = '';
-
-            // Create header
-            const headerRow = document.createElement('tr');
-            df.columns.forEach(col => {
-                const th = document.createElement('th');
-                th.textContent = col;
-                headerRow.appendChild(th);
-            });
-            thead.appendChild(headerRow);
-
-            // Create rows
-            for (let i = 0; i < df.length; i++) {
-                const row = document.createElement('tr');
-                df.columns.forEach(col => {
-                    const td = document.createElement('td');
-                    td.textContent = df.get(i, col);
-                    row.appendChild(td);
-                });
-                tbody.appendChild(row);
+            // Remove existing table
+            if (existingTable) {
+                existingTable.remove();
             }
 
-            table.style.display = 'table';
+            try {
+                // Use DataFrame's display_simple method
+                const htmlTable = df.display_simple();
+
+                // Create a div to hold the HTML table
+                const tableDiv = document.createElement('div');
+                tableDiv.innerHTML = htmlTable;
+                tableDiv.firstChild.id = 'dataframe-table';
+
+                // Insert after the output div
+                const outputDiv = document.getElementById('dataframe-output');
+                outputDiv.parentNode.insertBefore(tableDiv.firstChild, outputDiv.nextSibling);
+
+            } catch (error) {
+                // Handle empty DataFrame case
+                const emptyDiv = document.createElement('div');
+                emptyDiv.id = 'dataframe-table';
+                emptyDiv.textContent = 'Empty DataFrame - nothing to display';
+                emptyDiv.style.display = 'block';
+                emptyDiv.style.fontStyle = 'italic';
+                emptyDiv.style.color = '#666';
+
+                const outputDiv = document.getElementById('dataframe-output');
+                outputDiv.parentNode.insertBefore(emptyDiv, outputDiv.nextSibling);
+            }
         }
 
         // Helper function to display config with URL params
