@@ -2,6 +2,9 @@
 class DataTable {
     constructor(container, config = {}) {
         this.container = typeof container === 'string' ? document.querySelector(container) : container;
+        if (!this.container) {
+            throw new Error(`DataTable container not found: ${container}`);
+        }
         this.data = config.data || [];
         this.columns = config.columns || [];
         this.pageSizeOptions = config.pageSizeOptions || [10, 25, 50, 100];
@@ -12,7 +15,7 @@ class DataTable {
         this.sortDirection = null;
         this.filters = {};
         this.filteredData = [];
-        this.isResizing = false;
+        this.paginationListeners = []; // Store listeners for cleanup
         if (this.columns.length === 0 && this.data.length > 0) {
             this.columns = Object.keys(this.data[0]).map(key => ({
                 key: key,
@@ -34,7 +37,7 @@ class DataTable {
 
     init() {
         this.createTableStructure();
-        this.applyFilters();
+        this.applyFiltersAndSort();
         this.render();
     }
 
@@ -186,7 +189,6 @@ class DataTable {
         handle.addEventListener('mousedown', (e) => {
             startX = e.clientX;
             startWidth = parseInt(document.defaultView.getComputedStyle(th).width, 10);
-            this.isResizing = true;
             document.addEventListener('mousemove', doDrag);
             document.addEventListener('mouseup', stopDrag);
         });
@@ -200,7 +202,6 @@ class DataTable {
         };
 
         const stopDrag = () => {
-            this.isResizing = false;
             document.removeEventListener('mousemove', doDrag);
             document.removeEventListener('mouseup', stopDrag);
         };
@@ -220,7 +221,7 @@ class DataTable {
             this.sortDirection = 'asc';
         }
 
-        this.applyFilters();
+        this.applyFiltersAndSort();
         this.render();
     }
 
@@ -278,7 +279,8 @@ class DataTable {
         }
 
         this.currentPage = 1;
-        this.applyFilters();
+        this.applyFiltersAndSort();
+        this.validateCurrentPage();
         this.render();
     }
 
@@ -287,11 +289,12 @@ class DataTable {
         delete this.filters[columnKey];
         inputElement.style.backgroundColor = '';
         this.currentPage = 1;
-        this.applyFilters();
+        this.applyFiltersAndSort();
+        this.validateCurrentPage();
         this.render();
     }
 
-    applyFilters() {
+    applyFiltersAndSort() {
         // Start with all data
         let filtered = [...this.data];
 
@@ -355,6 +358,15 @@ class DataTable {
 
     getTotalPages() {
         return Math.ceil(this.filteredData.length / this.pageSize);
+    }
+
+    validateCurrentPage() {
+        const totalPages = this.getTotalPages();
+        if (this.currentPage > totalPages && totalPages > 0) {
+            this.currentPage = totalPages;
+        } else if (this.currentPage < 1) {
+            this.currentPage = 1;
+        }
     }
 
     render() {
@@ -442,39 +454,50 @@ class DataTable {
 
         this.paginationBottom.innerHTML = paginationHTML;
 
-        // Add event listeners
+        // Clear old listeners to prevent memory leaks
+        this.paginationListeners = [];
+
+        // Add page button listeners
         this.paginationBottom.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('click', (e) => {
+            const handler = (e) => {
                 const page = parseInt(e.target.dataset.page);
                 if (!isNaN(page)) {
                     this.currentPage = page;
                     this.render();
                 }
-            });
+            };
+            btn.addEventListener('click', handler);
+            this.paginationListeners.push({element: btn, event: 'click', handler});
         });
 
         // Add page size selector listener
         const pageSizeSelect = this.paginationBottom.querySelector('.page-size-select');
         if (pageSizeSelect) {
-            pageSizeSelect.addEventListener('change', (e) => {
+            const handler = (e) => {
                 this.setPageSize(parseInt(e.target.value));
-            });
+            };
+            pageSizeSelect.addEventListener('change', handler);
+            this.paginationListeners.push({element: pageSizeSelect, event: 'change', handler});
         }
 
         // Add export CSV button listener
         const exportBtn = this.paginationBottom.querySelector('.export-csv-btn');
         if (exportBtn) {
-            exportBtn.addEventListener('click', () => {
+            const handler = () => {
                 this.exportAndDownloadCSV();
-            });
+            };
+            exportBtn.addEventListener('click', handler);
+            this.paginationListeners.push({element: exportBtn, event: 'click', handler});
         }
 
         // Add clear filters button listener
         const clearBtn = this.paginationBottom.querySelector('.clear-filters-btn');
         if (clearBtn) {
-            clearBtn.addEventListener('click', () => {
+            const handler = () => {
                 this.clearAllFilters();
-            });
+            };
+            clearBtn.addEventListener('click', handler);
+            this.paginationListeners.push({element: clearBtn, event: 'click', handler});
         }
     }
 
@@ -563,6 +586,8 @@ class DataTable {
 
         // Pad with pages if we have less than 10 items
         while (items.length < 10 && totalPages > items.length) {
+            const initialLength = items.length;
+
             // Find gaps and fill them
             for (let i = 1; i < items.length; i++) {
                 if (items[i].type === 'page' && items[i-1].type === 'page' &&
@@ -571,7 +596,11 @@ class DataTable {
                     break;
                 }
             }
-            if (items.length >= 10) break;
+
+            // Safety check: if no progress was made, break to avoid infinite loop
+            if (items.length === initialLength) {
+                break;
+            }
         }
 
         return items.slice(0, 10); // Ensure exactly 10 elements
@@ -593,19 +622,23 @@ class DataTable {
     setData(data) {
         this.data = data;
         this.currentPage = 1;
-        this.applyFilters();
+        this.applyFiltersAndSort();
+        this.validateCurrentPage();
         this.render();
     }
 
     addRow(row) {
         this.data.push(row);
-        this.applyFilters();
+        this.applyFiltersAndSort();
+        this.validateCurrentPage();
         this.render();
     }
 
     setPageSize(size) {
         this.pageSize = size;
         this.currentPage = 1;
+        this.applyFiltersAndSort();
+        this.validateCurrentPage();
         this.render();
     }
 
@@ -655,7 +688,7 @@ class DataTable {
             input.style.backgroundColor = '';
         });
         this.currentPage = 1;
-        this.applyFilters();
+        this.applyFiltersAndSort();
         this.render();
     }
 }
