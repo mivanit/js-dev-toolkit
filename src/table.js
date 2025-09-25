@@ -1,6 +1,3 @@
-/**
- * Table.js - A streamlined data table with filtering, sorting, and pagination
- */
 
 class DataTable {
     constructor(container, config = {}) {
@@ -13,9 +10,6 @@ class DataTable {
         this.sortDirection = null;
         this.filters = {};
         this.filteredData = [];
-        // Renderers are now part of column definitions
-
-        // Auto-generate columns from data if not provided
         if (this.columns.length === 0 && this.data.length > 0) {
             this.columns = Object.keys(this.data[0]).map(key => ({
                 key: key,
@@ -106,16 +100,36 @@ class DataTable {
             const td = document.createElement('td');
             td.className = 'datatable-filter-cell';
 
+            const filterContainer = document.createElement('div');
+            filterContainer.style.display = 'flex';
+            filterContainer.style.alignItems = 'center';
+
             const input = document.createElement('input');
             input.className = 'datatable-filter-input';
             input.type = 'text';
             input.placeholder = col.type === 'number' ? 'e.g. >50' : 'Filter...';
+            input.style.flex = '1';
+
+            const clearBtn = document.createElement('button');
+            clearBtn.textContent = '×';
+            clearBtn.style.border = 'none';
+            clearBtn.style.background = 'none';
+            clearBtn.style.cursor = 'pointer';
+            clearBtn.style.padding = '2px 6px';
+            clearBtn.style.fontSize = '16px';
+            clearBtn.style.color = '#999';
 
             input.addEventListener('input', (e) => {
-                this.handleFilter(col.key, e.target.value, col.type);
+                this.handleFilter(col.key, e.target.value, col.type, input);
             });
 
-            td.appendChild(input);
+            clearBtn.addEventListener('click', () => {
+                this.clearFilter(col.key, input);
+            });
+
+            filterContainer.appendChild(input);
+            filterContainer.appendChild(clearBtn);
+            td.appendChild(filterContainer);
             filterRow.appendChild(td);
         });
         thead.appendChild(filterRow);
@@ -193,16 +207,36 @@ class DataTable {
         }
     }
 
-    handleFilter(columnKey, filterValue, type) {
+    handleFilter(columnKey, filterValue, type, inputElement) {
         if (!filterValue) {
             delete this.filters[columnKey];
+            inputElement.style.backgroundColor = '';
         } else {
+            let isValid = true;
+
+            if (type === 'number') {
+                const numFilter = this.parseNumericFilter(filterValue);
+                isValid = numFilter !== null;
+            }
+
             this.filters[columnKey] = {
                 value: filterValue,
-                type: type
+                type: type,
+                valid: isValid
             };
+
+            inputElement.style.backgroundColor = isValid ? '' : '#ffcccc';
         }
 
+        this.currentPage = 1;
+        this.applyFilters();
+        this.render();
+    }
+
+    clearFilter(columnKey, inputElement) {
+        inputElement.value = '';
+        delete this.filters[columnKey];
+        inputElement.style.backgroundColor = '';
         this.currentPage = 1;
         this.applyFilters();
         this.render();
@@ -212,9 +246,10 @@ class DataTable {
         // Start with all data
         let filtered = [...this.data];
 
-        // Apply filters
         filtered = filtered.filter(row => {
             for (const [key, filter] of Object.entries(this.filters)) {
+                if (!filter.valid) continue;
+
                 const cellValue = row[key];
 
                 if (filter.type === 'number') {
@@ -223,12 +258,10 @@ class DataTable {
                         return false;
                     }
                 } else {
-                    // String filter
                     if (cellValue === null || cellValue === undefined) return false;
                     const strValue = String(cellValue).toLowerCase();
                     const filterStr = filter.value.toLowerCase();
 
-                    // Support wildcards
                     if (filterStr.includes('*')) {
                         const regex = new RegExp('^' + filterStr.replace(/\*/g, '.*') + '$');
                         if (!regex.test(strValue)) return false;
@@ -362,66 +395,107 @@ class DataTable {
         const totalPages = this.getTotalPages();
         const paginationHTML = this.createPaginationHTML(totalPages);
 
-        this.paginationTop.innerHTML = paginationHTML;
         this.paginationBottom.innerHTML = paginationHTML;
 
         // Add event listeners
-        [this.paginationTop, this.paginationBottom].forEach(container => {
-            container.querySelectorAll('button').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const page = parseInt(e.target.dataset.page);
-                    if (!isNaN(page)) {
-                        this.currentPage = page;
-                        this.render();
-                    }
-                });
+        this.paginationBottom.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const page = parseInt(e.target.dataset.page);
+                if (!isNaN(page)) {
+                    this.currentPage = page;
+                    this.render();
+                }
             });
         });
+
+        // Add page size selector listener
+        const pageSizeSelect = this.paginationBottom.querySelector('.page-size-select');
+        if (pageSizeSelect) {
+            pageSizeSelect.addEventListener('change', (e) => {
+                this.setPageSize(parseInt(e.target.value));
+            });
+        }
     }
 
     createPaginationHTML(totalPages) {
-        if (totalPages <= 1) return '';
+        if (totalPages <= 1) return this.createPageSizeSelector();
 
-        let html = '<div class="datatable-pagination-info">';
+        let html = '<div style="display: flex; justify-content: space-between; align-items: center;">';
+
+        // Left side - info
         const start = (this.currentPage - 1) * this.pageSize + 1;
         const end = Math.min(this.currentPage * this.pageSize, this.filteredData.length);
-        html += `Showing ${start}-${end} of ${this.filteredData.length} entries`;
-        html += '</div>';
+        html += `<div>Showing ${start}-${end} of ${this.filteredData.length} entries</div>`;
 
-        html += '<div class="datatable-pagination-buttons">';
+        // Right side - pagination controls
+        html += '<div style="display: flex; align-items: center; gap: 10px;">';
+
+        // Page size selector
+        html += this.createPageSizeSelector();
+
+        // Page navigation
+        html += '<div>';
 
         // Previous button
         html += `<button ${this.currentPage === 1 ? 'disabled' : ''} data-page="${this.currentPage - 1}">Previous</button>`;
 
-        // Page numbers
-        const maxButtons = 5;
-        let startPage = Math.max(1, this.currentPage - Math.floor(maxButtons / 2));
-        let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+        // Smart page number display (max 10 pages)
+        if (totalPages <= 10) {
+            // Show all pages if 10 or fewer
+            for (let i = 1; i <= totalPages; i++) {
+                const isActive = i === this.currentPage;
+                html += `<button ${isActive ? 'disabled style="background: #ccc;"' : ''} data-page="${i}">${i}</button>`;
+            }
+        } else {
+            // Show first page
+            const isFirst = this.currentPage === 1;
+            html += `<button ${isFirst ? 'disabled style="background: #ccc;"' : ''} data-page="1">1</button>`;
 
-        if (endPage - startPage < maxButtons - 1) {
-            startPage = Math.max(1, endPage - maxButtons + 1);
-        }
+            // Show dots if current page is far from start
+            if (this.currentPage > 4) {
+                html += '<span>...</span>';
+            }
 
-        if (startPage > 1) {
-            html += `<button data-page="1">1</button>`;
-            if (startPage > 2) html += '<span>...</span>';
-        }
+            // Show pages around current page
+            const start = Math.max(2, this.currentPage - 2);
+            const end = Math.min(totalPages - 1, this.currentPage + 2);
 
-        for (let i = startPage; i <= endPage; i++) {
-            html += `<button class="${i === this.currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
-        }
+            for (let i = start; i <= end; i++) {
+                if (i !== 1 && i !== totalPages) {
+                    const isActive = i === this.currentPage;
+                    html += `<button ${isActive ? 'disabled style="background: #ccc;"' : ''} data-page="${i}">${i}</button>`;
+                }
+            }
 
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) html += '<span>...</span>';
-            html += `<button data-page="${totalPages}">${totalPages}</button>`;
+            // Show dots if current page is far from end
+            if (this.currentPage < totalPages - 3) {
+                html += '<span>...</span>';
+            }
+
+            // Show last page
+            const isLast = this.currentPage === totalPages;
+            html += `<button ${isLast ? 'disabled style="background: #ccc;"' : ''} data-page="${totalPages}">${totalPages}</button>`;
         }
 
         // Next button
         html += `<button ${this.currentPage === totalPages ? 'disabled' : ''} data-page="${this.currentPage + 1}">Next</button>`;
 
-        html += '</div>';
+        html += '</div>'; // End page navigation
+        html += '</div>'; // End right side
+        html += '</div>'; // End main container
 
         return html;
+    }
+
+    createPageSizeSelector() {
+        return `<label>Show
+            <select class="page-size-select">
+                <option value="10" ${this.pageSize === 10 ? 'selected' : ''}>10</option>
+                <option value="25" ${this.pageSize === 25 ? 'selected' : ''}>25</option>
+                <option value="50" ${this.pageSize === 50 ? 'selected' : ''}>50</option>
+                <option value="100" ${this.pageSize === 100 ? 'selected' : ''}>100</option>
+            </select>
+            entries</label>`;
     }
 
     // Public methods for data manipulation
