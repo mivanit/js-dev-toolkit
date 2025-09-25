@@ -529,12 +529,17 @@ Bob,35,Chicago</textarea>
             table.style.display = 'table';
         }
 
+        // Helper function to display config with URL params
+        function displayConfigWithURL() {
+            const currentURL = window.location.search || '(none)';
+            return `Current URL params: ${currentURL}\n\nCurrent configuration:\n${JSON.stringify(CONFIG, null, 2)}`;
+        }
+
         // 5. Configuration System Tests
         async function initializeConfig() {
             try {
                 const config = await initConfig();
-                document.getElementById('config-output').textContent =
-                    `Configuration initialized:\n${JSON.stringify(config, null, 2)}`;
+                document.getElementById('config-output').textContent = displayConfigWithURL();
             } catch (error) {
                 document.getElementById('config-output').textContent =
                     `Error initializing config: ${error.message}`;
@@ -548,8 +553,7 @@ Bob,35,Chicago</textarea>
                 return;
             }
 
-            document.getElementById('config-output').textContent =
-                `Current configuration:\n${JSON.stringify(CONFIG, null, 2)}`;
+            document.getElementById('config-output').textContent = displayConfigWithURL();
         }
 
         function exportConfig() {
@@ -561,7 +565,7 @@ Bob,35,Chicago</textarea>
 
             exportConfigToNewTab();
             document.getElementById('config-output').textContent =
-                'Configuration exported to new tab';
+                'Configuration exported to new tab\n\n' + displayConfigWithURL();
         }
 
         function resetConfig() {
@@ -572,8 +576,10 @@ Bob,35,Chicago</textarea>
             }
 
             resetConfigToLoaded();
-            document.getElementById('config-output').textContent =
-                `Configuration reset to loaded state:\n${JSON.stringify(CONFIG, null, 2)}`;
+            // Small delay to let URL update
+            setTimeout(() => {
+                document.getElementById('config-output').textContent = displayConfigWithURL();
+            }, 100);
         }
 
         function setConfigVal() {
@@ -598,8 +604,11 @@ Bob,35,Chicago</textarea>
             }
 
             setConfigValue(key, parsedValue);
-            document.getElementById('config-output').textContent =
-                `Set ${key} = ${JSON.stringify(parsedValue)}\nUpdated config:\n${JSON.stringify(CONFIG, null, 2)}`;
+            // Small delay to let URL update
+            setTimeout(() => {
+                document.getElementById('config-output').textContent =
+                    `Set ${key} = ${JSON.stringify(parsedValue)}\n\n` + displayConfigWithURL();
+            }, 600);
         }
 
         function getConfigVal() {
@@ -618,7 +627,7 @@ Bob,35,Chicago</textarea>
 
             const value = getConfigValue(key);
             document.getElementById('config-output').textContent =
-                `${key} = ${JSON.stringify(value)}`;
+                `${key} = ${JSON.stringify(value)}\n\n` + displayConfigWithURL();
         }
 
         function applyURLParams() {
@@ -637,8 +646,11 @@ Bob,35,Chicago</textarea>
             const params = new URLSearchParams(paramString);
             parseURLParams(params);
 
+            // Update browser URL
+            window.history.replaceState({}, '', window.location.pathname + paramString);
+
             document.getElementById('config-output').textContent =
-                `Applied URL parameters:\n${JSON.stringify(CONFIG, null, 2)}`;
+                `Applied URL parameters\n\n` + displayConfigWithURL();
         }
     </script>
 </body>
