@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,33 +13,39 @@
             padding: 20px;
             background: #f5f5f5;
         }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
+
         .module {
             background: white;
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         h1 {
             color: #333;
             margin-bottom: 30px;
         }
+
         h2 {
             color: #555;
             border-bottom: 2px solid #4CAF50;
             padding-bottom: 10px;
             margin-bottom: 20px;
         }
+
         .controls {
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
             margin-bottom: 15px;
         }
+
         button {
             padding: 8px 16px;
             background: #4CAF50;
@@ -48,32 +55,42 @@
             cursor: pointer;
             font-size: 14px;
         }
+
         button:hover {
             background: #45a049;
         }
+
         button.secondary {
             background: #2196F3;
         }
+
         button.secondary:hover {
             background: #0b7dda;
         }
+
         button.danger {
             background: #f44336;
         }
+
         button.danger:hover {
             background: #da190b;
         }
-        input, select, textarea {
+
+        input,
+        select,
+        textarea {
             padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
             font-size: 14px;
         }
+
         textarea {
             width: 100%;
             min-height: 100px;
             font-family: monospace;
         }
+
         pre {
             background: #f4f4f4;
             padding: 12px;
@@ -81,6 +98,7 @@
             overflow-x: auto;
             margin: 10px 0;
         }
+
         .output {
             background: #e8f5e9;
             padding: 12px;
@@ -90,12 +108,14 @@
             font-family: monospace;
             white-space: pre-wrap;
         }
+
         .color-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 10px;
             margin-top: 10px;
         }
+
         .color-box {
             height: 60px;
             border-radius: 4px;
@@ -104,21 +124,26 @@
             justify-content: center;
             color: white;
             font-size: 12px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
         }
+
         .file-input {
             margin: 10px 0;
         }
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 10px;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
         }
+
         th {
             background: #f4f4f4;
             font-weight: bold;
@@ -128,6 +153,7 @@
         .rg-filter-container {
             margin-bottom: 10px;
         }
+
         .rg-clear-all {
             background: #ff5722;
             color: white;
@@ -137,27 +163,32 @@
             cursor: pointer;
             margin-bottom: 10px;
         }
+
         .rg-clear-all:hover {
             background: #e64a19;
         }
+
         .rg-filter-row {
             display: flex;
             align-items: center;
             border: 1px solid #ddd;
             background: #f9f9f9;
         }
+
         .rg-row-header-space {
             width: 60px;
             min-width: 60px;
             background: #f4f4f4;
             border-right: 1px solid #ddd;
         }
+
         .rg-filter-cell {
             position: relative;
             border-right: 1px solid #ddd;
             display: flex;
             align-items: center;
         }
+
         .rg-filter-input {
             flex: 1;
             border: none;
@@ -166,6 +197,7 @@
             background: transparent;
             outline: none;
         }
+
         .rg-filter-clear {
             background: none;
             border: none;
@@ -175,9 +207,11 @@
             font-size: 16px;
             line-height: 1;
         }
+
         .rg-filter-clear:hover {
             color: #666;
         }
+
         #grid-container {
             min-height: 300px;
             border: 1px solid #ddd;
@@ -185,10 +219,10 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>JS Dev Toolkit - Functionality Test</h1>
-
         <!-- Notification System -->
         <div class="module">
             <h2>1. Notification System (notif.js)</h2>
@@ -202,7 +236,6 @@
             </div>
             <div class="output" id="notif-output">Click buttons to test notification system</div>
         </div>
-
         <!-- Color Utilities -->
         <div class="module">
             <h2>2. Color Utilities (ColorUtil.js)</h2>
@@ -221,7 +254,6 @@
             <div class="color-grid" id="color-output"></div>
             <div class="output" id="color-hex-output"></div>
         </div>
-
         <!-- Array/NPY Handler -->
         <div class="module">
             <h2>3. Array/NPY Handler (array.js)</h2>
@@ -238,7 +270,6 @@
             </div>
             <div class="output" id="array-output">Array operations will appear here</div>
         </div>
-
         <!-- DataFrame -->
         <div class="module">
             <h2>4. DataFrame (DataFrame.js)</h2>
@@ -262,7 +293,6 @@ Bob,35,Chicago</textarea>
                 <tbody></tbody>
             </table>
         </div>
-
         <!-- Grid Base -->
         <div class="module">
             <h2>5. Grid Base (GridBase.js)</h2>
@@ -287,7 +317,6 @@ Eve Miller,29,73000.75,Sales,89.8</textarea>
             <div class="output" id="grid-output">Grid will appear here. Use filters to search data.</div>
             <div id="grid-container" style="margin-top: 15px;"></div>
         </div>
-
         <!-- Configuration System -->
         <div class="module">
             <h2>6. Configuration System (config.js)</h2>
@@ -312,7 +341,6 @@ Eve Miller,29,73000.75,Sales,89.8</textarea>
             <div class="output" id="config-output">Configuration will appear here</div>
         </div>
     </div>
-
     <!-- Load all JavaScript files -->
     <script src="src/notif.js"></script>
     <script src="src/ColorUtil.js"></script>
@@ -320,11 +348,9 @@ Eve Miller,29,73000.75,Sales,89.8</textarea>
     <script src="src/DataFrame.js"></script>
     <script src="src/GridBase.js"></script>
     <script src="src/config.js"></script>
-
     <!-- RevoGrid CDN -->
     <script type="module" src="https://cdn.jsdelivr.net/npm/@revolist/revogrid@4/dist/revo-grid/revo-grid.esm.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@revolist/revogrid@4/dist/revo-grid/revo-grid.css">
-
     <!-- Test Scripts -->
     <script>
         // Global variables for testing
@@ -749,4 +775,5 @@ Eve Miller,29,73000.75,Sales,89.8</textarea>
         }
     </script>
 </body>
+
 </html>

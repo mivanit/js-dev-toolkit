@@ -8,7 +8,7 @@ class GridBase {
         this.grid = null;
         this.columns = config.columns || [];
         this.data = config.data || [];
-        
+
         this.init();
     }
 
@@ -22,15 +22,15 @@ class GridBase {
     parseNumericFilter(value) {
         const trimmed = value.trim();
         if (!trimmed) return null;
-        
+
         const match = trimmed.match(/^(==|>=|<=|>|<)?\s*(-?\d+\.?\d*)$/);
         if (!match) return { valid: false };
-        
+
         const operator = match[1] || '==';
         const number = parseFloat(match[2]);
-        
+
         if (isNaN(number)) return { valid: false };
-        
+
         return {
             valid: true,
             operator,
@@ -41,10 +41,10 @@ class GridBase {
     // Apply numeric filter
     applyNumericFilter(cellValue, filter) {
         if (!filter || !filter.valid) return true;
-        
+
         const value = parseFloat(cellValue);
         if (isNaN(value)) return false;
-        
+
         switch (filter.operator) {
             case '==': return value === filter.value;
             case '>': return value > filter.value;
@@ -85,9 +85,9 @@ class GridBase {
     applyStringFilter(cellValue, filterValue) {
         if (!filterValue) return true;
         if (cellValue == null) return false;
-        
+
         const str = cellValue.toString();
-        
+
         if (filterValue.includes('*') && !filterValue.includes('\\*')) {
             try {
                 const regex = this.globToRegex(filterValue);
@@ -106,9 +106,9 @@ class GridBase {
         const filtered = this.originalData.filter(row => {
             for (const [prop, filterData] of Object.entries(this.filters)) {
                 if (!filterData.value) continue;
-                
+
                 const cellValue = row[prop];
-                
+
                 if (filterData.type === 'numeric') {
                     if (!this.applyNumericFilter(cellValue, filterData.parsed)) {
                         return false;
@@ -121,7 +121,7 @@ class GridBase {
             }
             return true;
         });
-        
+
         if (this.grid) {
             this.grid.source = filtered;
         }
@@ -130,7 +130,7 @@ class GridBase {
     // Handle filter input
     handleFilterInput(prop, type, input) {
         const value = input.value;
-        
+
         if (type === 'numeric') {
             const parsed = this.parseNumericFilter(value);
             this.filters[prop] = { value, type, parsed };
@@ -143,7 +143,7 @@ class GridBase {
             this.filters[prop] = { value, type };
             input.style.backgroundColor = '';
         }
-        
+
         this.applyFilters();
     }
 
@@ -169,45 +169,45 @@ class GridBase {
     createFilterRow() {
         const filterContainer = document.createElement('div');
         filterContainer.className = 'rg-filter-container';
-        
+
         const filterRow = document.createElement('div');
         filterRow.className = 'rg-filter-row';
-        
+
         // Add space for row headers if enabled
         const rowHeaderSpace = document.createElement('div');
         rowHeaderSpace.className = 'rg-row-header-space';
         filterRow.appendChild(rowHeaderSpace);
-        
+
         // Create filter for each column
         this.columns.forEach(col => {
             const container = document.createElement('div');
             container.className = 'rg-filter-cell';
             container.style.width = col.size + 'px';
-            
+
             const input = document.createElement('input');
             input.className = 'rg-filter-input';
             input.placeholder = col.columnType === 'numeric' ? 'e.g. >50' : 'text or *glob*';
-            
+
             const clearBtn = document.createElement('button');
             clearBtn.className = 'rg-filter-clear';
             clearBtn.textContent = '×';
             clearBtn.onclick = () => this.clearFilter(col.prop, input);
-            
+
             input.addEventListener('input', () => {
                 this.handleFilterInput(col.prop, col.columnType === 'numeric' ? 'numeric' : 'string', input);
             });
-            
+
             container.appendChild(input);
             container.appendChild(clearBtn);
             filterRow.appendChild(container);
         });
-        
+
         // Clear all button
         const clearAllBtn = document.createElement('button');
         clearAllBtn.className = 'rg-clear-all';
         clearAllBtn.textContent = 'Clear All';
         clearAllBtn.onclick = () => this.clearAllFilters();
-        
+
         filterContainer.appendChild(clearAllBtn);
         filterContainer.appendChild(filterRow);
         this.container.appendChild(filterContainer);
@@ -227,7 +227,7 @@ class GridBase {
     createGrid() {
         const gridContainer = document.createElement('div');
         gridContainer.className = 'rg-grid-container';
-        
+
         this.grid = document.createElement('revo-grid');
         this.grid.columns = this.columns;
         this.grid.source = this.originalData;
@@ -240,9 +240,9 @@ class GridBase {
         this.grid.readonly = true;
         this.grid.sortable = true;
         this.grid.range = true;
-        
+
         this.grid.addEventListener('aftercolumnresize', () => this.updateFilterWidths());
-        
+
         gridContainer.appendChild(this.grid);
         this.container.appendChild(gridContainer);
     }

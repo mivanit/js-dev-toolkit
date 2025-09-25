@@ -191,7 +191,7 @@ function encodeForURL(value) {
  * @param {string} value - String value from URL parameter
  * @returns {any} Parsed value
 */
-function decodeFromURL(value) { 
+function decodeFromURL(value) {
   // Boolean
   if (value === "true") return true;
   if (value === "false") return false;
