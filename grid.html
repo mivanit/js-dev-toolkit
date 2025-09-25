@@ -111,13 +111,13 @@ Henry Martinez,31,77500.50,Sales,83.1</textarea>
         function loadSampleData() {
             const data = generateSampleData(150);
             const columns = [
-                { key: 'id', label: 'ID', type: 'number' },
-                { key: 'name', label: 'Name', type: 'string' },
-                { key: 'age', label: 'Age', type: 'number' },
-                { key: 'salary', label: 'Salary', type: 'number', renderer: salaryRenderer },
-                { key: 'department', label: 'Department', type: 'string', renderer: departmentRenderer },
-                { key: 'score', label: 'Score', type: 'number', renderer: scoreRenderer },
-                { key: 'startDate', label: 'Start Date', type: 'date', renderer: dateRenderer }
+                { key: 'id', label: 'ID', type: 'number', width: '80px', align: 'right' },
+                { key: 'name', label: 'Name', type: 'string', width: '150px' },
+                { key: 'age', label: 'Age', type: 'number', width: '70px', align: 'center' },
+                { key: 'salary', label: 'Salary', type: 'number', width: '120px', align: 'right', renderer: salaryRenderer },
+                { key: 'department', label: 'Department', type: 'string', width: '120px', align: 'center', renderer: departmentRenderer },
+                { key: 'score', label: 'Score', type: 'number', width: '80px', align: 'center', renderer: scoreRenderer },
+                { key: 'startDate', label: 'Start Date', type: 'date', width: '120px', align: 'center', renderer: dateRenderer }
             ];
 
             table = new DataTable('#table-container', {

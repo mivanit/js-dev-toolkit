@@ -5,11 +5,13 @@ class DataTable {
         this.data = config.data || [];
         this.columns = config.columns || [];
         this.pageSize = config.pageSize || 25;
+        this.showFilters = config.showFilters !== false; // Default to true
         this.currentPage = 1;
         this.sortColumn = null;
         this.sortDirection = null;
         this.filters = {};
         this.filteredData = [];
+        this.isResizing = false;
         if (this.columns.length === 0 && this.data.length > 0) {
             this.columns = Object.keys(this.data[0]).map(key => ({
                 key: key,
@@ -38,26 +40,12 @@ class DataTable {
     createTableStructure() {
         this.container.innerHTML = '';
 
-        // Create wrapper
+        // Create wrapper with border
         const wrapper = document.createElement('div');
         wrapper.className = 'datatable-wrapper';
+        wrapper.style.border = '1px solid #ccc';
 
-        // Create controls container
-        const controls = document.createElement('div');
-        controls.className = 'datatable-controls';
-
-        // Add clear filters button
-        const clearBtn = document.createElement('button');
-        clearBtn.className = 'datatable-clear-filters';
-        clearBtn.textContent = 'Clear All Filters';
-        clearBtn.onclick = () => this.clearAllFilters();
-        controls.appendChild(clearBtn);
-
-        // No top pagination - only bottom
-
-        wrapper.appendChild(controls);
-
-        // Create table
+        // Create table container
         const tableContainer = document.createElement('div');
         tableContainer.className = 'datatable-container';
 
@@ -67,14 +55,24 @@ class DataTable {
         // Create header
         const thead = document.createElement('thead');
 
-        // Header row with column names and sort
+        // Header row with column names, sort, and resize handles
         const headerRow = document.createElement('tr');
-        this.columns.forEach(col => {
+        this.columns.forEach((col, index) => {
             const th = document.createElement('th');
             th.className = 'datatable-header';
+            th.style.position = 'relative';
+            th.style.minWidth = col.width || '100px';
+
+            // Apply column alignment
+            if (col.align) {
+                th.style.textAlign = col.align;
+            }
 
             const headerContent = document.createElement('div');
             headerContent.className = 'datatable-header-content';
+            headerContent.style.display = 'flex';
+            headerContent.style.justifyContent = 'space-between';
+            headerContent.style.alignItems = 'center';
 
             const label = document.createElement('span');
             label.textContent = col.label || col.key;
@@ -87,52 +85,73 @@ class DataTable {
 
             headerContent.onclick = () => this.handleSort(col.key);
 
+            // Add resize handle
+            const resizeHandle = document.createElement('div');
+            resizeHandle.style.position = 'absolute';
+            resizeHandle.style.right = '0';
+            resizeHandle.style.top = '0';
+            resizeHandle.style.bottom = '0';
+            resizeHandle.style.width = '4px';
+            resizeHandle.style.cursor = 'col-resize';
+            resizeHandle.style.background = 'transparent';
+
+            this.addResizeListener(resizeHandle, th, index);
+
             th.appendChild(headerContent);
+            th.appendChild(resizeHandle);
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
 
-        // Filter row
-        const filterRow = document.createElement('tr');
-        filterRow.className = 'datatable-filter-row';
+        // Filter row (conditional)
+        if (this.showFilters) {
+            const filterRow = document.createElement('tr');
+            filterRow.className = 'datatable-filter-row';
 
-        this.columns.forEach(col => {
-            const td = document.createElement('td');
-            td.className = 'datatable-filter-cell';
+            this.columns.forEach(col => {
+                const td = document.createElement('td');
+                td.className = 'datatable-filter-cell';
 
-            const filterContainer = document.createElement('div');
-            filterContainer.style.display = 'flex';
-            filterContainer.style.alignItems = 'center';
+                // Apply column alignment to filter cell
+                if (col.align) {
+                    td.style.textAlign = col.align;
+                }
 
-            const input = document.createElement('input');
-            input.className = 'datatable-filter-input';
-            input.type = 'text';
-            input.placeholder = col.type === 'number' ? 'e.g. >50' : 'Filter...';
-            input.style.flex = '1';
+                const filterContainer = document.createElement('div');
+                filterContainer.style.display = 'flex';
+                filterContainer.style.alignItems = 'center';
 
-            const clearBtn = document.createElement('button');
-            clearBtn.textContent = '×';
-            clearBtn.style.border = 'none';
-            clearBtn.style.background = 'none';
-            clearBtn.style.cursor = 'pointer';
-            clearBtn.style.padding = '2px 6px';
-            clearBtn.style.fontSize = '16px';
-            clearBtn.style.color = '#999';
+                const input = document.createElement('input');
+                input.className = 'datatable-filter-input';
+                input.type = 'text';
+                input.placeholder = col.type === 'number' ? 'e.g. >50' : 'Filter...';
+                input.style.flex = '1';
 
-            input.addEventListener('input', (e) => {
-                this.handleFilter(col.key, e.target.value, col.type, input);
+                const clearBtn = document.createElement('button');
+                clearBtn.textContent = '×';
+                clearBtn.style.border = 'none';
+                clearBtn.style.background = 'none';
+                clearBtn.style.cursor = 'pointer';
+                clearBtn.style.padding = '2px 8px';
+                clearBtn.style.fontSize = '16px';
+                clearBtn.style.color = '#999';
+                clearBtn.style.marginLeft = '4px';
+
+                input.addEventListener('input', (e) => {
+                    this.handleFilter(col.key, e.target.value, col.type, input);
+                });
+
+                clearBtn.addEventListener('click', () => {
+                    this.clearFilter(col.key, input);
+                });
+
+                filterContainer.appendChild(input);
+                filterContainer.appendChild(clearBtn);
+                td.appendChild(filterContainer);
+                filterRow.appendChild(td);
             });
-
-            clearBtn.addEventListener('click', () => {
-                this.clearFilter(col.key, input);
-            });
-
-            filterContainer.appendChild(input);
-            filterContainer.appendChild(clearBtn);
-            td.appendChild(filterContainer);
-            filterRow.appendChild(td);
-        });
-        thead.appendChild(filterRow);
+            thead.appendChild(filterRow);
+        }
 
         table.appendChild(thead);
 
@@ -155,6 +174,32 @@ class DataTable {
         this.tbody = tbody;
         this.paginationBottom = paginationBottom;
         this.headerRow = headerRow;
+    }
+
+    addResizeListener(handle, th, columnIndex) {
+        let startX, startWidth;
+
+        handle.addEventListener('mousedown', (e) => {
+            startX = e.clientX;
+            startWidth = parseInt(document.defaultView.getComputedStyle(th).width, 10);
+            this.isResizing = true;
+            document.addEventListener('mousemove', doDrag);
+            document.addEventListener('mouseup', stopDrag);
+        });
+
+        const doDrag = (e) => {
+            const width = startWidth + e.clientX - startX;
+            th.style.width = width + 'px';
+            th.style.minWidth = width + 'px';
+            // Update column width in config
+            this.columns[columnIndex].width = width + 'px';
+        };
+
+        const stopDrag = () => {
+            this.isResizing = false;
+            document.removeEventListener('mousemove', doDrag);
+            document.removeEventListener('mouseup', stopDrag);
+        };
     }
 
     handleSort(columnKey) {
@@ -297,15 +342,6 @@ class DataTable {
         this.filteredData = filtered;
     }
 
-    clearAllFilters() {
-        this.filters = {};
-        this.container.querySelectorAll('.datatable-filter-input').forEach(input => {
-            input.value = '';
-        });
-        this.currentPage = 1;
-        this.applyFilters();
-        this.render();
-    }
 
     getPageData() {
         const start = (this.currentPage - 1) * this.pageSize;
@@ -365,6 +401,11 @@ class DataTable {
                 const td = document.createElement('td');
                 const value = row[col.key];
 
+                // Apply column alignment
+                if (col.align) {
+                    td.style.textAlign = col.align;
+                }
+
                 // Check for custom renderer in column definition
                 if (col.renderer) {
                     const rendered = col.renderer(value, row, col);
@@ -422,69 +463,89 @@ class DataTable {
 
         let html = '<div style="display: flex; justify-content: space-between; align-items: center;">';
 
-        // Left side - info
-        const start = (this.currentPage - 1) * this.pageSize + 1;
-        const end = Math.min(this.currentPage * this.pageSize, this.filteredData.length);
-        html += `<div>Showing ${start}-${end} of ${this.filteredData.length} entries</div>`;
-
-        // Right side - pagination controls
-        html += '<div style="display: flex; align-items: center; gap: 10px;">';
-
-        // Page size selector
+        // Left side - page size selector
         html += this.createPageSizeSelector();
 
-        // Page navigation
-        html += '<div>';
+        // Right side - pagination controls
+        html += '<div style="display: flex; align-items: center; gap: 2px;">';
 
         // Previous button
-        html += `<button ${this.currentPage === 1 ? 'disabled' : ''} data-page="${this.currentPage - 1}">Previous</button>`;
+        html += `<button style="min-width: 30px; padding: 4px 8px;" ${this.currentPage === 1 ? 'disabled' : ''} data-page="${this.currentPage - 1}">‹</button>`;
 
-        // Smart page number display (max 10 pages)
-        if (totalPages <= 10) {
-            // Show all pages if 10 or fewer
-            for (let i = 1; i <= totalPages; i++) {
-                const isActive = i === this.currentPage;
-                html += `<button ${isActive ? 'disabled style="background: #ccc;"' : ''} data-page="${i}">${i}</button>`;
+        // Page buttons - always show 10 elements for consistent width
+        const pageButtons = this.generatePageButtons(totalPages);
+        pageButtons.forEach(item => {
+            if (item.type === 'page') {
+                const isActive = item.page === this.currentPage;
+                html += `<button style="min-width: 30px; padding: 4px 8px; ${isActive ? 'background: #ccc;' : ''}" ${isActive ? 'disabled' : ''} data-page="${item.page}">${item.page}</button>`;
+            } else if (item.type === 'dots') {
+                html += '<span style="min-width: 30px; padding: 4px 8px; text-align: center; display: inline-block;">…</span>';
             }
-        } else {
-            // Show first page
-            const isFirst = this.currentPage === 1;
-            html += `<button ${isFirst ? 'disabled style="background: #ccc;"' : ''} data-page="1">1</button>`;
-
-            // Show dots if current page is far from start
-            if (this.currentPage > 4) {
-                html += '<span>...</span>';
-            }
-
-            // Show pages around current page
-            const start = Math.max(2, this.currentPage - 2);
-            const end = Math.min(totalPages - 1, this.currentPage + 2);
-
-            for (let i = start; i <= end; i++) {
-                if (i !== 1 && i !== totalPages) {
-                    const isActive = i === this.currentPage;
-                    html += `<button ${isActive ? 'disabled style="background: #ccc;"' : ''} data-page="${i}">${i}</button>`;
-                }
-            }
-
-            // Show dots if current page is far from end
-            if (this.currentPage < totalPages - 3) {
-                html += '<span>...</span>';
-            }
-
-            // Show last page
-            const isLast = this.currentPage === totalPages;
-            html += `<button ${isLast ? 'disabled style="background: #ccc;"' : ''} data-page="${totalPages}">${totalPages}</button>`;
-        }
+        });
 
         // Next button
-        html += `<button ${this.currentPage === totalPages ? 'disabled' : ''} data-page="${this.currentPage + 1}">Next</button>`;
+        html += `<button style="min-width: 30px; padding: 4px 8px;" ${this.currentPage === totalPages ? 'disabled' : ''} data-page="${this.currentPage + 1}">›</button>`;
 
-        html += '</div>'; // End page navigation
-        html += '</div>'; // End right side
+        html += '</div>'; // End pagination controls
         html += '</div>'; // End main container
 
         return html;
+    }
+
+    generatePageButtons(totalPages) {
+        if (totalPages <= 10) {
+            // Show all pages
+            return Array.from({length: totalPages}, (_, i) => ({type: 'page', page: i + 1}));
+        }
+
+        // Always show exactly 10 elements (pages + dots)
+        const items = [];
+
+        // Always show page 1
+        items.push({type: 'page', page: 1});
+
+        // Determine the window around current page
+        let start = Math.max(2, this.currentPage - 3);
+        let end = Math.min(totalPages - 1, this.currentPage + 3);
+
+        // Add dots after 1 if needed
+        if (start > 2) {
+            items.push({type: 'dots'});
+            // Adjust to maintain 10 elements total
+            if (end === totalPages - 1) start = Math.max(start, totalPages - 7);
+        } else {
+            start = 2;
+        }
+
+        // Add middle pages
+        for (let i = start; i <= end && items.length < 9; i++) {
+            items.push({type: 'page', page: i});
+        }
+
+        // Add dots before last page if needed
+        if (end < totalPages - 1) {
+            items.push({type: 'dots'});
+        }
+
+        // Always show last page (if different from 1)
+        if (totalPages > 1) {
+            items.push({type: 'page', page: totalPages});
+        }
+
+        // Pad with pages if we have less than 10 items
+        while (items.length < 10 && totalPages > items.length) {
+            // Find gaps and fill them
+            for (let i = 1; i < items.length; i++) {
+                if (items[i].type === 'page' && items[i-1].type === 'page' &&
+                    items[i].page - items[i-1].page > 1) {
+                    items.splice(i, 0, {type: 'page', page: items[i-1].page + 1});
+                    break;
+                }
+            }
+            if (items.length >= 10) break;
+        }
+
+        return items.slice(0, 10); // Ensure exactly 10 elements
     }
 
     createPageSizeSelector() {
