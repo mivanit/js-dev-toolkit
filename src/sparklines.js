@@ -6,10 +6,11 @@
  * visual customizations including gradients, markers, and optional axes.
  *
  * # Parameters:
- *  - `yvalues : number[]`
- *     Array of numeric y-values to plot
- *  - `xvalues : number[]|null`
- *     Array of numeric x-values (defaults to null, which uses 0..n-1)
+ *  - `values : number[]`
+ *     Array of values to plot. If yvalues is null, these are y-values with auto x-values (0..n-1).
+ *     If yvalues is provided, these are x-values.
+ *  - `yvalues : number[]|null`
+ *     Array of y-values (defaults to null). When provided, values becomes x-values.
  *  - `options : object`
  *     Configuration object with the following properties:
  *     - `width : number` - SVG width in pixels (defaults to `120`)
@@ -39,11 +40,11 @@
  * # Usage:
  *
  * ```javascript
- * // Basic sparkline with auto x-values (0, 1, 2, 3, 4)
+ * // Basic sparkline with auto x-values (0, 1, 2, 3, 4) - matplotlib style
  * document.getElementById('chart').innerHTML = sparkline([1, 5, 2, 8, 3]);
  *
- * // Sparkline with custom x-values
- * document.getElementById('chart').innerHTML = sparkline([10, 25, 15, 30, 20], [0, 2, 4, 6, 8]);
+ * // Sparkline with custom x and y values - matplotlib style
+ * document.getElementById('chart').innerHTML = sparkline([0, 2, 4, 6, 8], [1, 5, 2, 8, 3]);
  *
  * // Customized sparkline with axes
  * document.getElementById('chart').innerHTML = sparkline([10, 25, 15, 30, 20], null, {
@@ -57,7 +58,16 @@
  * });
  * ```
  */
-function sparkline(yvalues, xvalues = null, options = {}) {
+function sparkline(values, yvalues = null, options = {}) {
+	// Validate inputs
+	if (!Array.isArray(values)) {
+		throw new Error(`First parameter must be an array, got: ${typeof values}`);
+	}
+
+	if (values.length === 0) {
+		throw new Error('Values array cannot be empty');
+	}
+
 	// Default options
 	const opts = {
 		width: 120,
@@ -72,14 +82,25 @@ function sparkline(yvalues, xvalues = null, options = {}) {
 		...options
 	};
 
-	// Generate default x-values if not provided
-	if (xvalues === null) {
-		xvalues = Array.from({ length: yvalues.length }, (_, i) => i);
+	// Handle matplotlib-style parameter interpretation
+	let xvalues, yvals;
+
+	if (yvalues === null) {
+		// values is y-values, generate x-values as 0..n-1
+		yvals = values;
+		xvalues = Array.from({ length: values.length }, (_, i) => i);
+	} else {
+		// values is x-values, yvalues is y-values
+		if (!Array.isArray(yvalues)) {
+			throw new Error(`Second parameter must be an array or null, got: ${typeof yvalues}`);
+		}
+		xvalues = values;
+		yvals = yvalues;
 	}
 
 	// Validate that x and y arrays have same length
-	if (xvalues.length !== yvalues.length) {
-		throw new Error(`xvalues length (${xvalues.length}) must match yvalues length (${yvalues.length})`);
+	if (xvalues.length !== yvals.length) {
+		throw new Error(`x-values length (${xvalues.length}) must match y-values length (${yvals ? yvals.length : 'undefined'})`);
 	}
 
 	// Calculate margins based on what's shown
@@ -90,8 +111,8 @@ function sparkline(yvalues, xvalues = null, options = {}) {
 	const topMargin = opts.margin;
 	const bottomMargin = needsBottomMargin ? opts.margin + 15 : opts.margin;
 
-	const ymin = Math.min(...yvalues);
-	const ymax = Math.max(...yvalues);
+	const ymin = Math.min(...yvals);
+	const ymax = Math.max(...yvals);
 	const yrange = ymax - ymin || 1;
 
 	const xmin = Math.min(...xvalues);
@@ -106,7 +127,7 @@ function sparkline(yvalues, xvalues = null, options = {}) {
 	let dots = '';
 	const points = [];
 
-	yvalues.forEach((yval, i) => {
+	yvals.forEach((yval, i) => {
 		const xval = xvalues[i];
 		const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
 		const y = topMargin + (1 - (yval - ymin) / yrange) * chartHeight;
@@ -171,7 +192,7 @@ function sparkline(yvalues, xvalues = null, options = {}) {
 		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${opts.width - rightMargin}" y2="${opts.height - bottomMargin}" 
                       stroke="#ccc" stroke-width="1"/>`;
 	}
-	if (opts.xAxis.ticks && yvalues.length > 0) {
+	if (opts.xAxis.ticks && yvals.length > 0) {
 		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmin}</text>`;
 		svg += `<text x="${opts.width - rightMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmax}</text>`;
 	}
