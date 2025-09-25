@@ -4,7 +4,8 @@ class DataTable {
         this.container = typeof container === 'string' ? document.querySelector(container) : container;
         this.data = config.data || [];
         this.columns = config.columns || [];
-        this.pageSize = config.pageSize || 25;
+        this.pageSizeOptions = config.pageSizeOptions || [10, 25, 50, 100];
+        this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
         this.currentPage = 1;
         this.sortColumn = null;
@@ -174,6 +175,9 @@ class DataTable {
         this.tbody = tbody;
         this.paginationBottom = paginationBottom;
         this.headerRow = headerRow;
+
+        // Store table reference on container for button access
+        this.container.table = this;
     }
 
     addResizeListener(handle, th, columnIndex) {
@@ -456,15 +460,40 @@ class DataTable {
                 this.setPageSize(parseInt(e.target.value));
             });
         }
+
+        // Add export CSV button listener
+        const exportBtn = this.paginationBottom.querySelector('.export-csv-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', () => {
+                this.exportAndDownloadCSV();
+            });
+        }
+
+        // Add clear filters button listener
+        const clearBtn = this.paginationBottom.querySelector('.clear-filters-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                this.clearAllFilters();
+            });
+        }
     }
 
     createPaginationHTML(totalPages) {
-        if (totalPages <= 1) return this.createPageSizeSelector();
-
         let html = '<div style="display: flex; justify-content: space-between; align-items: center;">';
 
-        // Left side - page size selector
+        // Left side - controls
+        html += '<div style="display: flex; align-items: center; gap: 10px;">';
+        html += `<button class="export-csv-btn">Export CSV</button>`;
+        if (this.showFilters) {
+            html += `<button class="clear-filters-btn">Clear Filters</button>`;
+        }
         html += this.createPageSizeSelector();
+        html += '</div>';
+
+        if (totalPages <= 1) {
+            html += '</div>';
+            return html;
+        }
 
         // Right side - pagination controls
         html += '<div style="display: flex; align-items: center; gap: 2px;">';
@@ -549,12 +578,13 @@ class DataTable {
     }
 
     createPageSizeSelector() {
+        const options = this.pageSizeOptions.map(size =>
+            `<option value="${size}" ${this.pageSize === size ? 'selected' : ''}>${size}</option>`
+        ).join('');
+
         return `<label>Show
             <select class="page-size-select">
-                <option value="10" ${this.pageSize === 10 ? 'selected' : ''}>10</option>
-                <option value="25" ${this.pageSize === 25 ? 'selected' : ''}>25</option>
-                <option value="50" ${this.pageSize === 50 ? 'selected' : ''}>50</option>
-                <option value="100" ${this.pageSize === 100 ? 'selected' : ''}>100</option>
+                ${options}
             </select>
             entries</label>`;
     }
@@ -605,5 +635,27 @@ class DataTable {
         });
 
         return csv.join('\n');
+    }
+
+    exportAndDownloadCSV() {
+        const csv = this.exportCSV();
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'table-data.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    clearAllFilters() {
+        this.filters = {};
+        this.container.querySelectorAll('.datatable-filter-input').forEach(input => {
+            input.value = '';
+            input.style.backgroundColor = '';
+        });
+        this.currentPage = 1;
+        this.applyFilters();
+        this.render();
     }
 }

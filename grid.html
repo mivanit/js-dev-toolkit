@@ -15,35 +15,6 @@
     <div class="container">
         <h1>DataTable Demo</h1>
 
-        <div>
-            <button onclick="loadSampleData()">Load Sample Data</button>
-            <button onclick="loadFromCSV()">Load from CSV</button>
-            <button onclick="addRandomRow()">Add Random Row</button>
-            <button onclick="exportData()">Export CSV</button>
-            <label>Page Size:
-                <select id="pageSize" onchange="changePageSize()">
-                    <option value="10">10</option>
-                    <option value="25" selected>25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                </select>
-            </label>
-        </div>
-
-        <div>
-            <h3>Custom CSV Data:</h3>
-            <textarea id="csv-input" placeholder="Paste CSV data here...">name,age,salary,department,score
-John Doe,30,75000.50,Engineering,85.2
-Jane Smith,25,68000.00,Marketing,92.1
-Bob Johnson,35,82000.75,Engineering,78.9
-Alice Brown,28,71000.25,Sales,88.7
-Charlie Wilson,32,79000.00,Engineering,91.3
-Diana Davis,26,65000.50,Marketing,86.4
-Eve Miller,29,73000.75,Sales,89.8
-Frank Garcia,34,81000.00,Engineering,76.5
-Grace Taylor,27,69500.25,Marketing,90.3
-Henry Martinez,31,77500.50,Sales,83.1</textarea>
-        </div>
 
         <div id="table-container"></div>
     </div>
@@ -123,73 +94,11 @@ Henry Martinez,31,77500.50,Sales,83.1</textarea>
             table = new DataTable('#table-container', {
                 data: data,
                 columns: columns,
-                pageSize: 25
+                pageSize: 15,
+                pageSizeOptions: [5, 15, 30, 50]
             });
         }
 
-        function loadFromCSV() {
-            const csvText = document.getElementById('csv-input').value.trim();
-            if (!csvText) {
-                alert('Please enter CSV data first');
-                return;
-            }
-
-            try {
-                // Use DataFrame to parse CSV
-                const df = DataFrame.from_csv(csvText);
-                const data = df.data;
-                const columns = df.columns.map(col => ({
-                    key: col,
-                    label: col.charAt(0).toUpperCase() + col.slice(1),
-                    type: typeof data[0][col] === 'number' ? 'number' : 'string'
-                }));
-
-                table = new DataTable('#table-container', {
-                    data: data,
-                    columns: columns,
-                    pageSize: 10
-                });
-            } catch (error) {
-                alert('Error parsing CSV: ' + error.message);
-            }
-        }
-
-        function addRandomRow() {
-            if (!table) {
-                alert('Please load data first');
-                return;
-            }
-
-            const newRow = generateSampleData(1)[0];
-            table.addRow(newRow);
-        }
-
-        function changePageSize() {
-            if (!table) {
-                alert('Please load data first');
-                return;
-            }
-
-            const select = document.getElementById('pageSize');
-            const size = parseInt(select.value);
-            table.setPageSize(size);
-        }
-
-        function exportData() {
-            if (!table) {
-                alert('Please load data first');
-                return;
-            }
-
-            const csv = table.exportCSV();
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'table-data.csv';
-            a.click();
-            URL.revokeObjectURL(url);
-        }
 
         // Load sample data on page load
         loadSampleData();
