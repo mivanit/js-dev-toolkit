@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS Dev Toolkit - Functionality Test</title>
+    <link rel="stylesheet" href="src/notif.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .module {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #555;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.secondary {
+            background: #2196F3;
+        }
+        button.secondary:hover {
+            background: #0b7dda;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        input, select, textarea {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            font-family: monospace;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 12px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .output {
+            background: #e8f5e9;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            min-height: 50px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .color-box {
+            height: 60px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        .file-input {
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background: #f4f4f4;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>JS Dev Toolkit - Functionality Test</h1>
+
+        <!-- Notification System -->
+        <div class="module">
+            <h2>1. Notification System (notif.js)</h2>
+            <div class="controls">
+                <button onclick="testNotification()">Show Notification</button>
+                <button onclick="testSuccess()">Show Success</button>
+                <button onclick="testError()" class="danger">Show Error</button>
+                <button onclick="testSpinner()">Start Spinner</button>
+                <button onclick="testProgressBar()">Start Progress Bar</button>
+                <button onclick="clearNotifications()" class="secondary">Clear All</button>
+            </div>
+            <div class="output" id="notif-output">Click buttons to test notification system</div>
+        </div>
+
+        <!-- Color Utilities -->
+        <div class="module">
+            <h2>2. Color Utilities (ColorUtil.js)</h2>
+            <div class="controls">
+                <label>Number of colors: </label>
+                <input type="number" id="colorCount" value="8" min="1" max="20">
+                <button onclick="generateColors()">Generate Colors</button>
+            </div>
+            <div class="controls">
+                <label>HSL to Hex Converter: </label>
+                <input type="number" id="hue" placeholder="Hue (0-360)" value="180">
+                <input type="number" id="saturation" placeholder="Saturation (0-100)" value="50">
+                <input type="number" id="lightness" placeholder="Lightness (0-100)" value="50">
+                <button onclick="convertHSLToHex()">Convert</button>
+            </div>
+            <div class="color-grid" id="color-output"></div>
+            <div class="output" id="color-hex-output"></div>
+        </div>
+
+        <!-- Array/NPY Handler -->
+        <div class="module">
+            <h2>3. Array/NPY Handler (array.js)</h2>
+            <div class="controls">
+                <button onclick="createNDArray()">Create NDArray</button>
+                <button onclick="test2DArray()">Test 2D Array</button>
+                <button onclick="testArraySlicing()">Test Array Slicing</button>
+                <button onclick="testArraySet()">Test Array Set</button>
+            </div>
+            <div class="file-input">
+                <label>Load NPY file (if available): </label>
+                <input type="file" id="npyFile" accept=".npy">
+                <button onclick="loadNPYFile()">Load NPY</button>
+            </div>
+            <div class="output" id="array-output">Array operations will appear here</div>
+        </div>
+
+        <!-- DataFrame -->
+        <div class="module">
+            <h2>4. DataFrame (DataFrame.js)</h2>
+            <div class="controls">
+                <button onclick="createDataFrame()">Create DataFrame</button>
+                <button onclick="testCSVParsing()">Test CSV Parsing</button>
+                <button onclick="testJSONLParsing()">Test JSONL Parsing</button>
+                <button onclick="testDataFrameOperations()">Test Operations</button>
+            </div>
+            <div>
+                <h4>CSV Input:</h4>
+                <textarea id="csv-input" placeholder="Enter CSV data here...">name,age,city
+John,30,New York
+Jane,25,Los Angeles
+Bob,35,Chicago</textarea>
+                <button onclick="parseCSV()">Parse CSV</button>
+            </div>
+            <div class="output" id="dataframe-output">DataFrame results will appear here</div>
+            <table id="dataframe-table" style="display: none;">
+                <thead></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <!-- Configuration System -->
+        <div class="module">
+            <h2>5. Configuration System (config.js)</h2>
+            <div class="controls">
+                <button onclick="initializeConfig()">Initialize Config</button>
+                <button onclick="getCurrentConfig()">Get Current Config</button>
+                <button onclick="exportConfig()">Export Config</button>
+                <button onclick="resetConfig()">Reset Config</button>
+            </div>
+            <div class="controls">
+                <label>Set Config Value: </label>
+                <input type="text" id="configKey" placeholder="Key (e.g., theme)">
+                <input type="text" id="configValue" placeholder="Value">
+                <button onclick="setConfigVal()">Set Value</button>
+                <button onclick="getConfigVal()">Get Value</button>
+            </div>
+            <div class="controls">
+                <label>URL Params: </label>
+                <input type="text" id="urlParam" placeholder="?key=value&key2=value2">
+                <button onclick="applyURLParams()">Apply URL Params</button>
+            </div>
+            <div class="output" id="config-output">Configuration will appear here</div>
+        </div>
+    </div>
+
+    <!-- Load all JavaScript files -->
+    <script src="src/notif.js"></script>
+    <script src="src/ColorUtil.js"></script>
+    <script src="src/array.js"></script>
+    <script src="src/DataFrame.js"></script>
+    <script src="src/config.js"></script>
+
+    <!-- Test Scripts -->
+    <script>
+        // Global variables for testing
+        let spinnerHandle = null;
+        let progressHandle = null;
+        let testDataFrame = null;
+        let testNDArray = null;
+
+        // Wait for DOM and NOTIF to be ready
+        window.addEventListener('DOMContentLoaded', () => {
+            // Ensure NOTIF is initialized
+            if (!window.NOTIF) {
+                window.NOTIF = new NotificationManager();
+            }
+        });
+
+        // 1. Notification System Tests
+        function testNotification() {
+            NOTIF.show('This is a test notification!');
+            document.getElementById('notif-output').textContent = 'Standard notification shown (will auto-hide)';
+        }
+
+        function testSuccess() {
+            NOTIF.success('Operation completed successfully!');
+            document.getElementById('notif-output').textContent = 'Success notification shown';
+        }
+
+        function testError() {
+            NOTIF.error('An error occurred!', new Error('Test error'));
+            document.getElementById('notif-output').textContent = 'Error notification shown (check console for error details)';
+        }
+
+        function testSpinner() {
+            if (spinnerHandle) {
+                spinnerHandle.complete();
+                spinnerHandle = null;
+                document.getElementById('notif-output').textContent = 'Spinner stopped';
+            } else {
+                spinnerHandle = NOTIF.spinner('Loading data...');
+                document.getElementById('notif-output').textContent = 'Spinner started - click again to stop';
+            }
+        }
+
+        function testProgressBar() {
+            if (progressHandle) {
+                progressHandle.complete();
+                progressHandle = null;
+                document.getElementById('notif-output').textContent = 'Progress bar completed';
+            } else {
+                progressHandle = NOTIF.pbar('Processing files...');
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 0.1;
+                    if (progressHandle) {
+                        progressHandle.progress(progress);
+                        if (progress >= 1) {
+                            clearInterval(interval);
+                            progressHandle.complete();
+                            progressHandle = null;
+                            document.getElementById('notif-output').textContent = 'Progress bar completed';
+                        }
+                    } else {
+                        clearInterval(interval);
+                    }
+                }, 200);
+                document.getElementById('notif-output').textContent = 'Progress bar started';
+            }
+        }
+
+        function clearNotifications() {
+            NOTIF.clear();
+            if (spinnerHandle) {
+                spinnerHandle = null;
+            }
+            if (progressHandle) {
+                progressHandle = null;
+            }
+            document.getElementById('notif-output').textContent = 'All notifications cleared';
+        }
+
+        // 2. Color Utilities Tests
+        function generateColors() {
+            const count = parseInt(document.getElementById('colorCount').value);
+            const colors = generateDistinctColors(count);
+            const grid = document.getElementById('color-output');
+            grid.innerHTML = '';
+
+            colors.forEach(color => {
+                const box = document.createElement('div');
+                box.className = 'color-box';
+                box.style.backgroundColor = color;
+                box.textContent = color;
+                grid.appendChild(box);
+            });
+
+            document.getElementById('color-hex-output').textContent =
+                `Generated ${count} colors: ${colors.join(', ')}`;
+        }
+
+        function convertHSLToHex() {
+            const h = parseInt(document.getElementById('hue').value) || 0;
+            const s = parseInt(document.getElementById('saturation').value) || 50;
+            const l = parseInt(document.getElementById('lightness').value) || 50;
+
+            const hex = hslToHex(h, s, l);
+            const output = document.getElementById('color-hex-output');
+            output.textContent = `HSL(${h}, ${s}%, ${l}%) = ${hex}`;
+            output.style.backgroundColor = hex;
+            output.style.color = l > 50 ? '#000' : '#fff';
+        }
+
+        // 3. Array/NPY Tests
+        function createNDArray() {
+            const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+            testNDArray = new NDArray(data, [3, 4], 'float32');
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Created NDArray:\n` +
+                `Shape: [${testNDArray.shape}]\n` +
+                `Data type: ${testNDArray.dtype}\n` +
+                `Data: [${Array.from(testNDArray.data).join(', ')}]\n` +
+                `Dimensions: ${testNDArray.ndim}`;
+        }
+
+        function test2DArray() {
+            const data = new Int32Array([1, 2, 3, 4, 5, 6]);
+            const array = new NDArray(data, [2, 3], 'int32');
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `2D Array Test:\n` +
+                `Shape: [${array.shape}]\n` +
+                `Get element at [0, 1]: ${array.get(0, 1)}\n` +
+                `Get element at [1, 2]: ${array.get(1, 2)}\n` +
+                `Get first row: [${Array.from(array.get(0, null).data).join(', ')}]\n` +
+                `Get second column: [${Array.from(array.get(null, 1).data).join(', ')}]`;
+        }
+
+        function testArraySlicing() {
+            if (!testNDArray) {
+                createNDArray();
+            }
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Array Slicing Test:\n` +
+                `Original shape: [${testNDArray.shape}]\n` +
+                `Get row 1: [${Array.from(testNDArray.get(1, null).data).join(', ')}]\n` +
+                `Get column 2: [${Array.from(testNDArray.get(null, 2).data).join(', ')}]\n` +
+                `Get element [2, 3]: ${testNDArray.get(2, 3)}`;
+        }
+
+        function testArraySet() {
+            if (!testNDArray) {
+                createNDArray();
+            }
+
+            // Set a single value
+            testNDArray.set(1, 1, 999);
+
+            // Set a row
+            testNDArray.set(2, null, [100, 200, 300, 400]);
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Array Set Test:\n` +
+                `Set [1,1] = 999\n` +
+                `Set row 2 = [100, 200, 300, 400]\n` +
+                `Updated data: [${Array.from(testNDArray.data).join(', ')}]`;
+        }
+
+        async function loadNPYFile() {
+            const fileInput = document.getElementById('npyFile');
+            const file = fileInput.files[0];
+
+            if (!file) {
+                document.getElementById('array-output').textContent = 'Please select an NPY file first';
+                return;
+            }
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const array = NDArray.parse(arrayBuffer);
+
+                document.getElementById('array-output').textContent =
+                    `Loaded NPY file:\n` +
+                    `Shape: [${array.shape}]\n` +
+                    `Data type: ${array.dtype}\n` +
+                    `Total elements: ${array.data.length}\n` +
+                    `First 10 values: [${Array.from(array.data).slice(0, 10).join(', ')}...]`;
+            } catch (error) {
+                document.getElementById('array-output').textContent = `Error loading NPY file: ${error.message}`;
+            }
+        }
+
+        // 4. DataFrame Tests
+        function createDataFrame() {
+            const data = [
+                { name: 'Alice', age: 28, city: 'Boston' },
+                { name: 'Bob', age: 35, city: 'Chicago' },
+                { name: 'Charlie', age: 42, city: 'Denver' }
+            ];
+
+            testDataFrame = new DataFrame(data);
+            displayDataFrame(testDataFrame);
+
+            document.getElementById('dataframe-output').textContent =
+                `Created DataFrame with ${testDataFrame.length} rows and columns: ${testDataFrame.columns.join(', ')}`;
+        }
+
+        function testCSVParsing() {
+            const csv = 'product,price,quantity\nApple,1.50,100\nBanana,0.99,150\nOrange,2.00,75';
+            const df = DataFrame.from_csv(csv);
+
+            displayDataFrame(df);
+
+            document.getElementById('dataframe-output').textContent =
+                `Parsed CSV:\n` +
+                `Rows: ${df.length}\n` +
+                `Columns: ${df.columns.join(', ')}\n` +
+                `First row: ${JSON.stringify(df.row(0))}`;
+        }
+
+        function testJSONLParsing() {
+            const jsonl = '{"id":1,"name":"Item1","value":100}\n{"id":2,"name":"Item2","value":200}\n{"id":3,"name":"Item3","value":300}';
+            const df = DataFrame.from_jsonl(jsonl);
+
+            displayDataFrame(df);
+
+            document.getElementById('dataframe-output').textContent =
+                `Parsed JSONL:\n` +
+                `Rows: ${df.length}\n` +
+                `Columns: ${df.columns.join(', ')}\n` +
+                `Values column: [${df.col('value').join(', ')}]`;
+        }
+
+        function testDataFrameOperations() {
+            if (!testDataFrame) {
+                createDataFrame();
+            }
+
+            const output = document.getElementById('dataframe-output');
+            output.textContent =
+                `DataFrame Operations:\n` +
+                `Get 'age' column: [${testDataFrame.col('age').join(', ')}]\n` +
+                `Get cell [1, 'name']: ${testDataFrame.get(1, 'name')}\n` +
+                `Get row 0: ${JSON.stringify(testDataFrame.row(0))}\n` +
+                `Unique cities: [${Array.from(testDataFrame.col_unique('city')).join(', ')}]\n` +
+                `\nExport to CSV:\n${testDataFrame.to_csv()}`;
+        }
+
+        function parseCSV() {
+            const csvText = document.getElementById('csv-input').value;
+            const df = DataFrame.from_csv(csvText);
+
+            displayDataFrame(df);
+
+            document.getElementById('dataframe-output').textContent =
+                `Parsed CSV with ${df.length} rows and ${df.columns.length} columns`;
+        }
+
+        function displayDataFrame(df) {
+            const table = document.getElementById('dataframe-table');
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+
+            // Clear existing content
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // Create header
+            const headerRow = document.createElement('tr');
+            df.columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Create rows
+            for (let i = 0; i < df.length; i++) {
+                const row = document.createElement('tr');
+                df.columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.textContent = df.get(i, col);
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            }
+
+            table.style.display = 'table';
+        }
+
+        // 5. Configuration System Tests
+        async function initializeConfig() {
+            try {
+                const config = await initConfig();
+                document.getElementById('config-output').textContent =
+                    `Configuration initialized:\n${JSON.stringify(config, null, 2)}`;
+            } catch (error) {
+                document.getElementById('config-output').textContent =
+                    `Error initializing config: ${error.message}`;
+            }
+        }
+
+        function getCurrentConfig() {
+            if (!CONFIG) {
+                document.getElementById('config-output').textContent =
+                    'Config not initialized. Click "Initialize Config" first.';
+                return;
+            }
+
+            document.getElementById('config-output').textContent =
+                `Current configuration:\n${JSON.stringify(CONFIG, null, 2)}`;
+        }
+
+        function exportConfig() {
+            if (!CONFIG) {
+                document.getElementById('config-output').textContent =
+                    'Config not initialized. Click "Initialize Config" first.';
+                return;
+            }
+
+            exportConfigToNewTab();
+            document.getElementById('config-output').textContent =
+                'Configuration exported to new tab';
+        }
+
+        function resetConfig() {
+            if (!CONFIG) {
+                document.getElementById('config-output').textContent =
+                    'Config not initialized. Click "Initialize Config" first.';
+                return;
+            }
+
+            resetConfigToLoaded();
+            document.getElementById('config-output').textContent =
+                `Configuration reset to loaded state:\n${JSON.stringify(CONFIG, null, 2)}`;
+        }
+
+        function setConfigVal() {
+            if (!CONFIG) {
+                CONFIG = {};
+            }
+
+            const key = document.getElementById('configKey').value;
+            const value = document.getElementById('configValue').value;
+
+            if (!key) {
+                document.getElementById('config-output').textContent = 'Please enter a key';
+                return;
+            }
+
+            // Try to parse as JSON, otherwise treat as string
+            let parsedValue;
+            try {
+                parsedValue = JSON.parse(value);
+            } catch {
+                parsedValue = value;
+            }
+
+            setConfigValue(key, parsedValue);
+            document.getElementById('config-output').textContent =
+                `Set ${key} = ${JSON.stringify(parsedValue)}\nUpdated config:\n${JSON.stringify(CONFIG, null, 2)}`;
+        }
+
+        function getConfigVal() {
+            if (!CONFIG) {
+                document.getElementById('config-output').textContent =
+                    'Config not initialized. Click "Initialize Config" first.';
+                return;
+            }
+
+            const key = document.getElementById('configKey').value;
+
+            if (!key) {
+                document.getElementById('config-output').textContent = 'Please enter a key';
+                return;
+            }
+
+            const value = getConfigValue(key);
+            document.getElementById('config-output').textContent =
+                `${key} = ${JSON.stringify(value)}`;
+        }
+
+        function applyURLParams() {
+            const paramString = document.getElementById('urlParam').value;
+
+            if (!paramString.startsWith('?')) {
+                document.getElementById('config-output').textContent =
+                    'URL params should start with ?';
+                return;
+            }
+
+            if (!CONFIG) {
+                CONFIG = {};
+            }
+
+            const params = new URLSearchParams(paramString);
+            parseURLParams(params);
+
+            document.getElementById('config-output').textContent =
+                `Applied URL parameters:\n${JSON.stringify(CONFIG, null, 2)}`;
+        }
+    </script>
+</body>
+</html>
