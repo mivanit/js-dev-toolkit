@@ -123,6 +123,66 @@
             background: #f4f4f4;
             font-weight: bold;
         }
+
+        /* Grid Base Styles */
+        .rg-filter-container {
+            margin-bottom: 10px;
+        }
+        .rg-clear-all {
+            background: #ff5722;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .rg-clear-all:hover {
+            background: #e64a19;
+        }
+        .rg-filter-row {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ddd;
+            background: #f9f9f9;
+        }
+        .rg-row-header-space {
+            width: 60px;
+            min-width: 60px;
+            background: #f4f4f4;
+            border-right: 1px solid #ddd;
+        }
+        .rg-filter-cell {
+            position: relative;
+            border-right: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+        }
+        .rg-filter-input {
+            flex: 1;
+            border: none;
+            padding: 8px;
+            font-size: 12px;
+            background: transparent;
+            outline: none;
+        }
+        .rg-filter-clear {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            padding: 4px;
+            font-size: 16px;
+            line-height: 1;
+        }
+        .rg-filter-clear:hover {
+            color: #666;
+        }
+        #grid-container {
+            min-height: 300px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -203,9 +263,34 @@ Bob,35,Chicago</textarea>
             </table>
         </div>
 
+        <!-- Grid Base -->
+        <div class="module">
+            <h2>5. Grid Base (GridBase.js)</h2>
+            <div class="controls">
+                <button onclick="createGridFromCSV()">Create Grid from CSV</button>
+                <button onclick="createGridFromDataFrame()">Create Grid from DataFrame</button>
+                <button onclick="generateSampleGrid()">Generate Sample Data Grid</button>
+                <button onclick="clearGrid()">Clear Grid</button>
+            </div>
+            <div>
+                <h4>Sample CSV Data:</h4>
+                <textarea id="grid-csv-input" placeholder="Enter CSV data for grid...">name,age,salary,department,score
+John Doe,30,75000.50,Engineering,85.2
+Jane Smith,25,68000.00,Marketing,92.1
+Bob Johnson,35,82000.75,Engineering,78.9
+Alice Brown,28,71000.25,Sales,88.7
+Charlie Wilson,32,79000.00,Engineering,91.3
+Diana Davis,26,65000.50,Marketing,86.4
+Eve Miller,29,73000.75,Sales,89.8</textarea>
+                <button onclick="loadCSVIntoGrid()">Load CSV into Grid</button>
+            </div>
+            <div class="output" id="grid-output">Grid will appear here. Use filters to search data.</div>
+            <div id="grid-container" style="margin-top: 15px;"></div>
+        </div>
+
         <!-- Configuration System -->
         <div class="module">
-            <h2>5. Configuration System (config.js)</h2>
+            <h2>6. Configuration System (config.js)</h2>
             <div class="controls">
                 <button onclick="initializeConfig()">Initialize Config</button>
                 <button onclick="getCurrentConfig()">Get Current Config</button>
@@ -233,7 +318,12 @@ Bob,35,Chicago</textarea>
     <script src="src/ColorUtil.js"></script>
     <script src="src/array.js"></script>
     <script src="src/DataFrame.js"></script>
+    <script src="src/GridBase.js"></script>
     <script src="src/config.js"></script>
+
+    <!-- RevoGrid CDN -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@revolist/revogrid@4/dist/revo-grid/revo-grid.esm.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@revolist/revogrid@4/dist/revo-grid/revo-grid.css">
 
     <!-- Test Scripts -->
     <script>
@@ -242,6 +332,7 @@ Bob,35,Chicago</textarea>
         let progressHandle = null;
         let testDataFrame = null;
         let testNDArray = null;
+        let gridInstance = null;
 
         // Wait for DOM and NOTIF to be ready
         window.addEventListener('DOMContentLoaded', () => {
