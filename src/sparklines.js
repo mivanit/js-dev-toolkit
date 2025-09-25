@@ -30,8 +30,10 @@
  *       - `line : boolean` - Draw axis line (defaults to `false`)
  *       - `ticks : boolean` - Show tick labels (defaults to `false`)
  *     - `yAxis : object` - Y-axis configuration:
- *       - `line : boolean` - Draw axis line (defaults to `false`) 
+ *       - `line : boolean` - Draw axis line (defaults to `false`)
  *       - `ticks : boolean` - Show tick labels (defaults to `false`)
+ *     - `xlims : [number, number]` - X-axis limits [min, max] (defaults to data range)
+ *     - `ylims : [number, number]` - Y-axis limits [min, max] (defaults to data range)
  * 
  * # Returns:
  *  - `string`
@@ -46,7 +48,7 @@
  * // Sparkline with custom x and y values - matplotlib style
  * document.getElementById('chart').innerHTML = sparkline([0, 2, 4, 6, 8], [1, 5, 2, 8, 3]);
  *
- * // Customized sparkline with axes
+ * // Customized sparkline with axes and custom limits
  * document.getElementById('chart').innerHTML = sparkline([10, 25, 15, 30, 20], null, {
  *     width: 200,
  *     height: 60,
@@ -54,7 +56,9 @@
  *     shading: 0.5,
  *     markers: 'o',
  *     xAxis: { line: true, ticks: true },
- *     yAxis: { line: true, ticks: true }
+ *     yAxis: { line: true, ticks: true },
+ *     xlims: [0, 10],
+ *     ylims: [0, 40]
  * });
  * ```
  */
@@ -79,6 +83,8 @@ function sparkline(values, yvalues = null, options = {}) {
 		margin: 5,
 		xAxis: { line: false, ticks: false },
 		yAxis: { line: false, ticks: false },
+		xlims: null,
+		ylims: null,
 		...options
 	};
 
@@ -103,6 +109,25 @@ function sparkline(values, yvalues = null, options = {}) {
 		throw new Error(`x-values length (${xvalues.length}) must match y-values length (${yvals ? yvals.length : 'undefined'})`);
 	}
 
+	// Validate xlims and ylims format if provided
+	if (opts.xlims !== null) {
+		if (!Array.isArray(opts.xlims) || opts.xlims.length !== 2) {
+			throw new Error('xlims must be an array of two numbers [min, max]');
+		}
+		if (opts.xlims[0] >= opts.xlims[1]) {
+			throw new Error('xlims[0] must be less than xlims[1]');
+		}
+	}
+
+	if (opts.ylims !== null) {
+		if (!Array.isArray(opts.ylims) || opts.ylims.length !== 2) {
+			throw new Error('ylims must be an array of two numbers [min, max]');
+		}
+		if (opts.ylims[0] >= opts.ylims[1]) {
+			throw new Error('ylims[0] must be less than ylims[1]');
+		}
+	}
+
 	// Calculate margins based on what's shown
 	const needsLeftMargin = opts.yAxis.ticks;
 	const needsBottomMargin = opts.xAxis.ticks;
@@ -111,12 +136,13 @@ function sparkline(values, yvalues = null, options = {}) {
 	const topMargin = opts.margin;
 	const bottomMargin = needsBottomMargin ? opts.margin + 15 : opts.margin;
 
-	const ymin = Math.min(...yvals);
-	const ymax = Math.max(...yvals);
+	// Calculate axis limits - use custom limits if provided, otherwise data range
+	const ymin = opts.ylims ? opts.ylims[0] : Math.min(...yvals);
+	const ymax = opts.ylims ? opts.ylims[1] : Math.max(...yvals);
 	const yrange = ymax - ymin || 1;
 
-	const xmin = Math.min(...xvalues);
-	const xmax = Math.max(...xvalues);
+	const xmin = opts.xlims ? opts.xlims[0] : Math.min(...xvalues);
+	const xmax = opts.xlims ? opts.xlims[1] : Math.max(...xvalues);
 	const xrange = xmax - xmin || 1;
 
 	const chartWidth = opts.width - leftMargin - rightMargin;
