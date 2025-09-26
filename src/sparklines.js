@@ -172,13 +172,18 @@ function plot(values, yvalues = null, options = {}) {
 	let svg = "<svg " + `width="${opts.width}" height="${opts.height}"` + ">";
 
 	if (opts.style === 'bar') {
-		// Bar chart rendering
-		const barWidth = chartWidth / (yvals.length - 1);
+		// Bar chart rendering - account for reduced width from Y-axis labels
+		const yAxisReduction = (opts.yAxis.line || opts.yAxis.ticks) ?
+			(needsLeftMargin ? 1 : 0) + barChartExtraMargin : 0;
+		const effectiveWidth = opts.width - 2 * opts.margin - yAxisReduction;
+		const barWidth = effectiveWidth / (yvals.length);
 		const baseY = opts.height - bottomMargin;
 
 		yvals.forEach((yval, i) => {
 			const xval = xvalues[i];
-			const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
+			// For bars, use the same shortened range as the X-axis
+			const adjustedChartWidth = chartWidth - (chartWidth / yvals.length / 2);
+			const x = leftMargin + ((xval - xmin) / xrange) * adjustedChartWidth;
 			const barHeight = Math.abs((yval - ymin) / yrange) * chartHeight;
 			const barY = baseY - barHeight;
 
@@ -266,12 +271,20 @@ function plot(values, yvalues = null, options = {}) {
 
 	// Add x-axis
 	if (opts.xAxis.line) {
-		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${opts.width - rightMargin}" y2="${opts.height - bottomMargin}"
+		// For bar charts, end X-axis at center of last bar, not full width
+		const xAxisEnd = opts.style === 'bar' ?
+			leftMargin + chartWidth - (chartWidth / yvals.length / 2) :
+			opts.width - rightMargin;
+		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${xAxisEnd}" y2="${opts.height - bottomMargin}"
                       stroke="#ccc" stroke-width="1"/>`;
 	}
 	if (opts.xAxis.ticks && yvals.length > 0) {
+		// For bar charts, position end tick at center of last bar
+		const xTickEnd = opts.style === 'bar' ?
+			leftMargin + chartWidth - (chartWidth / yvals.length / 2) :
+			opts.width - rightMargin;
 		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmin}</text>`;
-		svg += `<text x="${opts.width - rightMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmax}</text>`;
+		svg += `<text x="${xTickEnd}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmax}</text>`;
 	}
 
 	svg += '</svg>';

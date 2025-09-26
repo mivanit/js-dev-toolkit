@@ -161,9 +161,8 @@
             <table class="gallery-table">
                 <thead>
                     <tr>
-                        <th>Example</th>
-                        <th>Chart</th>
                         <th>Description</th>
+                        <th>Chart</th>
                         <th>Code</th>
                     </tr>
                 </thead>
@@ -259,42 +258,36 @@
         // Gallery examples configuration
         const examples = [
             {
-                name: "Basic Line",
                 data: [1, 3, 2, 5, 4, 7, 6],
                 func: "sparkline",
-                options: {},
+                options: { width: 160 },
                 description: "Simple line chart with default settings"
             },
             {
-                name: "Basic Bars",
                 data: [5, 8, 3, 12, 7, 9, 4],
                 func: "sparkbars",
-                options: {},
+                options: { width: 160 },
                 description: "Simple bar chart for discrete data"
             },
             {
-                name: "Trending Up",
                 data: [10, 12, 15, 18, 22, 25, 28],
                 func: "sparkline",
-                options: { color: '#2ecc71', shading: 0.3 },
+                options: { color: '#2ecc71', shading: 0.3, width: 160 },
                 description: "Growth trend with gradient fill"
             },
             {
-                name: "Volatile Data",
                 data: [100, 95, 110, 85, 120, 75, 130],
                 func: "sparkline",
-                options: { color: '#e74c3c', markers: '.' },
+                options: { color: '#e74c3c', markers: '.', width: 160 },
                 description: "High volatility with data points"
             },
             {
-                name: "Custom Colors",
                 data: [2, 6, 3, 8, 4, 7, 5],
                 func: "sparkbars",
-                options: { color: '#9b59b6' },
+                options: { color: '#9b59b6', width: 160 },
                 description: "Purple bar chart"
             },
             {
-                name: "With Axes",
                 data: [10, 25, 15, 35, 20, 30],
                 func: "sparkline",
                 options: {
@@ -307,91 +300,83 @@
                 description: "Reference lines and tick labels"
             },
             {
-                name: "Custom X-Values",
                 data: [[1, 3, 6, 10, 12], [100, 120, 95, 150, 180]],
                 func: "sparkline",
-                options: { color: '#1abc9c', width: 140 },
+                options: { color: '#1abc9c', width: 160 },
                 description: "Irregular time intervals"
             },
             {
-                name: "Fixed Scale",
                 data: [20, 25, 22, 28, 24],
                 func: "sparkline",
-                options: { ylims: [0, 50], yAxis: { ticks: true }, color: '#34495e' },
+                options: { ylims: [0, 50], yAxis: { ticks: true }, color: '#34495e', width: 160 },
                 description: "Custom Y-axis limits for comparison"
             },
             {
-                name: "Histogram Style",
                 data: [2, 5, 8, 12, 15, 18, 14, 9, 5, 2],
                 func: "sparkbars",
-                options: { color: '#16a085', width: 150 },
+                options: { color: '#16a085', width: 160 },
                 description: "Distribution visualization"
             },
             {
-                name: "Bars with Y-Axis",
-                data: [45, 30, 60, 25, 55, 40, 35],
-                func: "sparkbars",
-                options: {
-                    color: '#2c3e50',
-                    yAxis: { line: true, ticks: true },
-                    width: 140,
-                    height: 50
-                },
-                description: "Bar chart with Y-axis labels"
-            },
-            {
-                name: "Bars with X-Axis",
-                data: [8, 12, 6, 15, 10, 14, 7],
-                func: "sparkbars",
-                options: {
-                    color: '#c0392b',
-                    xAxis: { line: true, ticks: true },
-                    width: 140,
-                    height: 50
-                },
-                description: "Bar chart with X-axis labels"
-            },
-            {
-                name: "Bars with Both Axes",
-                data: [100, 250, 150, 300, 200, 280, 180],
+                data: [100, 250, 150],
                 func: "sparkbars",
                 options: {
                     color: '#8e44ad',
                     xAxis: { line: true, ticks: true },
                     yAxis: { line: true, ticks: true },
                     width: 160,
-                    height: 60
+                    height: 60,
+                    ylims: [0, 350]
                 },
                 description: "Full axis reference frame"
             },
             {
-                name: "Bars Fixed Scale",
+                data: [45, 30, 60, 25, 55, 40, 35],
+                func: "sparkbars",
+                options: {
+                    color: '#2c3e50',
+                    yAxis: { line: true, ticks: true },
+                    width: 160,
+                    height: 50
+                },
+                description: "Bar chart with Y-axis labels"
+            },
+            {
+                data: [8, 12, 6, 15, 10, 14, 7],
+                func: "sparkbars",
+                options: {
+                    color: '#c0392b',
+                    xAxis: { line: true, ticks: true },
+                    width: 160,
+                    height: 50
+                },
+                description: "Bar chart with X-axis labels"
+            },
+            {
                 data: [20, 35, 15, 40, 25, 30, 22],
                 func: "sparkbars",
                 options: {
                     color: '#d35400',
                     ylims: [0, 50],
                     yAxis: { line: true, ticks: true },
-                    width: 140,
+                    width: 160,
                     height: 50
                 },
                 description: "Custom Y-axis range (0-50)"
             },
             {
-                name: "Negative Bars",
                 data: [-5, 3, -2, 7, -4, 6, -1, 8],
                 func: "sparkbars",
                 options: {
                     color: '#16a085',
                     xAxis: { line: true },
                     yAxis: { line: true, ticks: true },
-                    width: 150,
+                    width: 160,
                     height: 60
                 },
                 description: "Mixed positive/negative values"
             },
             {
-                name: "Custom X-Values Bars",
                 data: [[0, 2, 5, 7, 10, 12, 15], [50, 80, 30, 90, 60, 75, 40]],
                 func: "sparkbars",
                 options: {
@@ -404,68 +389,60 @@
                 description: "Irregular X intervals with axes"
             },
             {
-                name: "Touching Bars",
-                data: [4, 7],
+                data: [4, 7, 3, 8, 5, 9, 6],
                 func: "sparkbars",
                 options: {
                     color: '#3498db',
-                    width: 140,
-                    ylims: [0, 10],
+                    width: 160
                 },
                 description: "Bars touch each other (ratio=1.0)"
             },
             {
-                name: "Bars with Gaps",
                 data: [4, 7, 3, 8, 5, 9, 6],
                 func: "sparkbars",
                 options: {
                     color: '#e74c3c',
                     barWidthRatio: 0.8,
-                    width: 140
+                    width: 160
                 },
                 description: "Small gaps between bars (ratio=0.8)"
             },
             {
-                name: "Thin Bars",
                 data: [4, 7, 3, 8, 5, 9, 6],
                 func: "sparkbars",
                 options: {
                     color: '#2ecc71',
                     barWidthRatio: 0.5,
-                    width: 140
+                    width: 160
                 },
                 description: "Wide gaps between bars (ratio=0.5)"
             },
             {
-                name: "Very Thin Bars",
                 data: [4, 7, 3, 8, 5, 9, 6],
                 func: "sparkbars",
                 options: {
                     color: '#9b59b6',
                     barWidthRatio: 0.3,
-                    width: 140
+                    width: 160
                 },
                 description: "Needle-like bars (ratio=0.3)"
             },
             {
-                name: "Large Markers",
                 data: [5, 2, 8, 3, 7, 4, 9],
                 func: "sparkline",
-                options: { markers: 'o', lineWidth: 3, color: '#e67e22' },
+                options: { markers: 'o', lineWidth: 3, color: '#e67e22', width: 160 },
                 description: "Prominent data points with thick line"
             },
             {
-                name: "Solid Fill",
                 data: [3, 7, 4, 9, 5, 8, 6],
                 func: "sparkline",
-                options: { shading: true, color: '#8e44ad' },
+                options: { shading: true, color: '#8e44ad', width: 160 },
                 description: "Complete area fill under curve"
             },
             {
-                name: "Mini Dashboard",
                 data: [18500, 19200, 20100, 22000, 21500, 23800, 24586],
                 func: "sparkline",
-                options: { width: 100, height: 30, color: '#27ae60', shading: 0.2 },
+                options: { width: 160, height: 30, color: '#27ae60', shading: 0.2 },
                 description: "Compact chart for dashboards"
             }
         ];
@@ -480,9 +457,9 @@
             examples.forEach(example => {
                 const row = tbody.insertRow();
 
-                // Name
-                const nameCell = row.insertCell();
-                nameCell.innerHTML = `<strong>${example.name}</strong>`;
+                // Description
+                const descCell = row.insertCell();
+                descCell.innerHTML = `<div class="description">${example.description}</div>`;
 
                 // Chart
                 const chartCell = row.insertCell();
@@ -495,10 +472,6 @@
                     chart = window[example.func](example.data, null, example.options);
                 }
                 chartCell.innerHTML = chart;
-
-                // Description
-                const descCell = row.insertCell();
-                descCell.innerHTML = `<div class="description">${example.description}</div>`;
 
                 // Code
                 const codeCell = row.insertCell();
