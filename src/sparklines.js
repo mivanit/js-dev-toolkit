@@ -141,10 +141,13 @@ function plot(values, yvalues = null, options = {}) {
 	// Calculate margins based on what's shown
 	const needsLeftMargin = opts.yAxis.ticks;
 	const needsBottomMargin = opts.xAxis.ticks;
-	const leftMargin = needsLeftMargin ? opts.margin + 20 : opts.margin;
+	// For bar charts with Y-axis, we need extra left margin since axis is shifted left
+	const barChartExtraMargin = opts.style === 'bar' && (opts.yAxis.line || opts.yAxis.ticks) ?
+		(opts.width - 2 * opts.margin) / yvals.length * 0.75 : 0;
+	const leftMargin = (needsLeftMargin ? opts.margin + 10 : opts.margin) + barChartExtraMargin;
 	const rightMargin = opts.margin;
 	const topMargin = opts.margin;
-	const bottomMargin = needsBottomMargin ? opts.margin + 15 : opts.margin;
+	const bottomMargin = needsBottomMargin ? opts.margin + 10 : opts.margin;
 
 	// Calculate axis limits - use custom limits if provided, otherwise data range
 	const ymin = opts.ylims ? opts.ylims[0] : Math.min(...yvals);
@@ -239,13 +242,19 @@ function plot(values, yvalues = null, options = {}) {
 	}
 
 	// Add y-axis
-	if (opts.yAxis.line) {
-		svg += `<line x1="${leftMargin}" y1="${topMargin}" x2="${leftMargin}" y2="${opts.height - bottomMargin}"
+	if (opts.yAxis.line || opts.yAxis.ticks) {
+		// For bar charts, shift Y-axis left by 0.75 bar widths to avoid overlap
+		const barShift = opts.style === 'bar' ? (chartWidth / yvals.length * 0.75) : 0;
+		const yAxisX = leftMargin - barShift;
+
+		if (opts.yAxis.line) {
+			svg += `<line x1="${yAxisX}" y1="${topMargin}" x2="${yAxisX}" y2="${opts.height - bottomMargin}"
                       stroke="#ccc" stroke-width="1"/>`;
-	}
-	if (opts.yAxis.ticks) {
-		svg += `<text x="${leftMargin - 3}" y="${topMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymax}</text>`;
-		svg += `<text x="${leftMargin - 3}" y="${opts.height - bottomMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymin}</text>`;
+		}
+		if (opts.yAxis.ticks) {
+			svg += `<text x="${yAxisX - 3}" y="${topMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymax}</text>`;
+			svg += `<text x="${yAxisX - 3}" y="${opts.height - bottomMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymin}</text>`;
+		}
 	}
 
 	// Add x-axis
