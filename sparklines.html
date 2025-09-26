@@ -213,6 +213,11 @@
                 </div>
 
                 <div class="control-group">
+                    <label>Bar Width: <span id="barWidthRatio-value">1</span></label>
+                    <input type="range" id="barWidthRatio" min="0.3" max="1" step="0.1" value="1">
+                </div>
+
+                <div class="control-group">
                     <label>Markers:</label>
                     <select id="markers">
                         <option value="">None</option>
@@ -399,6 +404,50 @@
                 description: "Irregular X intervals with axes"
             },
             {
+                name: "Touching Bars",
+                data: [4, 7],
+                func: "sparkbars",
+                options: {
+                    color: '#3498db',
+                    width: 140,
+                    ylims: [0, 10],
+                },
+                description: "Bars touch each other (ratio=1.0)"
+            },
+            {
+                name: "Bars with Gaps",
+                data: [4, 7, 3, 8, 5, 9, 6],
+                func: "sparkbars",
+                options: {
+                    color: '#e74c3c',
+                    barWidthRatio: 0.8,
+                    width: 140
+                },
+                description: "Small gaps between bars (ratio=0.8)"
+            },
+            {
+                name: "Thin Bars",
+                data: [4, 7, 3, 8, 5, 9, 6],
+                func: "sparkbars",
+                options: {
+                    color: '#2ecc71',
+                    barWidthRatio: 0.5,
+                    width: 140
+                },
+                description: "Wide gaps between bars (ratio=0.5)"
+            },
+            {
+                name: "Very Thin Bars",
+                data: [4, 7, 3, 8, 5, 9, 6],
+                func: "sparkbars",
+                options: {
+                    color: '#9b59b6',
+                    barWidthRatio: 0.3,
+                    width: 140
+                },
+                description: "Needle-like bars (ratio=0.3)"
+            },
+            {
                 name: "Large Markers",
                 data: [5, 2, 8, 3, 7, 4, 9],
                 func: "sparkline",
@@ -476,6 +525,7 @@
             const height = parseInt(document.getElementById('height').value);
             const color = document.getElementById('color').value;
             const lineWidth = parseFloat(document.getElementById('lineWidth').value);
+            const barWidthRatio = parseFloat(document.getElementById('barWidthRatio').value);
             const markers = document.getElementById('markers').value;
             const shading = document.getElementById('shading').value === 'false' ? false :
                           document.getElementById('shading').value === 'true' ? true :
@@ -488,6 +538,7 @@
                 height,
                 color,
                 lineWidth,
+                barWidthRatio,
                 markers,
                 shading
             };
@@ -503,6 +554,7 @@
             document.getElementById('width-value').textContent = width;
             document.getElementById('height-value').textContent = height;
             document.getElementById('lineWidth-value').textContent = lineWidth;
+            document.getElementById('barWidthRatio-value').textContent = barWidthRatio;
 
             // Generate code
             updateCode(chartType, options);
@@ -534,7 +586,7 @@
 
         // Event listeners
         function setupControls() {
-            const controls = ['width', 'height', 'lineWidth'];
+            const controls = ['width', 'height', 'lineWidth', 'barWidthRatio'];
             controls.forEach(id => {
                 document.getElementById(id).addEventListener('input', updateInteractiveChart);
             });

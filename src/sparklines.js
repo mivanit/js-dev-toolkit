@@ -29,6 +29,10 @@
  *       - `""` for no markers
  *       - `"."` for small dots
  *       - `"o"` for large dots (defaults to `"."`)
+ *     - `barWidthRatio : number` - Width of bars as ratio of available space (sparkbars only):
+ *       - `1.0` for bars that touch each other (default)
+ *       - `0.8` for bars with small gaps
+ *       - `0.5` for bars with large gaps
  *     - `margin : number` - Base margin around the chart (defaults to `5`)
  *     - `xAxis : object` - X-axis configuration:
  *       - `line : boolean` - Draw axis line (defaults to `false`)
@@ -95,6 +99,7 @@ function plot(values, yvalues = null, options = {}) {
 		yAxis: { line: false, ticks: false },
 		xlims: null,
 		ylims: null,
+		barWidthRatio: 1,
 		...options
 	};
 
@@ -162,11 +167,13 @@ function plot(values, yvalues = null, options = {}) {
 	const chartHeight = opts.height - topMargin - bottomMargin;
 
 	// Build SVG
-	let svg = `<svg width="${opts.width}" height="${opts.height}">`;
+
+	// this setup is messy, but syntax highlighting gets confused with template strings??
+	let svg = "<svg " + `width="${opts.width}" height="${opts.height}"` + ">";
 
 	if (opts.style === 'bar') {
 		// Bar chart rendering
-		const barWidth = chartWidth / yvals.length;
+		const barWidth = chartWidth / (yvals.length - 1);
 		const baseY = opts.height - bottomMargin;
 
 		yvals.forEach((yval, i) => {
@@ -176,8 +183,8 @@ function plot(values, yvalues = null, options = {}) {
 			const barY = baseY - barHeight;
 
 			// Calculate bar x position and width
-			const barX = x - barWidth / 2;
-			const actualBarWidth = barWidth * 0.8; // Leave small gaps between bars
+			const actualBarWidth = barWidth * opts.barWidthRatio;
+			const barX = x - actualBarWidth / 2;
 
 			svg += `<rect x="${barX}" y="${barY}" width="${actualBarWidth}" height="${barHeight}" fill="${opts.color}" opacity="0.8"/>`;
 		});
