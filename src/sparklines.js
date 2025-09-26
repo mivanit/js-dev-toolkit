@@ -1,9 +1,13 @@
 /**
- * Generate an SVG sparkline chart from data
+ * SVG Sparkline and Sparkbar Chart Library
  *
- * Creates a small inline chart suitable for embedding in tables, dashboards, or text.
- * The sparkline automatically scales to fit the data range and supports various
- * visual customizations including gradients, markers, and optional axes.
+ * Creates small inline charts suitable for embedding in tables, dashboards, or text.
+ * Charts automatically scale to fit data ranges and support various visual customizations.
+ *
+ * # Available Functions:
+ *  - `sparkline(values, yvalues?, options?)` - Line charts with optional area fills
+ *  - `sparkbars(values, yvalues?, options?)` - Bar charts and histograms
+ *  - `plot(values, yvalues?, options)` - Underlying chart engine (internal)
  *
  * # Parameters:
  *  - `values : number[]`
@@ -16,12 +20,12 @@
  *     - `width : number` - SVG width in pixels (defaults to `120`)
  *     - `height : number` - SVG height in pixels (defaults to `40`)
  *     - `color : string` - Color for line, markers, and fill (defaults to `"#4169E1"`)
- *     - `shading : boolean|number` - Fill under the line:
+ *     - `shading : boolean|number` - Fill under the line (sparkline only):
  *       - `false` for no shading
  *       - `true` for solid fill
  *       - `0.0-1.0` for gradient with specified opacity (defaults to `0.3`)
- *     - `lineWidth : number` - Stroke width of the line (defaults to `2`)
- *     - `markers : string` - Data point markers:
+ *     - `lineWidth : number` - Stroke width of the line (sparkline only, defaults to `2`)
+ *     - `markers : string` - Data point markers (sparkline only):
  *       - `""` for no markers
  *       - `"."` for small dots
  *       - `"o"` for large dots (defaults to `"."`)
@@ -34,11 +38,11 @@
  *       - `ticks : boolean` - Show tick labels (defaults to `false`)
  *     - `xlims : [number, number]` - X-axis limits [min, max] (defaults to data range)
  *     - `ylims : [number, number]` - Y-axis limits [min, max] (defaults to data range)
- * 
+ *
  * # Returns:
  *  - `string`
  *     Complete SVG element as an HTML string
- * 
+ *
  * # Usage:
  *
  * ```javascript
@@ -60,9 +64,14 @@
  *     xlims: [0, 10],
  *     ylims: [0, 40]
  * });
+ *
+ * // Bar chart / histogram style
+ * document.getElementById('chart').innerHTML = sparkbars([5, 8, 3, 12, 7, 9, 4], null, {
+ *     color: '#e74c3c'
+ * });
  * ```
  */
-function sparkline(values, yvalues = null, options = {}) {
+function plot(values, yvalues = null, options = {}) {
 	// Validate inputs
 	if (!Array.isArray(values)) {
 		throw new Error(`First parameter must be an array, got: ${typeof values}`);
@@ -81,6 +90,7 @@ function sparkline(values, yvalues = null, options = {}) {
 		lineWidth: 2,
 		markers: '.',
 		margin: 5,
+		style: 'line',
 		xAxis: { line: false, ticks: false },
 		yAxis: { line: false, ticks: false },
 		xlims: null,
@@ -148,64 +158,89 @@ function sparkline(values, yvalues = null, options = {}) {
 	const chartWidth = opts.width - leftMargin - rightMargin;
 	const chartHeight = opts.height - topMargin - bottomMargin;
 
-	// Build path
-	let path = '';
-	let dots = '';
-	const points = [];
-
-	yvals.forEach((yval, i) => {
-		const xval = xvalues[i];
-		const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
-		const y = topMargin + (1 - (yval - ymin) / yrange) * chartHeight;
-		points.push({ x, y, xval, yval });
-
-		path += `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
-
-		// Add markers
-		if (opts.markers === '.') {
-			dots += `<circle cx="${x}" cy="${y}" r="2" fill="${opts.color}"/>`;
-		} else if (opts.markers === 'o') {
-			dots += `<circle cx="${x}" cy="${y}" r="3.5" fill="${opts.color}"/>`;
-		}
-	});
-
 	// Build SVG
 	let svg = `<svg width="${opts.width}" height="${opts.height}">`;
 
-	// Add shading if requested
-	if (opts.shading !== false) {
-		if (opts.shading === true) {
-			// Solid fill
-			for (let i = 0; i < points.length - 1; i++) {
-				const p1 = points[i];
-				const p2 = points[i + 1];
-				const segmentPath = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p2.x} ${opts.height - bottomMargin} L ${p1.x} ${opts.height - bottomMargin} Z`;
-				svg += `<path d="${segmentPath}" fill="${opts.color}"/>`;
-			}
-		} else {
-			// Gradient fill
-			const gradId = `grad${Date.now()}${Math.random()}`;
-			const opacity = parseFloat(opts.shading);
-			svg += `
-            <defs>
-                <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:${opts.color};stop-opacity:${opacity}"/>
-                    <stop offset="100%" style="stop-color:${opts.color};stop-opacity:0"/>
-                </linearGradient>
-            </defs>`;
+	if (opts.style === 'bar') {
+		// Bar chart rendering
+		const barWidth = chartWidth / yvals.length;
+		const baseY = opts.height - bottomMargin;
 
-			for (let i = 0; i < points.length - 1; i++) {
-				const p1 = points[i];
-				const p2 = points[i + 1];
-				const segmentPath = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p2.x} ${opts.height - bottomMargin} L ${p1.x} ${opts.height - bottomMargin} Z`;
-				svg += `<path d="${segmentPath}" fill="url(#${gradId})"/>`;
+		yvals.forEach((yval, i) => {
+			const xval = xvalues[i];
+			const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
+			const barHeight = Math.abs((yval - ymin) / yrange) * chartHeight;
+			const barY = baseY - barHeight;
+
+			// Calculate bar x position and width
+			const barX = x - barWidth / 2;
+			const actualBarWidth = barWidth * 0.8; // Leave small gaps between bars
+
+			svg += `<rect x="${barX}" y="${barY}" width="${actualBarWidth}" height="${barHeight}" fill="${opts.color}" opacity="0.8"/>`;
+		});
+	} else {
+		// Line chart rendering (existing code)
+		let path = '';
+		let dots = '';
+		const points = [];
+
+		yvals.forEach((yval, i) => {
+			const xval = xvalues[i];
+			const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
+			const y = topMargin + (1 - (yval - ymin) / yrange) * chartHeight;
+			points.push({ x, y, xval, yval });
+
+			path += `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
+
+			// Add markers
+			if (opts.markers === '.') {
+				dots += `<circle cx="${x}" cy="${y}" r="2" fill="${opts.color}"/>`;
+			} else if (opts.markers === 'o') {
+				dots += `<circle cx="${x}" cy="${y}" r="3.5" fill="${opts.color}"/>`;
+			}
+		});
+
+		// Add shading if requested
+		if (opts.shading !== false) {
+			if (opts.shading === true) {
+				// Solid fill
+				for (let i = 0; i < points.length - 1; i++) {
+					const p1 = points[i];
+					const p2 = points[i + 1];
+					const segmentPath = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p2.x} ${opts.height - bottomMargin} L ${p1.x} ${opts.height - bottomMargin} Z`;
+					svg += `<path d="${segmentPath}" fill="${opts.color}"/>`;
+				}
+			} else {
+				// Gradient fill
+				const gradId = `grad${Date.now()}${Math.random()}`;
+				const opacity = parseFloat(opts.shading);
+				svg += `
+	            <defs>
+	                <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
+	                    <stop offset="0%" style="stop-color:${opts.color};stop-opacity:${opacity}"/>
+	                    <stop offset="100%" style="stop-color:${opts.color};stop-opacity:0"/>
+	                </linearGradient>
+	            </defs>`;
+
+				for (let i = 0; i < points.length - 1; i++) {
+					const p1 = points[i];
+					const p2 = points[i + 1];
+					const segmentPath = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p2.x} ${opts.height - bottomMargin} L ${p1.x} ${opts.height - bottomMargin} Z`;
+					svg += `<path d="${segmentPath}" fill="url(#${gradId})"/>`;
+				}
 			}
 		}
+
+		// Add the line
+		svg += `<path d="${path}" stroke="${opts.color}" stroke-width="${opts.lineWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+		// Add dots
+		svg += dots;
 	}
 
 	// Add y-axis
 	if (opts.yAxis.line) {
-		svg += `<line x1="${leftMargin}" y1="${topMargin}" x2="${leftMargin}" y2="${opts.height - bottomMargin}" 
+		svg += `<line x1="${leftMargin}" y1="${topMargin}" x2="${leftMargin}" y2="${opts.height - bottomMargin}"
                       stroke="#ccc" stroke-width="1"/>`;
 	}
 	if (opts.yAxis.ticks) {
@@ -215,7 +250,7 @@ function sparkline(values, yvalues = null, options = {}) {
 
 	// Add x-axis
 	if (opts.xAxis.line) {
-		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${opts.width - rightMargin}" y2="${opts.height - bottomMargin}" 
+		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${opts.width - rightMargin}" y2="${opts.height - bottomMargin}"
                       stroke="#ccc" stroke-width="1"/>`;
 	}
 	if (opts.xAxis.ticks && yvals.length > 0) {
@@ -223,13 +258,29 @@ function sparkline(values, yvalues = null, options = {}) {
 		svg += `<text x="${opts.width - rightMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmax}</text>`;
 	}
 
-	// Add the line
-	svg += `<path d="${path}" stroke="${opts.color}" stroke-width="${opts.lineWidth}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
-
-	// Add dots
-	svg += dots;
-
 	svg += '</svg>';
 
 	return svg;
+}
+
+/**
+ * Generate an SVG sparkline (line chart) from data
+ * @param {number[]} values - Y-values or X-values if yvalues provided
+ * @param {number[]|null} yvalues - Y-values (when values becomes x-values)
+ * @param {object} options - Chart options
+ * @returns {string} SVG element as HTML string
+ */
+function sparkline(values, yvalues = null, options = {}) {
+	return plot(values, yvalues, { ...options, style: 'line' });
+}
+
+/**
+ * Generate an SVG sparkbar chart (bar chart) from data
+ * @param {number[]} values - Y-values or X-values if yvalues provided
+ * @param {number[]|null} yvalues - Y-values (when values becomes x-values)
+ * @param {object} options - Chart options
+ * @returns {string} SVG element as HTML string
+ */
+function sparkbars(values, yvalues = null, options = {}) {
+	return plot(values, yvalues, { ...options, style: 'bar' });
 }
