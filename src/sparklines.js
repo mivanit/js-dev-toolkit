@@ -146,8 +146,25 @@ function plot(values, yvalues = null, options = {}) {
 		// This matches how the X-axis is drawn (ending at center of last bar)
 		const adjustedChartWidth = chartWidth - (chartWidth / yvals.length / 2);
 
-		// Calculate the actual spacing between bar centers
-		const barSpacing = yvals.length > 1 ? adjustedChartWidth / (yvals.length - 1) : adjustedChartWidth;
+		// Calculate bar spacing based on actual x-values
+		let barSpacing;
+		if (yvals.length === 1) {
+			// Single bar: use full available width
+			barSpacing = adjustedChartWidth;
+		} else {
+			// Multiple bars: find minimum spacing between consecutive x-values
+			const sortedIndices = [...Array(xvalues.length).keys()].sort((a, b) => xvalues[a] - xvalues[b]);
+			let minSpacing = Infinity;
+			for (let j = 1; j < sortedIndices.length; j++) {
+				const prevX = xvalues[sortedIndices[j - 1]];
+				const currX = xvalues[sortedIndices[j]];
+				const spacing = ((currX - prevX) / xrange) * adjustedChartWidth;
+				if (spacing < minSpacing) minSpacing = spacing;
+			}
+			// If all x-values are the same, fall back to dividing by count
+			barSpacing = minSpacing === Infinity ? adjustedChartWidth / yvals.length : minSpacing;
+		}
+
 		// Bar width is the spacing times the ratio (1 = touching, <1 = gaps)
 		const actualBarWidth = barSpacing * opts.barWidthRatio;
 
