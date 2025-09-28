@@ -10,6 +10,7 @@ class DataTable {
         this.pageSizeOptions = config.pageSizeOptions || [10, 25, 50, 100];
         this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
+        this.filterConfigs = config.filterConfigs || {}; // Per-column filter configs
         this.currentPage = 1;
         this.sortColumn = null;
         this.sortDirection = null;
@@ -20,7 +21,8 @@ class DataTable {
             this.columns = Object.keys(this.data[0]).map(key => ({
                 key: key,
                 label: key.charAt(0).toUpperCase() + key.slice(1),
-                type: this.inferType(this.data[0][key])
+                type: this.inferType(this.data[0][key]),
+                filterable: true
             }));
         }
 
@@ -116,47 +118,65 @@ class DataTable {
         if (this.showFilters) {
             const filterRow = document.createElement('tr');
             filterRow.className = 'datatable-filter-row';
+            filterRow.style.backgroundColor = '#f5f5f5';
+            filterRow.style.borderTop = '1px solid #ddd';
 
             this.columns.forEach(col => {
                 const td = document.createElement('td');
                 td.className = 'datatable-filter-cell';
+                td.style.padding = '4px 8px';
+                td.style.backgroundColor = '#f5f5f5';
 
                 // Apply column alignment to filter cell
                 if (col.align) {
                     td.style.textAlign = col.align;
                 }
 
-                const filterContainer = document.createElement('div');
-                filterContainer.style.display = 'flex';
-                filterContainer.style.alignItems = 'center';
+                // Check if column is filterable
+                const isFilterable = col.filterable !== false &&
+                    (this.filterConfigs[col.key]?.enabled !== false);
 
-                const input = document.createElement('input');
-                input.className = 'datatable-filter-input';
-                input.type = 'text';
-                input.placeholder = col.type === 'number' ? 'e.g. >50' : 'Filter...';
-                input.style.flex = '1';
+                if (isFilterable) {
+                    const filterContainer = document.createElement('div');
+                    filterContainer.style.display = 'flex';
+                    filterContainer.style.alignItems = 'center';
 
-                const clearBtn = document.createElement('button');
-                clearBtn.textContent = '×';
-                clearBtn.style.border = 'none';
-                clearBtn.style.background = 'none';
-                clearBtn.style.cursor = 'pointer';
-                clearBtn.style.padding = '2px 8px';
-                clearBtn.style.fontSize = '16px';
-                clearBtn.style.color = '#999';
-                clearBtn.style.marginLeft = '4px';
+                    const input = document.createElement('input');
+                    input.className = 'datatable-filter-input';
+                    input.type = 'text';
+                    input.placeholder = '';
+                    input.style.flex = '1';
+                    input.style.border = '1px solid #ccc';
+                    input.style.padding = '2px 4px';
+                    input.style.borderRadius = '3px';
 
-                input.addEventListener('input', (e) => {
-                    this.handleFilter(col.key, e.target.value, col.type, input);
-                });
+                    // Add tooltip for filter help
+                    const tooltipText = this.getFilterTooltip(col);
+                    input.title = tooltipText;
 
-                clearBtn.addEventListener('click', () => {
-                    this.clearFilter(col.key, input);
-                });
+                    const clearBtn = document.createElement('button');
+                    clearBtn.textContent = '×';
+                    clearBtn.style.border = 'none';
+                    clearBtn.style.background = 'none';
+                    clearBtn.style.cursor = 'pointer';
+                    clearBtn.style.padding = '2px 8px';
+                    clearBtn.style.fontSize = '16px';
+                    clearBtn.style.color = '#999';
+                    clearBtn.style.marginLeft = '4px';
+                    clearBtn.title = 'Clear filter';
 
-                filterContainer.appendChild(input);
-                filterContainer.appendChild(clearBtn);
-                td.appendChild(filterContainer);
+                    input.addEventListener('input', (e) => {
+                        this.handleFilter(col.key, e.target.value, col.type, input, col);
+                    });
+
+                    clearBtn.addEventListener('click', () => {
+                        this.clearFilter(col.key, input);
+                    });
+
+                    filterContainer.appendChild(input);
+                    filterContainer.appendChild(clearBtn);
+                    td.appendChild(filterContainer);
+                }
                 filterRow.appendChild(td);
             });
             thead.appendChild(filterRow);
@@ -262,14 +282,38 @@ class DataTable {
         }
     }
 
-    handleFilter(columnKey, filterValue, type, inputElement) {
+    getFilterTooltip(col) {
+        // Check for custom tooltip
+        const customConfig = this.filterConfigs[col.key];
+        if (customConfig?.tooltip) {
+            return customConfig.tooltip;
+        }
+
+        // Default tooltips based on type
+        if (col.type === 'number') {
+            return 'Use operators: >, <, >=, <=, ==, != (e.g., >50, <=100)';
+        }
+        return 'Type to filter. Use * for wildcards (e.g., foo*, *bar)';
+    }
+
+    handleFilter(columnKey, filterValue, type, inputElement, col) {
         if (!filterValue) {
             delete this.filters[columnKey];
             inputElement.style.backgroundColor = '';
         } else {
             let isValid = true;
+            let customFilter = null;
 
-            if (type === 'number') {
+            // Check for custom filter function
+            const customConfig = this.filterConfigs[columnKey];
+            if (customConfig?.filterFunction) {
+                try {
+                    customFilter = customConfig.filterFunction(filterValue);
+                    isValid = typeof customFilter === 'function';
+                } catch (e) {
+                    isValid = false;
+                }
+            } else if (type === 'number') {
                 const numFilter = this.parseNumericFilter(filterValue);
                 isValid = numFilter !== null;
             }
@@ -277,7 +321,8 @@ class DataTable {
             this.filters[columnKey] = {
                 value: filterValue,
                 type: type,
-                valid: isValid
+                valid: isValid,
+                customFilter: customFilter
             };
 
             inputElement.style.backgroundColor = isValid ? '' : '#ffcccc';
@@ -309,7 +354,17 @@ class DataTable {
 
                 const cellValue = row[key];
 
-                if (filter.type === 'number') {
+                // Apply custom filter if available
+                if (filter.customFilter) {
+                    try {
+                        if (!filter.customFilter(cellValue)) {
+                            return false;
+                        }
+                    } catch (e) {
+                        // If custom filter fails, treat as no match
+                        return false;
+                    }
+                } else if (filter.type === 'number') {
                     const numFilter = this.parseNumericFilter(filter.value);
                     if (numFilter && !this.applyNumericFilter(cellValue, numFilter)) {
                         return false;
