@@ -264,6 +264,31 @@
                 description: "Simple line chart with default settings"
             },
             {
+                data: [
+                    [0, 2, 5, 7, 10, 12, 15],
+                    [50, 80, 30, 90, 60, 75, 40],
+                ],
+                func: "sparkbars",
+                options: {
+                    color: '#e67e22',
+                    xAxis: { line: true, ticks: true },
+                    yAxis: { line: true, ticks: true },
+                },
+                description: "test"
+            },
+            {
+                data: [100, 250, 150, 100, 200, 123, 456],
+                func: "sparkbars",
+                options: {
+                    color: '#8e44ad',
+                    xAxis: { line: true, ticks: true },
+                    yAxis: { line: true, ticks: true },
+
+                    ylims: [0, 350]
+                },
+                description: "Full axis reference frame"
+            },
+            {
                 data: [5, 8, 3, 12, 7, 9, 4],
                 func: "sparkbars",
                 options: { },

@@ -140,23 +140,25 @@ function plot(values, yvalues = null, options = {}) {
 	let svg = "<svg " + `width="${opts.width}" height="${opts.height}"` + ">";
 
 	if (opts.style === 'bar') {
-		// Bar chart rendering - account for reduced width from Y-axis labels
-		const yAxisReduction = (opts.yAxis.line || opts.yAxis.ticks) ?
-			(needsLeftMargin ? opts.bar.y_axis_reduction_factor : 0) + barChartExtraMargin : 0;
-		const effectiveWidth = opts.width - 2 * opts.margin - yAxisReduction;
-		const barWidth = effectiveWidth / (yvals.length);
+		// Bar chart rendering
 		const baseY = opts.height - bottomMargin;
+		// For bars, we position them at centers, with the first at 0 and last at (n-1)/n of the width
+		// This matches how the X-axis is drawn (ending at center of last bar)
+		const adjustedChartWidth = chartWidth - (chartWidth / yvals.length / 2);
+
+		// Calculate the actual spacing between bar centers
+		const barSpacing = yvals.length > 1 ? adjustedChartWidth / (yvals.length - 1) : adjustedChartWidth;
+		// Bar width is the spacing times the ratio (1 = touching, <1 = gaps)
+		const actualBarWidth = barSpacing * opts.barWidthRatio;
 
 		yvals.forEach((yval, i) => {
 			const xval = xvalues[i];
-			// For bars, use the same shortened range as the X-axis
-			const adjustedChartWidth = chartWidth - (chartWidth / yvals.length / 2);
+			// Position at bar center
 			const x = leftMargin + ((xval - xmin) / xrange) * adjustedChartWidth;
 			const barHeight = Math.abs((yval - ymin) / yrange) * chartHeight;
 			const barY = baseY - barHeight;
 
-			// Calculate bar x position and width
-			const actualBarWidth = barWidth * opts.barWidthRatio;
+			// Calculate bar x position (offset by half width to center)
 			const barX = x - actualBarWidth / 2;
 
 			svg += `<rect x="${barX}" y="${barY}" width="${actualBarWidth}" height="${barHeight}" fill="${opts.color}" opacity="${opts.bar.opacity}"/>`;
