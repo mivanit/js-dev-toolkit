@@ -1,3 +1,7 @@
+// sparklines.js - Generate SVG sparklines and sparkbars from data arrays
+// origin: https://github.com/mivanit/js-dev-toolkit
+// license: GPLv3
+
 const _PLOT_OPTS_DEFAULT = {
 	// Chart dimensions and basic styling
 	width: 160,  // number: SVG width in pixels

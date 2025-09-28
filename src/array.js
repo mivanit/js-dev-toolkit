@@ -1,5 +1,8 @@
-// ------------------------------------------------------------
-// this file has been modified from original code at:
+// array.js - NumPy array parsing and utilities
+// origin: https://github.com/mivanit/js-dev-toolkit
+// license: GPLv3
+//
+// Note: this file has been modified from original code at:
 // https://github.com/aplbrain/npyjs
 // under Apache License
 // https://github.com/aplbrain/npyjs/blob/b0cd99b7f4c2bff791b4977e16dec3478519920b/LICENSE

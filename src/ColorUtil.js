@@ -1,3 +1,7 @@
+// ColorUtil.js - Color manipulation utilities
+// origin: https://github.com/mivanit/js-dev-toolkit
+// license: GPLv3
+
 function hslToHex(h, s, l) {
     s /= 100; l /= 100;
     const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;

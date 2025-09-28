@@ -1,4 +1,8 @@
 
+// table.js - Interactive data table component
+// origin: https://github.com/mivanit/js-dev-toolkit
+// license: GPLv3
+
 class DataTable {
     constructor(container, config = {}) {
         this.container = typeof container === 'string' ? document.querySelector(container) : container;
