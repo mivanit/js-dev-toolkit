@@ -1,7 +1,7 @@
 const _PLOT_OPTS_DEFAULT = {
 	// Chart dimensions and basic styling
-	width: 120,  // number: SVG width in pixels
-	height: 40,  // number: SVG height in pixels
+	width: 160,  // number: SVG width in pixels
+	height: 80,  // number: SVG height in pixels
 	color: '#4169E1',  // string: CSS color for line/bars/markers
 	shading: 0.3,  // boolean|number: false=none, true=solid fill, 0-1=gradient opacity
 	lineWidth: 2,  // number: stroke width for line charts in pixels
@@ -23,8 +23,8 @@ const _PLOT_OPTS_DEFAULT = {
 	yAxis: {
 		line: false,  // boolean: show axis line
 		ticks: false,  // boolean: show tick labels (min/max values)
-		text_offset: 10,  // number: pixels left of axis for tick labels
-		label_margin: 5,  // number: extra margin in pixels when ticks shown
+		text_offset: 2,  // number: pixels left of axis for tick labels
+		label_margin: 10,  // number: extra margin in pixels when ticks shown
 		limits_length: 2  // number: expected array length for ylims (internal)
 	},
 
@@ -34,7 +34,7 @@ const _PLOT_OPTS_DEFAULT = {
 	// Bar chart specific settings
 	bar: {
 		opacity: 0.8,  // number: 0-1 opacity of bar rectangles
-		y_axis_shift_ratio: 0.75,  // number: Y-axis left shift as ratio of bar width
+		y_axis_shift_ratio: 0.6,  // number: Y-axis left shift as ratio of bar width
 		y_axis_reduction_factor: 1  // number: width reduction factor for Y-axis labels
 	},
 
