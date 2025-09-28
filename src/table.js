@@ -3,14 +3,77 @@
 // origin: https://github.com/mivanit/js-dev-toolkit
 // license: GPLv3
 
-// SVG Icons
-const TABLE_ICONS = {
-    sort: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 L7 9 L10 9 L10 15 L7 15 L12 20 L17 15 L14 15 L14 9 L17 9 Z" fill="currentColor" /></svg>',
-    sortUp: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 L6 12 L10 12 L10 20 L14 20 L14 12 L18 12 Z" fill="currentColor" /></svg>',
-    sortDown: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 20 L6 12 L10 12 L10 4 L14 4 L14 12 L18 12 Z" fill="currentColor" /></svg>',
-    filter: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor" /><rect x="7" y="10" width="10" height="2" rx="1" fill="currentColor" /><rect x="10" y="15" width="4" height="2" rx="1" fill="currentColor" /></svg>',
-    download: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 L12 14 M12 14 L7 9 M12 14 L17 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16 L5 20 L19 20 L19 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>',
-    copy: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="9" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><rect x="9" y="5" width="10" height="10" fill="white" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>'
+// Global constants dictionary
+const _TABLE_CONSTS = {
+    // CSS Class prefixes
+    CSS_PREFIX: 'tablejs-',
+
+    // Default styling values
+    COLORS: {
+        BORDER: '#ccc',
+        HEADER_BG: '#f5f5f5',
+        FILTER_BG: '#f5f5f5',
+        FOOTER_BG: '#f5f5f5',
+        HOVER_BG: '#f0f0f0',
+        ERROR_BG: '#ffcccc',
+        SUCCESS_COLOR: 'green',
+        MUTED_TEXT: '#999'
+    },
+
+    // Spacing and sizing
+    SPACING: {
+        PADDING_CELL: '8px',
+        PADDING_FILTER: '4px 8px',
+        PADDING_BUTTON: '4px 8px',
+        MARGIN_ICON: '4px',
+        BORDER_WIDTH: '1px',
+        MIN_COLUMN_WIDTH: '10px',
+        RESIZE_HANDLE_WIDTH: '4px'
+    },
+
+    // Pagination defaults
+    PAGINATION: {
+        DEFAULT_PAGE_SIZES: [10, 25, 50, 100],
+        MAX_VISIBLE_PAGES: 10,
+        BUTTON_MIN_WIDTH: '30px'
+    },
+
+    // Animation and feedback
+    FEEDBACK: {
+        SUCCESS_TIMEOUT: 1500,
+        ICON_OPACITY_ACTIVE: '1',
+        ICON_OPACITY_INACTIVE: '0.6'
+    },
+
+    // SVG Icons
+    ICONS: {
+        sort: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 L7 9 L10 9 L10 15 L7 15 L12 20 L17 15 L14 15 L14 9 L17 9 Z" fill="currentColor" /></svg>',
+        sortUp: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 L6 12 L10 12 L10 20 L14 20 L14 12 L18 12 Z" fill="currentColor" /></svg>',
+        sortDown: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 20 L6 12 L10 12 L10 4 L14 4 L14 12 L18 12 Z" fill="currentColor" /></svg>',
+        filter: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor" /><rect x="7" y="10" width="10" height="2" rx="1" fill="currentColor" /><rect x="10" y="15" width="4" height="2" rx="1" fill="currentColor" /></svg>',
+        download: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 L12 14 M12 14 L7 9 M12 14 L17 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16 L5 20 L19 20 L19 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>',
+        copy: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="9" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><rect x="9" y="5" width="10" height="10" fill="white" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>',
+        prev: '‹',
+        next: '›',
+        clear: '×'
+    },
+
+    // Default messages
+    MESSAGES: {
+        NO_DATA: 'No data to display',
+        COPY_SUCCESS: 'Copied!',
+        COPY_TITLE: 'Copy to clipboard',
+        CLEAR_FILTER: 'Clear filter',
+        EXPORT_CSV: 'Export CSV',
+        CLEAR_FILTERS: 'Clear Filters',
+        DOWNLOAD_FILENAME: 'table-data.csv'
+    },
+
+    // Filter tooltips
+    FILTER_TOOLTIPS: {
+        NUMBER: 'Use operators: >, <, >=, <=, ==, != (e.g., >50, <=100)',
+        DEFAULT: 'Type to filter. Use * for wildcards (e.g., foo*, *bar)'
+    }
 };
 
 class DataTable {
@@ -21,7 +84,7 @@ class DataTable {
         }
         this.data = config.data || [];
         this.columns = config.columns || [];
-        this.pageSizeOptions = config.pageSizeOptions || [10, 25, 50, 100];
+        this.pageSizeOptions = config.pageSizeOptions || _TABLE_CONSTS.PAGINATION.DEFAULT_PAGE_SIZES;
         this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
         this.filterConfigs = config.filterConfigs || {}; // Per-column filter configs
@@ -51,6 +114,19 @@ class DataTable {
         return 'string';
     }
 
+    cssClass(className) {
+        return _TABLE_CONSTS.CSS_PREFIX + className;
+    }
+
+    createStyledElement(tagName, className, styles = {}) {
+        const element = document.createElement(tagName);
+        if (className) {
+            element.className = this.cssClass(className);
+        }
+        Object.assign(element.style, styles);
+        return element;
+    }
+
     init() {
         this.createTableStructure();
         this.applyFiltersAndSort();
@@ -61,66 +137,80 @@ class DataTable {
         this.container.innerHTML = '';
 
         // Create wrapper with border
-        const wrapper = document.createElement('div');
-        wrapper.className = 'datatable-wrapper';
-        wrapper.style.border = '1px solid #ccc';
+        const wrapper = this.createStyledElement('div', 'wrapper', {
+            border: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`
+        });
 
         // Create table container
-        const tableContainer = document.createElement('div');
-        tableContainer.className = 'datatable-container';
+        const tableContainer = this.createStyledElement('div', 'container');
 
-        const table = document.createElement('table');
-        table.className = 'datatable';
+        const table = this.createStyledElement('table', 'table');
 
         // Create header
-        const thead = document.createElement('thead');
+        const thead = this.createStyledElement('thead', 'thead');
 
         // Header row with column names, sort, and resize handles
-        const headerRow = document.createElement('tr');
+        const headerRow = this.createStyledElement('tr', 'header-row', {
+            backgroundColor: _TABLE_CONSTS.COLORS.HEADER_BG
+        });
         this.columns.forEach((col, index) => {
-            const th = document.createElement('th');
-            th.className = 'datatable-header';
-            th.style.position = 'relative';
+            const thStyles = {
+                position: 'relative',
+                padding: _TABLE_CONSTS.SPACING.PADDING_CELL,
+                borderBottom: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`,
+                minWidth: col.width || _TABLE_CONSTS.SPACING.MIN_COLUMN_WIDTH
+            };
+
             if (col.width) {
-                th.style.width = col.width;
-                th.style.minWidth = col.width;
-            } else {
-                th.style.minWidth = '10px';
+                thStyles.width = col.width;
+                thStyles.minWidth = col.width;
             }
 
-            // Apply column alignment
             if (col.align) {
-                th.style.textAlign = col.align;
+                thStyles.textAlign = col.align;
             }
 
-            const headerContent = document.createElement('div');
-            headerContent.className = 'datatable-header-content';
-            headerContent.style.display = 'flex';
-            headerContent.style.justifyContent = 'space-between';
-            headerContent.style.alignItems = 'center';
+            const th = this.createStyledElement('th', 'header-cell', thStyles);
 
-            const label = document.createElement('span');
+            const headerContent = this.createStyledElement('div', 'header-content', {
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+            });
+
+            const label = this.createStyledElement('span', 'header-label');
             label.textContent = col.label || col.key;
             headerContent.appendChild(label);
 
-            const sortIcon = document.createElement('span');
-            sortIcon.className = 'datatable-sort-icon';
-            sortIcon.innerHTML = TABLE_ICONS.sort;
-            sortIcon.style.marginLeft = '4px';
-            sortIcon.style.opacity = '0.6';
+            const sortIcon = this.createStyledElement('span', 'sort-icon', {
+                marginLeft: _TABLE_CONSTS.SPACING.MARGIN_ICON,
+                opacity: _TABLE_CONSTS.FEEDBACK.ICON_OPACITY_INACTIVE
+            });
+            sortIcon.innerHTML = _TABLE_CONSTS.ICONS.sort;
             headerContent.appendChild(sortIcon);
 
             headerContent.onclick = () => this.handleSort(col.key);
 
             // Add resize handle
-            const resizeHandle = document.createElement('div');
-            resizeHandle.style.position = 'absolute';
-            resizeHandle.style.right = '0';
-            resizeHandle.style.top = '0';
-            resizeHandle.style.bottom = '0';
-            resizeHandle.style.width = '4px';
-            resizeHandle.style.cursor = 'col-resize';
-            resizeHandle.style.background = 'transparent';
+            const resizeHandle = this.createStyledElement('div', 'resize-handle', {
+                position: 'absolute',
+                right: '0',
+                top: '0',
+                bottom: '0',
+                width: _TABLE_CONSTS.SPACING.RESIZE_HANDLE_WIDTH,
+                cursor: 'col-resize',
+                background: 'transparent',
+                borderRight: `2px solid transparent`,
+                transition: 'border-color 0.2s'
+            });
+
+            // Add hover effect
+            resizeHandle.addEventListener('mouseenter', () => {
+                resizeHandle.style.borderRightColor = _TABLE_CONSTS.COLORS.BORDER;
+            });
+            resizeHandle.addEventListener('mouseleave', () => {
+                resizeHandle.style.borderRightColor = 'transparent';
+            });
 
             this.addResizeListener(resizeHandle, th, index);
 
@@ -132,63 +222,67 @@ class DataTable {
 
         // Filter row (conditional)
         if (this.showFilters) {
-            const filterRow = document.createElement('tr');
-            filterRow.className = 'datatable-filter-row';
-            filterRow.style.backgroundColor = '#f5f5f5';
-            filterRow.style.borderTop = '1px solid #ddd';
+            const filterRow = this.createStyledElement('tr', 'filter-row', {
+                backgroundColor: _TABLE_CONSTS.COLORS.FILTER_BG,
+                borderTop: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`
+            });
 
             this.columns.forEach(col => {
-                const td = document.createElement('td');
-                td.className = 'datatable-filter-cell';
-                td.style.padding = '4px 8px';
-                td.style.backgroundColor = '#f5f5f5';
+                const tdStyles = {
+                    padding: _TABLE_CONSTS.SPACING.PADDING_FILTER,
+                    backgroundColor: _TABLE_CONSTS.COLORS.FILTER_BG
+                };
 
-                // Apply column alignment to filter cell
                 if (col.align) {
-                    td.style.textAlign = col.align;
+                    tdStyles.textAlign = col.align;
                 }
+
+                const td = this.createStyledElement('td', 'filter-cell', tdStyles);
 
                 // Check if column is filterable
                 const isFilterable = col.filterable !== false &&
                     (this.filterConfigs[col.key]?.enabled !== false);
 
                 if (isFilterable) {
-                    const filterContainer = document.createElement('div');
-                    filterContainer.style.display = 'flex';
-                    filterContainer.style.alignItems = 'center';
+                    const filterContainer = this.createStyledElement('div', 'filter-container', {
+                        display: 'flex',
+                        alignItems: 'center'
+                    });
 
                     // Add filter icon
-                    const filterIcon = document.createElement('span');
-                    filterIcon.innerHTML = TABLE_ICONS.filter;
-                    filterIcon.style.marginRight = '4px';
-                    filterIcon.style.opacity = '0.5';
-                    filterIcon.style.display = 'flex';
-                    filterIcon.style.alignItems = 'center';
+                    const filterIcon = this.createStyledElement('span', 'filter-icon', {
+                        marginRight: _TABLE_CONSTS.SPACING.MARGIN_ICON,
+                        opacity: '0.5',
+                        display: 'flex',
+                        alignItems: 'center'
+                    });
+                    filterIcon.innerHTML = _TABLE_CONSTS.ICONS.filter;
 
-                    const input = document.createElement('input');
-                    input.className = 'datatable-filter-input';
+                    const input = this.createStyledElement('input', 'filter-input', {
+                        flex: '1',
+                        border: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`,
+                        padding: '2px 4px',
+                        borderRadius: '3px'
+                    });
                     input.type = 'text';
                     input.placeholder = '';
-                    input.style.flex = '1';
-                    input.style.border = '1px solid #ccc';
-                    input.style.padding = '2px 4px';
-                    input.style.borderRadius = '3px';
-                    
+
                     // Add tooltip for filter help
                     const tooltipText = this.getFilterTooltip(col);
                     input.title = tooltipText;
                     filterIcon.title = tooltipText;
-                    
-                    const clearBtn = document.createElement('button');
-                    clearBtn.textContent = '×';
-                    clearBtn.style.border = 'none';
-                    clearBtn.style.background = 'none';
-                    clearBtn.style.cursor = 'pointer';
-                    clearBtn.style.padding = '2px 8px';
-                    clearBtn.style.fontSize = '16px';
-                    clearBtn.style.color = '#999';
-                    clearBtn.style.marginLeft = '4px';
-                    clearBtn.title = 'Clear filter';
+
+                    const clearBtn = this.createStyledElement('button', 'filter-clear-btn', {
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        padding: '2px 8px',
+                        fontSize: '16px',
+                        color: _TABLE_CONSTS.COLORS.MUTED_TEXT,
+                        marginLeft: _TABLE_CONSTS.SPACING.MARGIN_ICON
+                    });
+                    clearBtn.textContent = _TABLE_CONSTS.ICONS.clear;
+                    clearBtn.title = _TABLE_CONSTS.MESSAGES.CLEAR_FILTER;
 
                     input.addEventListener('input', (e) => {
                         this.handleFilter(col.key, e.target.value, col.type, input, col);
@@ -211,16 +305,18 @@ class DataTable {
         table.appendChild(thead);
 
         // Create body
-        const tbody = document.createElement('tbody');
-        tbody.className = 'datatable-body';
+        const tbody = this.createStyledElement('tbody', 'tbody');
         table.appendChild(tbody);
 
         tableContainer.appendChild(table);
         wrapper.appendChild(tableContainer);
 
         // Create bottom pagination with page size selector
-        const paginationBottom = document.createElement('div');
-        paginationBottom.className = 'datatable-pagination datatable-pagination-bottom';
+        const paginationBottom = this.createStyledElement('div', 'pagination-bottom', {
+            backgroundColor: _TABLE_CONSTS.COLORS.FOOTER_BG,
+            borderTop: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`,
+            padding: _TABLE_CONSTS.SPACING.PADDING_CELL
+        });
         wrapper.appendChild(paginationBottom);
 
         this.container.appendChild(wrapper);
@@ -238,14 +334,16 @@ class DataTable {
         let startX, startWidth;
 
         handle.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // Prevent text selection
             startX = e.clientX;
             startWidth = parseInt(document.defaultView.getComputedStyle(th).width, 10);
+            document.body.style.cursor = 'col-resize';
             document.addEventListener('mousemove', doDrag);
             document.addEventListener('mouseup', stopDrag);
         });
 
         const doDrag = (e) => {
-            const width = startWidth + e.clientX - startX;
+            const width = Math.max(10, startWidth + e.clientX - startX); // Minimum 10px width
             th.style.width = width + 'px';
             th.style.minWidth = width + 'px';
             // Update column width in config
@@ -253,6 +351,7 @@ class DataTable {
         };
 
         const stopDrag = () => {
+            document.body.style.cursor = ''; // Reset cursor
             document.removeEventListener('mousemove', doDrag);
             document.removeEventListener('mouseup', stopDrag);
         };
@@ -317,9 +416,9 @@ class DataTable {
 
         // Default tooltips based on type
         if (col.type === 'number') {
-            return 'Use operators: >, <, >=, <=, ==, != (e.g., >50, <=100)';
+            return _TABLE_CONSTS.FILTER_TOOLTIPS.NUMBER;
         }
-        return 'Type to filter. Use * for wildcards (e.g., foo*, *bar)';
+        return _TABLE_CONSTS.FILTER_TOOLTIPS.DEFAULT;
     }
 
     handleFilter(columnKey, filterValue, type, inputElement, col) {
@@ -360,7 +459,7 @@ class DataTable {
                 customFilter: customFilter
             };
 
-            inputElement.style.backgroundColor = isValid ? '' : '#ffcccc';
+            inputElement.style.backgroundColor = isValid ? '' : _TABLE_CONSTS.COLORS.ERROR_BG;
         }
 
         this.currentPage = 1;
@@ -474,20 +573,20 @@ class DataTable {
         const headers = this.headerRow.querySelectorAll('th');
         headers.forEach((th, index) => {
             const col = this.columns[index];
-            const sortIcon = th.querySelector('.datatable-sort-icon');
+            const sortIcon = th.querySelector(`.${this.cssClass('sort-icon')}`);
             if (!sortIcon) return;
 
             if (this.sortColumn === col.key) {
                 if (this.sortDirection === 'asc') {
-                    sortIcon.innerHTML = TABLE_ICONS.sortUp;
-                    sortIcon.style.opacity = '1';
+                    sortIcon.innerHTML = _TABLE_CONSTS.ICONS.sortUp;
+                    sortIcon.style.opacity = _TABLE_CONSTS.FEEDBACK.ICON_OPACITY_ACTIVE;
                 } else if (this.sortDirection === 'desc') {
-                    sortIcon.innerHTML = TABLE_ICONS.sortDown;
-                    sortIcon.style.opacity = '1';
+                    sortIcon.innerHTML = _TABLE_CONSTS.ICONS.sortDown;
+                    sortIcon.style.opacity = _TABLE_CONSTS.FEEDBACK.ICON_OPACITY_ACTIVE;
                 }
             } else {
-                sortIcon.innerHTML = TABLE_ICONS.sort;
-                sortIcon.style.opacity = '0.6';
+                sortIcon.innerHTML = _TABLE_CONSTS.ICONS.sort;
+                sortIcon.style.opacity = _TABLE_CONSTS.FEEDBACK.ICON_OPACITY_INACTIVE;
             }
         });
     }
@@ -498,27 +597,35 @@ class DataTable {
         const pageData = this.getPageData();
 
         if (pageData.length === 0) {
-            const tr = document.createElement('tr');
-            const td = document.createElement('td');
+            const tr = this.createStyledElement('tr', 'empty-row');
+            const td = this.createStyledElement('td', 'empty-cell', {
+                textAlign: 'center',
+                padding: _TABLE_CONSTS.SPACING.PADDING_CELL,
+                fontStyle: 'italic',
+                color: _TABLE_CONSTS.COLORS.MUTED_TEXT
+            });
             td.colSpan = this.columns.length;
-            td.className = 'datatable-empty';
-            td.textContent = 'No data to display';
+            td.textContent = _TABLE_CONSTS.MESSAGES.NO_DATA;
             tr.appendChild(td);
             this.tbody.appendChild(tr);
             return;
         }
 
         pageData.forEach(row => {
-            const tr = document.createElement('tr');
+            const tr = this.createStyledElement('tr', 'data-row');
 
             this.columns.forEach(col => {
-                const td = document.createElement('td');
-                const value = row[col.key];
+                const tdStyles = {
+                    padding: _TABLE_CONSTS.SPACING.PADDING_CELL,
+                    borderBottom: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`
+                };
 
-                // Apply column alignment
                 if (col.align) {
-                    td.style.textAlign = col.align;
+                    tdStyles.textAlign = col.align;
                 }
+
+                const td = this.createStyledElement('td', 'data-cell', tdStyles);
+                const value = row[col.key];
 
                 // Check for custom renderer in column definition
                 if (col.renderer) {
@@ -569,7 +676,7 @@ class DataTable {
         });
 
         // Add page size selector listener
-        const pageSizeSelect = this.paginationBottom.querySelector('.page-size-select');
+        const pageSizeSelect = this.paginationBottom.querySelector(`.${this.cssClass('page-size-select')}`);
         if (pageSizeSelect) {
             const handler = (e) => {
                 this.setPageSize(parseInt(e.target.value));
@@ -579,7 +686,7 @@ class DataTable {
         }
 
         // Add export CSV button listeners
-        const exportDownloadBtn = this.paginationBottom.querySelector('.export-csv-download-btn');
+        const exportDownloadBtn = this.paginationBottom.querySelector(`.${this.cssClass('export-download-btn')}`);
         if (exportDownloadBtn) {
             const handler = () => {
                 this.exportAndDownloadCSV();
@@ -588,7 +695,7 @@ class DataTable {
             this.paginationListeners.push({ element: exportDownloadBtn, event: 'click', handler });
         }
 
-        const exportCopyBtn = this.paginationBottom.querySelector('.export-csv-copy-btn');
+        const exportCopyBtn = this.paginationBottom.querySelector(`.${this.cssClass('export-copy-btn')}`);
         if (exportCopyBtn) {
             const handler = () => {
                 this.copyCSVToClipboard();
@@ -598,7 +705,7 @@ class DataTable {
         }
 
         // Add clear filters button listener
-        const clearBtn = this.paginationBottom.querySelector('.clear-filters-btn');
+        const clearBtn = this.paginationBottom.querySelector(`.${this.cssClass('clear-filters-btn')}`);
         if (clearBtn) {
             const handler = () => {
                 this.clearAllFilters();
@@ -615,7 +722,8 @@ class DataTable {
         html += '<div style="display: flex; align-items: center; gap: 10px;">';
         html += this.createExportCSVButton();
         if (this.showFilters) {
-            html += `<button class="clear-filters-btn">Clear Filters</button>`;
+            const clearBtnStyle = `border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; background: white; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; cursor: pointer; border-radius: 3px;`;
+            html += `<button class="${this.cssClass('clear-filters-btn')}" style="${clearBtnStyle}">${_TABLE_CONSTS.MESSAGES.CLEAR_FILTERS}</button>`;
         }
         html += this.createPageSizeSelector();
         html += '</div>';
@@ -629,21 +737,25 @@ class DataTable {
         html += '<div style="display: flex; align-items: center; gap: 2px;">';
 
         // Previous button
-        html += `<button style="min-width: 30px; padding: 4px 8px;" ${this.currentPage === 1 ? 'disabled' : ''} data-page="${this.currentPage - 1}">‹</button>`;
+        const prevBtnStyle = `min-width: ${_TABLE_CONSTS.PAGINATION.BUTTON_MIN_WIDTH}; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; background: white; cursor: pointer;`;
+        html += `<button class="${this.cssClass('pagination-btn')}" style="${prevBtnStyle}" ${this.currentPage === 1 ? 'disabled' : ''} data-page="${this.currentPage - 1}">${_TABLE_CONSTS.ICONS.prev}</button>`;
 
         // Page buttons - always show 10 elements for consistent width
         const pageButtons = this.generatePageButtons(totalPages);
         pageButtons.forEach(item => {
             if (item.type === 'page') {
                 const isActive = item.page === this.currentPage;
-                html += `<button style="min-width: 30px; padding: 4px 8px; ${isActive ? 'background: #ccc;' : ''}" ${isActive ? 'disabled' : ''} data-page="${item.page}">${item.page}</button>`;
+                const activeBg = isActive ? _TABLE_CONSTS.COLORS.BORDER : 'white';
+                const pageBtnStyle = `min-width: ${_TABLE_CONSTS.PAGINATION.BUTTON_MIN_WIDTH}; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; background: ${activeBg}; cursor: pointer;`;
+                html += `<button class="${this.cssClass('pagination-btn')}" style="${pageBtnStyle}" ${isActive ? 'disabled' : ''} data-page="${item.page}">${item.page}</button>`;
             } else if (item.type === 'dots') {
-                html += '<span style="min-width: 30px; padding: 4px 8px; text-align: center; display: inline-block;">…</span>';
+                html += `<span class="${this.cssClass('pagination-dots')}" style="min-width: ${_TABLE_CONSTS.PAGINATION.BUTTON_MIN_WIDTH}; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; text-align: center; display: inline-block;">…</span>`;
             }
         });
 
         // Next button
-        html += `<button style="min-width: 30px; padding: 4px 8px;" ${this.currentPage === totalPages ? 'disabled' : ''} data-page="${this.currentPage + 1}">›</button>`;
+        const nextBtnStyle = `min-width: ${_TABLE_CONSTS.PAGINATION.BUTTON_MIN_WIDTH}; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; background: white; cursor: pointer;`;
+        html += `<button class="${this.cssClass('pagination-btn')}" style="${nextBtnStyle}" ${this.currentPage === totalPages ? 'disabled' : ''} data-page="${this.currentPage + 1}">${_TABLE_CONSTS.ICONS.next}</button>`;
 
         html += '</div>'; // End pagination controls
         html += '</div>'; // End main container
@@ -714,13 +826,18 @@ class DataTable {
     }
 
     createExportCSVButton() {
-        return `<div style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; border-radius: 4px; padding: 2px; margin: 3px">
-            <button class="export-csv-download-btn" style="border: none; background: none; padding: 4px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
-                Export CSV ${TABLE_ICONS.download}
+        const containerStyle = `display: flex; align-items: center; gap: 4px; border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; border-radius: 4px; padding: 2px; margin: 3px;`;
+        const btnStyle = `border: none; background: none; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; cursor: pointer; display: flex; align-items: center; gap: 4px;`;
+        const copyBtnStyle = `border: none; background: none; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; cursor: pointer; display: flex; align-items: center;`;
+        const separatorStyle = `border-left: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; height: 20px;`;
+
+        return `<div class="${this.cssClass('export-container')}" style="${containerStyle}">
+            <button class="${this.cssClass('export-download-btn')}" style="${btnStyle}">
+                ${_TABLE_CONSTS.MESSAGES.EXPORT_CSV} ${_TABLE_CONSTS.ICONS.download}
             </button>
-            <div style="border-left: 1px solid #ccc; height: 20px;"></div>
-            <button class="export-csv-copy-btn" style="border: none; background: none; padding: 4px 8px; cursor: pointer; display: flex; align-items: center;" title="Copy to clipboard">
-                ${TABLE_ICONS.copy}
+            <div style="${separatorStyle}"></div>
+            <button class="${this.cssClass('export-copy-btn')}" style="${copyBtnStyle}" title="${_TABLE_CONSTS.MESSAGES.COPY_TITLE}">
+                ${_TABLE_CONSTS.ICONS.copy}
             </button>
         </div>`;
     }
@@ -730,8 +847,10 @@ class DataTable {
             `<option value="${size}" ${this.pageSize === size ? 'selected' : ''}>${size}</option>`
         ).join('');
 
-        return `<label>Show
-            <select class="page-size-select">
+        const selectStyle = `border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; padding: 2px 4px; margin: 0 4px;`;
+
+        return `<label class="${this.cssClass('page-size-label')}">Show
+            <select class="${this.cssClass('page-size-select')}" style="${selectStyle}">
                 ${options}
             </select>
             entries</label>`;
@@ -795,7 +914,7 @@ class DataTable {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'table-data.csv';
+        a.download = _TABLE_CONSTS.MESSAGES.DOWNLOAD_FILENAME;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -805,15 +924,15 @@ class DataTable {
         try {
             await navigator.clipboard.writeText(csv);
             // Provide visual feedback
-            const copyBtn = this.paginationBottom.querySelector('.export-csv-copy-btn');
+            const copyBtn = this.paginationBottom.querySelector(`.${this.cssClass('export-copy-btn')}`);
             if (copyBtn) {
                 const originalTitle = copyBtn.title;
-                copyBtn.title = 'Copied!';
-                copyBtn.style.color = 'green';
+                copyBtn.title = _TABLE_CONSTS.MESSAGES.COPY_SUCCESS;
+                copyBtn.style.color = _TABLE_CONSTS.COLORS.SUCCESS_COLOR;
                 setTimeout(() => {
                     copyBtn.title = originalTitle;
                     copyBtn.style.color = '';
-                }, 1500);
+                }, _TABLE_CONSTS.FEEDBACK.SUCCESS_TIMEOUT);
             }
         } catch (err) {
             console.error('Failed to copy CSV to clipboard:', err);
@@ -833,15 +952,15 @@ class DataTable {
         textArea.select();
         try {
             document.execCommand('copy');
-            const copyBtn = this.paginationBottom.querySelector('.export-csv-copy-btn');
+            const copyBtn = this.paginationBottom.querySelector(`.${this.cssClass('export-copy-btn')}`);
             if (copyBtn) {
                 const originalTitle = copyBtn.title;
-                copyBtn.title = 'Copied!';
-                copyBtn.style.color = 'green';
+                copyBtn.title = _TABLE_CONSTS.MESSAGES.COPY_SUCCESS;
+                copyBtn.style.color = _TABLE_CONSTS.COLORS.SUCCESS_COLOR;
                 setTimeout(() => {
                     copyBtn.title = originalTitle;
                     copyBtn.style.color = '';
-                }, 1500);
+                }, _TABLE_CONSTS.FEEDBACK.SUCCESS_TIMEOUT);
             }
         } catch (err) {
             console.error('Fallback copy failed:', err);
@@ -851,7 +970,7 @@ class DataTable {
 
     clearAllFilters() {
         this.filters = {};
-        this.container.querySelectorAll('.datatable-filter-input').forEach(input => {
+        this.container.querySelectorAll(`.${this.cssClass('filter-input')}`).forEach(input => {
             input.value = '';
             input.style.backgroundColor = '';
         });

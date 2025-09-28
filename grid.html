@@ -42,9 +42,17 @@
 
         // Sample data generator
         function generateSampleData(count = 100) {
-            const names = ['Alice Johnson', 'Bob Smith', 'Carol Williams', 'David Brown', 'Eve Davis',
-                'Frank Miller', 'Grace Wilson', 'Henry Moore', 'Iris Taylor', 'Jack Anderson',
-                'Karen White', 'Leo Garcia', 'Mia Rodriguez', 'Noah Thompson', 'Olivia Martinez'];
+            // const names = ['Alice Johnson', 'Bob Smith', 'Carol Williams', 'David Brown', 'Eve Davis',
+            //     'Frank Miller', 'Grace Wilson', 'Henry Moore', 'Iris Taylor', 'Jack Anderson',
+            //     'Karen White', 'Leo Garcia', 'Mia Rodriguez', 'Noah Thompson', 'Olivia Martinez'];
+            const first_names = ['Alice', 'Bob', 'Carol', 'David', 'Eve', 'Frank', 'Grace', 'Henry', 'Iris', 'Jack', 'Karen', 'Leo', 'Mia', 'Noah', 'Olivia'];
+            const last_names = ['Johnson', 'Smith', 'Williams', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'White', 'Garcia', 'Rodriguez', 'Thompson', 'Martinez'];
+            const names = [];
+            for (let i = 0; i < first_names.length; i++) {
+                for (let j = 0; j < last_names.length; j++) {
+                    names.push(first_names[i] + ' ' + last_names[j]);
+                }
+            }
             const departments = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance'];
 
             const data = [];
