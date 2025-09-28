@@ -87,6 +87,7 @@ class DataTable {
         this.pageSizeOptions = config.pageSizeOptions || _TABLE_CONSTS.PAGINATION.DEFAULT_PAGE_SIZES;
         this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
+        this.showInfo = config.showInfo === true; // Default to false
         this.minColumnWidth = config.minColumnWidth || _TABLE_CONSTS.SPACING.MIN_COLUMN_WIDTH;
         this.currentPage = 1;
         this.sortColumn = null;
@@ -231,6 +232,34 @@ class DataTable {
             headerRow.appendChild(th);
         });
         thead.appendChild(headerRow);
+
+        // Info row (conditional)
+        if (this.showInfo) {
+            const infoRow = this.createStyledElement('tr', 'info-row', {
+                backgroundColor: _TABLE_CONSTS.COLORS.HEADER_BG,
+                borderTop: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`
+            });
+
+            this.columns.forEach(col => {
+                const tdStyles = {
+                    padding: _TABLE_CONSTS.SPACING.PADDING_CELL,
+                    backgroundColor: _TABLE_CONSTS.COLORS.HEADER_BG,
+                    fontSize: '0.9em',
+                    fontStyle: 'italic',
+                    color: _TABLE_CONSTS.COLORS.MUTED_TEXT
+                };
+
+                if (col.align) {
+                    tdStyles.textAlign = col.align;
+                }
+
+                const td = this.createStyledElement('td', 'info-cell', tdStyles);
+                td.innerHTML = this.calculateColumnInfo(col);
+                infoRow.appendChild(td);
+            });
+            thead.appendChild(infoRow);
+            this.infoRow = infoRow;
+        }
 
         // Filter row (conditional)
         if (this.showFilters) {
@@ -436,6 +465,45 @@ class DataTable {
         return _TABLE_CONSTS.FILTER_TOOLTIPS.DEFAULT;
     }
 
+    calculateColumnInfo(col) {
+        // Check for custom info function in column definition
+        if (col.infoFunction) {
+            const columnData = this.data.map(row => row[col.key]).filter(val => val !== null && val !== undefined);
+            const result = col.infoFunction(columnData, col);
+            return typeof result === 'string' ? result : result.outerHTML || '';
+        }
+
+        // Default statistical calculations
+        const columnData = this.data.map(row => row[col.key]).filter(val => val !== null && val !== undefined);
+
+        if (columnData.length === 0) {
+            return 'No data';
+        }
+
+        if (col.type === 'number') {
+            const numbers = columnData.filter(val => typeof val === 'number');
+            if (numbers.length === 0) return 'No numeric data';
+
+            const min = Math.min(...numbers);
+            const max = Math.max(...numbers);
+            const sum = numbers.reduce((a, b) => a + b, 0);
+            const mean = sum / numbers.length;
+
+            // Calculate median
+            const sorted = [...numbers].sort((a, b) => a - b);
+            const median = sorted.length % 2 === 0
+                ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+                : sorted[Math.floor(sorted.length / 2)];
+
+            return `R=[${min.toLocaleString()}, ${max.toLocaleString()}] μ=${mean.toFixed(1)} x̃=${median.toLocaleString()}`;
+        } else {
+            // For string/other types, show unique count
+            const uniqueValues = new Set(columnData.map(val => String(val)));
+            const count = uniqueValues.size;
+            return `${count} unique value${count === 1 ? '' : 's'}`;
+        }
+    }
+
     handleFilter(columnKey, filterValue, type, inputElement, col) {
         if (!filterValue) {
             delete this.filters[columnKey];
@@ -582,6 +650,7 @@ class DataTable {
         this.renderTable();
         this.renderPagination();
         this.updateSortIcons();
+        this.updateInfoRow();
     }
 
     updateSortIcons() {
@@ -603,6 +672,16 @@ class DataTable {
                 sortIcon.innerHTML = _TABLE_CONSTS.ICONS.sort;
                 sortIcon.style.opacity = _TABLE_CONSTS.FEEDBACK.ICON_OPACITY_INACTIVE;
             }
+        });
+    }
+
+    updateInfoRow() {
+        if (!this.showInfo || !this.infoRow) return;
+
+        const infoCells = this.infoRow.querySelectorAll('td');
+        infoCells.forEach((cell, index) => {
+            const col = this.columns[index];
+            cell.innerHTML = this.calculateColumnInfo(col);
         });
     }
 

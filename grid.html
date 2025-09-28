@@ -102,7 +102,7 @@
         function loadSampleData() {
             const data = generateSampleData(150);
             const columns = [
-                { key: 'id', label: 'ID', type: 'number', width: '80px', align: 'right', filterable: false }, // Disable filtering for ID
+                { key: 'id', label: 'ID', type: 'number', width: '80px', align: 'right', filterable: false, infoFunction: () => '' }, // Disable filtering and info for ID
                 {
                     key: 'name',
                     label: 'Name',
@@ -167,6 +167,15 @@
                             const dept = String(value).toLowerCase();
                             return dept.includes(normalizedSearch);
                         };
+                    },
+                    infoFunction: (columnData, col) => {
+                        // Custom info function for departments: show distribution
+                        const deptCounts = {};
+                        columnData.forEach(dept => {
+                            deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+                        });
+                        const sorted = Object.entries(deptCounts).sort((a, b) => b[1] - a[1]);
+                        return sorted.map(([dept, count]) => `${dept}: ${count}`).join(', ');
                     }
                 },
                 {
@@ -197,6 +206,18 @@
 
                         // Fall back to default number filtering
                         return null; // Let the default number filter handle it
+                    },
+                    infoFunction: (columnData, col) => {
+                        // Custom info function for scores: show grade distribution
+                        const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+                        columnData.forEach(score => {
+                            if (score >= 90) grades.A++;
+                            else if (score >= 80) grades.B++;
+                            else if (score >= 70) grades.C++;
+                            else if (score >= 60) grades.D++;
+                            else grades.F++;
+                        });
+                        return `A:${grades.A} B:${grades.B} C:${grades.C} D:${grades.D} F:${grades.F}`;
                     }
                 },
                 { key: 'startDate', label: 'Start Date', type: 'date', width: '120px', align: 'center', renderer: dateRenderer, filterable: false }
@@ -207,7 +228,8 @@
                 columns: columns,
                 pageSize: 15,
                 pageSizeOptions: [5, 15, 30, 50],
-                showFilters: true // Enable filter row (default is true)
+                showFilters: true, // Enable filter row (default is true)
+                showInfo: true // Enable info row (default is false)
             });
         }
 
