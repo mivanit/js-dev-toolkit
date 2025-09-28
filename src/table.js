@@ -188,10 +188,15 @@ class DataTable {
             const headerContent = this.createStyledElement('div', 'header-content', {
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                minWidth: '0' // allow flex children to shrink
             });
 
-            const label = this.createStyledElement('span', 'header-label');
+            const label = this.createStyledElement('span', 'header-label', {
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap'
+            });
             label.textContent = col.label || col.key;
             headerContent.appendChild(label);
 
@@ -286,7 +291,8 @@ class DataTable {
                 if (isFilterable) {
                     const filterContainer = this.createStyledElement('div', 'filter-container', {
                         display: 'flex',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        minWidth: '0' // allow this flex container to shrink inside the cell
                     });
 
                     // Add filter icon
@@ -299,10 +305,13 @@ class DataTable {
                     filterIcon.innerHTML = _TABLE_CONSTS.ICONS.filter;
 
                     const input = this.createStyledElement('input', 'filter-input', {
-                        flex: '1',
+                        flex: '1 1 0',     // allow shrinking and growing; 0 basis avoids intrinsic width bias
+                        minWidth: '0',     // critical: override flexbox min-width:auto
+                        width: '0',        // ensures the flex-basis drives width, not the default input width
                         border: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`,
                         padding: '2px 4px',
-                        borderRadius: '3px'
+                        borderRadius: '3px',
+                        overflow: 'hidden' // optional: clip when very narrow
                     });
                     input.type = 'text';
                     input.placeholder = '';
