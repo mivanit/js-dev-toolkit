@@ -103,11 +103,102 @@
             const data = generateSampleData(150);
             const columns = [
                 { key: 'id', label: 'ID', type: 'number', width: '80px', align: 'right', filterable: false }, // Disable filtering for ID
-                { key: 'name', label: 'Name', type: 'string', width: '1px' },
-                { key: 'age', label: 'Age', type: 'number', width: '20px', align: 'center' },
-                { key: 'salary', label: 'Salary', type: 'number', width: '120px', align: 'right', renderer: salaryRenderer },
-                { key: 'department', label: 'Department', type: 'string', width: '120px', align: 'center', renderer: departmentRenderer },
-                { key: 'score', label: 'Score', type: 'number', width: '80px', align: 'center', renderer: scoreRenderer },
+                {
+                    key: 'name',
+                    label: 'Name',
+                    type: 'string',
+                    width: '1px',
+                    filterTooltip: 'Filter names (prefix with ^ for "starts with")',
+                    filterFunction: (input) => {
+                        // Custom filter: case-insensitive with "starts with" support
+                        const searchTerm = input.toLowerCase().trim();
+                        if (!searchTerm) return () => true;
+
+                        // Support "starts with" using ^ prefix
+                        if (searchTerm.startsWith('^')) {
+                            const term = searchTerm.substring(1);
+                            return (value) => String(value).toLowerCase().startsWith(term);
+                        }
+
+                        // Default: case-insensitive contains
+                        return (value) => String(value).toLowerCase().includes(searchTerm);
+                    }
+                },
+                {
+                    key: 'age',
+                    label: 'Age',
+                    type: 'number',
+                    width: '20px',
+                    align: 'center',
+                    filterTooltip: 'Filter by age: use >, <, >=, <=, ==, != (e.g., >30, <=45)'
+                },
+                {
+                    key: 'salary',
+                    label: 'Salary',
+                    type: 'number',
+                    width: '120px',
+                    align: 'right',
+                    renderer: salaryRenderer,
+                    filterTooltip: 'Filter by salary: use operators (e.g., >50000, <=75000)'
+                },
+                {
+                    key: 'department',
+                    label: 'Department',
+                    type: 'string',
+                    width: '120px',
+                    align: 'center',
+                    renderer: departmentRenderer,
+                    filterTooltip: 'Filter by department (try abbreviations: eng, mkt, fin)',
+                    filterFunction: (input) => {
+                        // Custom filter: match department abbreviations
+                        const searchTerm = input.toLowerCase().trim();
+                        if (!searchTerm) return () => true;
+
+                        // Map common abbreviations to full names
+                        const abbrevMap = {
+                            'eng': 'engineering',
+                            'mkt': 'marketing',
+                            'fin': 'finance'
+                        };
+
+                        const normalizedSearch = abbrevMap[searchTerm] || searchTerm;
+
+                        return (value) => {
+                            const dept = String(value).toLowerCase();
+                            return dept.includes(normalizedSearch);
+                        };
+                    }
+                },
+                {
+                    key: 'score',
+                    label: 'Score',
+                    type: 'number',
+                    width: '80px',
+                    align: 'center',
+                    renderer: scoreRenderer,
+                    filterTooltip: 'Filter scores: use operators or letter grades (A, B, C, D, F)',
+                    filterFunction: (input) => {
+                        // Custom filter: support letter grades
+                        const trimmed = input.trim().toUpperCase();
+
+                        // Support letter grades
+                        const gradeRanges = {
+                            'A': [90, 100],
+                            'B': [80, 89.9],
+                            'C': [70, 79.9],
+                            'D': [60, 69.9],
+                            'F': [0, 59.9]
+                        };
+
+                        if (gradeRanges[trimmed]) {
+                            const [min, max] = gradeRanges[trimmed];
+                            return (value) => value >= min && value <= max;
+                        }
+
+                        // Fall back to default number filtering
+                        return null; // Let the default number filter handle it
+                    }
+                },
                 { key: 'startDate', label: 'Start Date', type: 'date', width: '120px', align: 'center', renderer: dateRenderer, filterable: false }
             ];
 
@@ -116,78 +207,7 @@
                 columns: columns,
                 pageSize: 15,
                 pageSizeOptions: [5, 15, 30, 50],
-                showFilters: true, // Enable filter row (default is true)
-                filterConfigs: {
-                    name: {
-                        tooltip: 'Filter names (prefix with ^ for "starts with")',
-                        filterFunction: (input) => {
-                            // Custom filter: case-insensitive with "starts with" support
-                            const searchTerm = input.toLowerCase().trim();
-                            if (!searchTerm) return () => true;
-
-                            // Support "starts with" using ^ prefix
-                            if (searchTerm.startsWith('^')) {
-                                const term = searchTerm.substring(1);
-                                return (value) => String(value).toLowerCase().startsWith(term);
-                            }
-
-                            // Default: case-insensitive contains
-                            return (value) => String(value).toLowerCase().includes(searchTerm);
-                        }
-                    },
-                    age: {
-                        tooltip: 'Filter by age: use >, <, >=, <=, ==, != (e.g., >30, <=45)'
-                    },
-                    salary: {
-                        tooltip: 'Filter by salary: use operators (e.g., >50000, <=75000)'
-                    },
-                    department: {
-                        tooltip: 'Filter by department (try abbreviations: eng, mkt, fin)',
-                        filterFunction: (input) => {
-                            // Custom filter: match department abbreviations
-                            const searchTerm = input.toLowerCase().trim();
-                            if (!searchTerm) return () => true;
-
-                            // Map common abbreviations to full names
-                            const abbrevMap = {
-                                'eng': 'engineering',
-                                'mkt': 'marketing',
-                                'fin': 'finance'
-                            };
-
-                            const normalizedSearch = abbrevMap[searchTerm] || searchTerm;
-
-                            return (value) => {
-                                const dept = String(value).toLowerCase();
-                                return dept.includes(normalizedSearch);
-                            };
-                        }
-                    },
-                    score: {
-                        tooltip: 'Filter scores: use operators or letter grades (A, B, C, D, F)',
-                        filterFunction: (input) => {
-                            // Custom filter: support letter grades
-                            const trimmed = input.trim().toUpperCase();
-
-                            // Support letter grades
-                            const gradeRanges = {
-                                'A': [90, 100],
-                                'B': [80, 89.9],
-                                'C': [70, 79.9],
-                                'D': [60, 69.9],
-                                'F': [0, 59.9]
-                            };
-
-                            if (gradeRanges[trimmed]) {
-                                const [min, max] = gradeRanges[trimmed];
-                                return (value) => value >= min && value <= max;
-                            }
-
-                            // Fall back to default number filtering
-                            return null; // Let the default number filter handle it
-                        }
-                    }
-                }
+                showFilters: true // Enable filter row (default is true)
             });
         }
 

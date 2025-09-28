@@ -87,7 +87,6 @@ class DataTable {
         this.pageSizeOptions = config.pageSizeOptions || _TABLE_CONSTS.PAGINATION.DEFAULT_PAGE_SIZES;
         this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
-        this.filterConfigs = config.filterConfigs || {}; // Per-column filter configs
         this.minColumnWidth = config.minColumnWidth || _TABLE_CONSTS.SPACING.MIN_COLUMN_WIDTH;
         this.currentPage = 1;
         this.sortColumn = null;
@@ -253,8 +252,7 @@ class DataTable {
                 const td = this.createStyledElement('td', 'filter-cell', tdStyles);
 
                 // Check if column is filterable
-                const isFilterable = col.filterable !== false &&
-                    (this.filterConfigs[col.key]?.enabled !== false);
+                const isFilterable = col.filterable !== false;
 
                 if (isFilterable) {
                     const filterContainer = this.createStyledElement('div', 'filter-container', {
@@ -426,10 +424,9 @@ class DataTable {
     }
 
     getFilterTooltip(col) {
-        // Check for custom tooltip
-        const customConfig = this.filterConfigs[col.key];
-        if (customConfig?.tooltip) {
-            return customConfig.tooltip;
+        // Check for custom tooltip in column definition
+        if (col.filterTooltip) {
+            return col.filterTooltip;
         }
 
         // Default tooltips based on type
@@ -447,11 +444,11 @@ class DataTable {
             let isValid = true;
             let customFilter = null;
 
-            // Check for custom filter function
-            const customConfig = this.filterConfigs[columnKey];
-            if (customConfig?.filterFunction) {
+            // Check for custom filter function in column definition
+            const col = this.columns.find(c => c.key === columnKey);
+            if (col?.filterFunction) {
                 try {
-                    customFilter = customConfig.filterFunction(filterValue);
+                    customFilter = col.filterFunction(filterValue);
                     // If custom function returns null, fall back to default
                     if (customFilter === null) {
                         customFilter = null;
