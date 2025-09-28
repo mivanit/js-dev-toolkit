@@ -15,6 +15,7 @@ const _PLOT_OPTS_DEFAULT = {
 		line: false,  // boolean: show axis line
 		ticks: false,  // boolean: show tick labels (min/max values)
 		text_offset: 10,  // number: pixels below axis for tick labels
+		text_y_position: 0,  // number: additional Y offset for labels (positive = down)
 		label_margin: 5,  // number: extra margin in pixels when ticks shown
 		limits_length: 2  // number: expected array length for xlims (internal)
 	},
@@ -118,8 +119,6 @@ function plot(values, yvalues = null, options = {}) {
 	const barChartExtraMargin = opts.style === 'bar' && (opts.yAxis.line || opts.yAxis.ticks) ?
 		(opts.width - 2 * opts.margin) / yvals.length * opts.bar.y_axis_shift_ratio : 0;
 	const leftMargin = (needsLeftMargin ? opts.margin + opts.yAxis.label_margin : opts.margin) + barChartExtraMargin;
-	const rightMargin = opts.margin;
-	const topMargin = opts.margin;
 	const bottomMargin = needsBottomMargin ? opts.margin + opts.xAxis.label_margin : opts.margin;
 
 	// Calculate axis limits - use custom limits if provided, otherwise data range
@@ -131,8 +130,8 @@ function plot(values, yvalues = null, options = {}) {
 	const xmax = opts.xlims ? opts.xlims[1] : Math.max(...xvalues);
 	const xrange = xmax - xmin || opts.min_range;
 
-	const chartWidth = opts.width - leftMargin - rightMargin;
-	const chartHeight = opts.height - topMargin - bottomMargin;
+	const chartWidth = opts.width - leftMargin - opts.margin;
+	const chartHeight = opts.height - opts.margin - bottomMargin;
 
 	// Build SVG
 
@@ -170,7 +169,7 @@ function plot(values, yvalues = null, options = {}) {
 		yvals.forEach((yval, i) => {
 			const xval = xvalues[i];
 			const x = leftMargin + ((xval - xmin) / xrange) * chartWidth;
-			const y = topMargin + (1 - (yval - ymin) / yrange) * chartHeight;
+			const y = opts.margin + (1 - (yval - ymin) / yrange) * chartHeight;
 			points.push({ x, y, xval, yval });
 
 			path += `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
@@ -226,11 +225,11 @@ function plot(values, yvalues = null, options = {}) {
 		const yAxisX = leftMargin - barShift;
 
 		if (opts.yAxis.line) {
-			svg += `<line x1="${yAxisX}" y1="${topMargin}" x2="${yAxisX}" y2="${opts.height - bottomMargin}"
+			svg += `<line x1="${yAxisX}" y1="${opts.margin}" x2="${yAxisX}" y2="${opts.height - bottomMargin}"
                       stroke="${opts.axis_style.color}" stroke-width="${opts.axis_style.width}"/>`;
 		}
 		if (opts.yAxis.ticks) {
-			svg += `<text x="${yAxisX - opts.yAxis.text_offset}" y="${topMargin + opts.yAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="end">${ymax}</text>`;
+			svg += `<text x="${yAxisX - opts.yAxis.text_offset}" y="${opts.margin + opts.yAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="end">${ymax}</text>`;
 			svg += `<text x="${yAxisX - opts.yAxis.text_offset}" y="${opts.height - bottomMargin + opts.yAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="end">${ymin}</text>`;
 		}
 	}
@@ -240,7 +239,7 @@ function plot(values, yvalues = null, options = {}) {
 		// For bar charts, end X-axis at center of last bar, not full width
 		const xAxisEnd = opts.style === 'bar' ?
 			leftMargin + chartWidth - (chartWidth / yvals.length / 2) :
-			opts.width - rightMargin;
+			opts.width - opts.margin;
 		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${xAxisEnd}" y2="${opts.height - bottomMargin}"
                       stroke="${opts.axis_style.color}" stroke-width="${opts.axis_style.width}"/>`;
 	}
@@ -248,9 +247,10 @@ function plot(values, yvalues = null, options = {}) {
 		// For bar charts, position end tick at center of last bar
 		const xTickEnd = opts.style === 'bar' ?
 			leftMargin + chartWidth - (chartWidth / yvals.length / 2) :
-			opts.width - rightMargin;
-		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + opts.xAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="middle">${xmin}</text>`;
-		svg += `<text x="${xTickEnd}" y="${opts.height - bottomMargin + opts.xAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="middle">${xmax}</text>`;
+			opts.width - opts.margin;
+		const xLabelY = opts.height - bottomMargin + opts.xAxis.text_offset + opts.xAxis.text_y_position;
+		svg += `<text x="${leftMargin}" y="${xLabelY}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="middle">${xmin}</text>`;
+		svg += `<text x="${xTickEnd}" y="${xLabelY}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="middle">${xmax}</text>`;
 	}
 
 	svg += '</svg>';
