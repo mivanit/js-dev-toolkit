@@ -42,9 +42,6 @@
 
         // Sample data generator
         function generateSampleData(count = 100) {
-            // const names = ['Alice Johnson', 'Bob Smith', 'Carol Williams', 'David Brown', 'Eve Davis',
-            //     'Frank Miller', 'Grace Wilson', 'Henry Moore', 'Iris Taylor', 'Jack Anderson',
-            //     'Karen White', 'Leo Garcia', 'Mia Rodriguez', 'Noah Thompson', 'Olivia Martinez'];
             const first_names = ['Alice', 'Bob', 'Carol', 'David', 'Eve', 'Frank', 'Grace', 'Henry', 'Iris', 'Jack', 'Karen', 'Leo', 'Mia', 'Noah', 'Olivia'];
             const last_names = ['Johnson', 'Smith', 'Williams', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'White', 'Garcia', 'Rodriguez', 'Thompson', 'Martinez'];
             const names = [];
@@ -106,8 +103,8 @@
             const data = generateSampleData(150);
             const columns = [
                 { key: 'id', label: 'ID', type: 'number', width: '80px', align: 'right', filterable: false }, // Disable filtering for ID
-                { key: 'name', label: 'Name', type: 'string', width: '150px' },
-                { key: 'age', label: 'Age', type: 'number', width: '70px', align: 'center' },
+                { key: 'name', label: 'Name', type: 'string', width: '1px' },
+                { key: 'age', label: 'Age', type: 'number', width: '20px', align: 'center' },
                 { key: 'salary', label: 'Salary', type: 'number', width: '120px', align: 'right', renderer: salaryRenderer },
                 { key: 'department', label: 'Department', type: 'string', width: '120px', align: 'center', renderer: departmentRenderer },
                 { key: 'score', label: 'Score', type: 'number', width: '80px', align: 'center', renderer: scoreRenderer },

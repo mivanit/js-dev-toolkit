@@ -27,7 +27,7 @@ const _TABLE_CONSTS = {
         PADDING_BUTTON: '4px 8px',
         MARGIN_ICON: '4px',
         BORDER_WIDTH: '1px',
-        MIN_COLUMN_WIDTH: '10px',
+        MIN_COLUMN_WIDTH: '2em',
         RESIZE_HANDLE_WIDTH: '4px'
     },
 
@@ -88,6 +88,7 @@ class DataTable {
         this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
         this.filterConfigs = config.filterConfigs || {}; // Per-column filter configs
+        this.minColumnWidth = config.minColumnWidth || _TABLE_CONSTS.SPACING.MIN_COLUMN_WIDTH;
         this.currentPage = 1;
         this.sortColumn = null;
         this.sortDirection = null;
@@ -127,6 +128,19 @@ class DataTable {
         return element;
     }
 
+    getMinColumnWidthInPixels() {
+        // Create a temporary element to measure the minimum width
+        const tempDiv = document.createElement('div');
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.visibility = 'hidden';
+        tempDiv.style.width = this.minColumnWidth;
+        tempDiv.style.fontSize = window.getComputedStyle(this.container).fontSize;
+        document.body.appendChild(tempDiv);
+        const pixelWidth = tempDiv.offsetWidth;
+        document.body.removeChild(tempDiv);
+        return pixelWidth;
+    }
+
     init() {
         this.createTableStructure();
         this.applyFiltersAndSort();
@@ -157,13 +171,12 @@ class DataTable {
             const thStyles = {
                 position: 'relative',
                 padding: _TABLE_CONSTS.SPACING.PADDING_CELL,
-                borderBottom: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`,
-                minWidth: col.width || _TABLE_CONSTS.SPACING.MIN_COLUMN_WIDTH
+                borderBottom: `${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}`
+                // Don't set minWidth here - it will be enforced during resize
             };
 
             if (col.width) {
                 thStyles.width = col.width;
-                thStyles.minWidth = col.width;
             }
 
             if (col.align) {
@@ -335,23 +348,28 @@ class DataTable {
 
         handle.addEventListener('mousedown', (e) => {
             e.preventDefault(); // Prevent text selection
+            e.stopPropagation(); // Prevent header click events
             startX = e.clientX;
             startWidth = parseInt(document.defaultView.getComputedStyle(th).width, 10);
             document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; // Prevent text selection during drag
             document.addEventListener('mousemove', doDrag);
             document.addEventListener('mouseup', stopDrag);
         });
 
         const doDrag = (e) => {
-            const width = Math.max(10, startWidth + e.clientX - startX); // Minimum 10px width
+            const minWidthPx = this.getMinColumnWidthInPixels();
+            const newWidth = startWidth + e.clientX - startX;
+            const width = Math.max(minWidthPx, newWidth);
             th.style.width = width + 'px';
-            th.style.minWidth = width + 'px';
+            th.style.minWidth = width + 'px';  // Must update minWidth to allow shrinking below current size
             // Update column width in config
             this.columns[columnIndex].width = width + 'px';
         };
 
         const stopDrag = () => {
             document.body.style.cursor = ''; // Reset cursor
+            document.body.style.userSelect = ''; // Reset text selection
             document.removeEventListener('mousemove', doDrag);
             document.removeEventListener('mouseup', stopDrag);
         };
