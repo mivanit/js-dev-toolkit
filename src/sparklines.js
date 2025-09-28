@@ -1,4 +1,51 @@
 /**
+ * Global constants for sparklines configuration
+ */
+const _SPARKLINES_CONSTS = {
+	// Default chart dimensions
+	DEFAULT_WIDTH: 120,
+	DEFAULT_HEIGHT: 40,
+
+	// Default styling
+	DEFAULT_COLOR: '#4169E1',
+	DEFAULT_SHADING: 0.3,
+	DEFAULT_LINE_WIDTH: 2,
+	DEFAULT_MARKERS: '.',
+	DEFAULT_MARGIN: 5,
+	DEFAULT_BAR_WIDTH_RATIO: 1,
+
+	// Axis and margin calculations
+	AXIS_LABEL_MARGIN: 5,
+	BAR_Y_AXIS_SHIFT_RATIO: 0.75,
+	Y_AXIS_REDUCTION_FACTOR: 1,
+	BAR_OPACITY: 0.8,
+
+	// Marker sizes
+	SMALL_MARKER_RADIUS: 2,
+	LARGE_MARKER_RADIUS: 3.5,
+
+	// Axis styling
+	AXIS_COLOR: '#ccc',
+	AXIS_WIDTH: 1,
+	AXIS_FONT_SIZE: 9,
+	AXIS_TEXT_COLOR: '#666',
+	Y_AXIS_TEXT_OFFSET: 10,
+	X_AXIS_TEXT_OFFSET: 10,
+
+	// Gradient stops
+	GRADIENT_START_OFFSET: '0%',
+	GRADIENT_END_OFFSET: '100%',
+	GRADIENT_END_OPACITY: 0,
+
+	// Array constraints
+	XLIMS_LENGTH: 2,
+	YLIMS_LENGTH: 2,
+
+	// Default range fallback
+	MIN_RANGE: 1
+};
+
+/**
  * SVG Sparkline and Sparkbar Chart Library
  *
  * Creates small inline charts suitable for embedding in tables, dashboards, or text.
@@ -87,19 +134,19 @@ function plot(values, yvalues = null, options = {}) {
 
 	// Default options
 	const opts = {
-		width: 120,
-		height: 40,
-		color: '#4169E1',
-		shading: 0.3,
-		lineWidth: 2,
-		markers: '.',
-		margin: 5,
+		width: _SPARKLINES_CONSTS.DEFAULT_WIDTH,
+		height: _SPARKLINES_CONSTS.DEFAULT_HEIGHT,
+		color: _SPARKLINES_CONSTS.DEFAULT_COLOR,
+		shading: _SPARKLINES_CONSTS.DEFAULT_SHADING,
+		lineWidth: _SPARKLINES_CONSTS.DEFAULT_LINE_WIDTH,
+		markers: _SPARKLINES_CONSTS.DEFAULT_MARKERS,
+		margin: _SPARKLINES_CONSTS.DEFAULT_MARGIN,
 		style: 'line',
 		xAxis: { line: false, ticks: false },
 		yAxis: { line: false, ticks: false },
 		xlims: null,
 		ylims: null,
-		barWidthRatio: 1,
+		barWidthRatio: _SPARKLINES_CONSTS.DEFAULT_BAR_WIDTH_RATIO,
 		...options
 	};
 
@@ -126,7 +173,7 @@ function plot(values, yvalues = null, options = {}) {
 
 	// Validate xlims and ylims format if provided
 	if (opts.xlims !== null) {
-		if (!Array.isArray(opts.xlims) || opts.xlims.length !== 2) {
+		if (!Array.isArray(opts.xlims) || opts.xlims.length !== _SPARKLINES_CONSTS.XLIMS_LENGTH) {
 			throw new Error('xlims must be an array of two numbers [min, max]');
 		}
 		if (opts.xlims[0] >= opts.xlims[1]) {
@@ -135,7 +182,7 @@ function plot(values, yvalues = null, options = {}) {
 	}
 
 	if (opts.ylims !== null) {
-		if (!Array.isArray(opts.ylims) || opts.ylims.length !== 2) {
+		if (!Array.isArray(opts.ylims) || opts.ylims.length !== _SPARKLINES_CONSTS.YLIMS_LENGTH) {
 			throw new Error('ylims must be an array of two numbers [min, max]');
 		}
 		if (opts.ylims[0] >= opts.ylims[1]) {
@@ -148,20 +195,20 @@ function plot(values, yvalues = null, options = {}) {
 	const needsBottomMargin = opts.xAxis.ticks;
 	// For bar charts with Y-axis, we need extra left margin since axis is shifted left
 	const barChartExtraMargin = opts.style === 'bar' && (opts.yAxis.line || opts.yAxis.ticks) ?
-		(opts.width - 2 * opts.margin) / yvals.length * 0.75 : 0;
-	const leftMargin = (needsLeftMargin ? opts.margin + 10 : opts.margin) + barChartExtraMargin;
+		(opts.width - 2 * opts.margin) / yvals.length * _SPARKLINES_CONSTS.BAR_Y_AXIS_SHIFT_RATIO : 0;
+	const leftMargin = (needsLeftMargin ? opts.margin + _SPARKLINES_CONSTS.AXIS_LABEL_MARGIN : opts.margin) + barChartExtraMargin;
 	const rightMargin = opts.margin;
 	const topMargin = opts.margin;
-	const bottomMargin = needsBottomMargin ? opts.margin + 10 : opts.margin;
+	const bottomMargin = needsBottomMargin ? opts.margin + _SPARKLINES_CONSTS.AXIS_LABEL_MARGIN : opts.margin;
 
 	// Calculate axis limits - use custom limits if provided, otherwise data range
 	const ymin = opts.ylims ? opts.ylims[0] : Math.min(...yvals);
 	const ymax = opts.ylims ? opts.ylims[1] : Math.max(...yvals);
-	const yrange = ymax - ymin || 1;
+	const yrange = ymax - ymin || _SPARKLINES_CONSTS.MIN_RANGE;
 
 	const xmin = opts.xlims ? opts.xlims[0] : Math.min(...xvalues);
 	const xmax = opts.xlims ? opts.xlims[1] : Math.max(...xvalues);
-	const xrange = xmax - xmin || 1;
+	const xrange = xmax - xmin || _SPARKLINES_CONSTS.MIN_RANGE;
 
 	const chartWidth = opts.width - leftMargin - rightMargin;
 	const chartHeight = opts.height - topMargin - bottomMargin;
@@ -174,7 +221,7 @@ function plot(values, yvalues = null, options = {}) {
 	if (opts.style === 'bar') {
 		// Bar chart rendering - account for reduced width from Y-axis labels
 		const yAxisReduction = (opts.yAxis.line || opts.yAxis.ticks) ?
-			(needsLeftMargin ? 1 : 0) + barChartExtraMargin : 0;
+			(needsLeftMargin ? _SPARKLINES_CONSTS.Y_AXIS_REDUCTION_FACTOR : 0) + barChartExtraMargin : 0;
 		const effectiveWidth = opts.width - 2 * opts.margin - yAxisReduction;
 		const barWidth = effectiveWidth / (yvals.length);
 		const baseY = opts.height - bottomMargin;
@@ -191,7 +238,7 @@ function plot(values, yvalues = null, options = {}) {
 			const actualBarWidth = barWidth * opts.barWidthRatio;
 			const barX = x - actualBarWidth / 2;
 
-			svg += `<rect x="${barX}" y="${barY}" width="${actualBarWidth}" height="${barHeight}" fill="${opts.color}" opacity="0.8"/>`;
+			svg += `<rect x="${barX}" y="${barY}" width="${actualBarWidth}" height="${barHeight}" fill="${opts.color}" opacity="${_SPARKLINES_CONSTS.BAR_OPACITY}"/>`;
 		});
 	} else {
 		// Line chart rendering (existing code)
@@ -209,9 +256,9 @@ function plot(values, yvalues = null, options = {}) {
 
 			// Add markers
 			if (opts.markers === '.') {
-				dots += `<circle cx="${x}" cy="${y}" r="2" fill="${opts.color}"/>`;
+				dots += `<circle cx="${x}" cy="${y}" r="${_SPARKLINES_CONSTS.SMALL_MARKER_RADIUS}" fill="${opts.color}"/>`;
 			} else if (opts.markers === 'o') {
-				dots += `<circle cx="${x}" cy="${y}" r="3.5" fill="${opts.color}"/>`;
+				dots += `<circle cx="${x}" cy="${y}" r="${_SPARKLINES_CONSTS.LARGE_MARKER_RADIUS}" fill="${opts.color}"/>`;
 			}
 		});
 
@@ -231,9 +278,9 @@ function plot(values, yvalues = null, options = {}) {
 				const opacity = parseFloat(opts.shading);
 				svg += `
 	            <defs>
-	                <linearGradient id="${gradId}" x1="0%" y1="0%" x2="0%" y2="100%">
-	                    <stop offset="0%" style="stop-color:${opts.color};stop-opacity:${opacity}"/>
-	                    <stop offset="100%" style="stop-color:${opts.color};stop-opacity:0"/>
+	                <linearGradient id="${gradId}" x1="${_SPARKLINES_CONSTS.GRADIENT_START_OFFSET}" y1="${_SPARKLINES_CONSTS.GRADIENT_START_OFFSET}" x2="${_SPARKLINES_CONSTS.GRADIENT_START_OFFSET}" y2="${_SPARKLINES_CONSTS.GRADIENT_END_OFFSET}">
+	                    <stop offset="${_SPARKLINES_CONSTS.GRADIENT_START_OFFSET}" style="stop-color:${opts.color};stop-opacity:${opacity}"/>
+	                    <stop offset="${_SPARKLINES_CONSTS.GRADIENT_END_OFFSET}" style="stop-color:${opts.color};stop-opacity:${_SPARKLINES_CONSTS.GRADIENT_END_OPACITY}"/>
 	                </linearGradient>
 	            </defs>`;
 
@@ -256,16 +303,16 @@ function plot(values, yvalues = null, options = {}) {
 	// Add y-axis
 	if (opts.yAxis.line || opts.yAxis.ticks) {
 		// For bar charts, shift Y-axis left by 0.75 bar widths to avoid overlap
-		const barShift = opts.style === 'bar' ? (chartWidth / yvals.length * 0.75) : 0;
+		const barShift = opts.style === 'bar' ? (chartWidth / yvals.length * _SPARKLINES_CONSTS.BAR_Y_AXIS_SHIFT_RATIO) : 0;
 		const yAxisX = leftMargin - barShift;
 
 		if (opts.yAxis.line) {
 			svg += `<line x1="${yAxisX}" y1="${topMargin}" x2="${yAxisX}" y2="${opts.height - bottomMargin}"
-                      stroke="#ccc" stroke-width="1"/>`;
+                      stroke="${_SPARKLINES_CONSTS.AXIS_COLOR}" stroke-width="${_SPARKLINES_CONSTS.AXIS_WIDTH}"/>`;
 		}
 		if (opts.yAxis.ticks) {
-			svg += `<text x="${yAxisX - 3}" y="${topMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymax}</text>`;
-			svg += `<text x="${yAxisX - 3}" y="${opts.height - bottomMargin + 3}" font-size="9" fill="#666" text-anchor="end">${ymin}</text>`;
+			svg += `<text x="${yAxisX - _SPARKLINES_CONSTS.Y_AXIS_TEXT_OFFSET}" y="${topMargin + _SPARKLINES_CONSTS.Y_AXIS_TEXT_OFFSET}" font-size="${_SPARKLINES_CONSTS.AXIS_FONT_SIZE}" fill="${_SPARKLINES_CONSTS.AXIS_TEXT_COLOR}" text-anchor="end">${ymax}</text>`;
+			svg += `<text x="${yAxisX - _SPARKLINES_CONSTS.Y_AXIS_TEXT_OFFSET}" y="${opts.height - bottomMargin + _SPARKLINES_CONSTS.Y_AXIS_TEXT_OFFSET}" font-size="${_SPARKLINES_CONSTS.AXIS_FONT_SIZE}" fill="${_SPARKLINES_CONSTS.AXIS_TEXT_COLOR}" text-anchor="end">${ymin}</text>`;
 		}
 	}
 
@@ -276,15 +323,15 @@ function plot(values, yvalues = null, options = {}) {
 			leftMargin + chartWidth - (chartWidth / yvals.length / 2) :
 			opts.width - rightMargin;
 		svg += `<line x1="${leftMargin}" y1="${opts.height - bottomMargin}" x2="${xAxisEnd}" y2="${opts.height - bottomMargin}"
-                      stroke="#ccc" stroke-width="1"/>`;
+                      stroke="${_SPARKLINES_CONSTS.AXIS_COLOR}" stroke-width="${_SPARKLINES_CONSTS.AXIS_WIDTH}"/>`;
 	}
 	if (opts.xAxis.ticks && yvals.length > 0) {
 		// For bar charts, position end tick at center of last bar
 		const xTickEnd = opts.style === 'bar' ?
 			leftMargin + chartWidth - (chartWidth / yvals.length / 2) :
 			opts.width - rightMargin;
-		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmin}</text>`;
-		svg += `<text x="${xTickEnd}" y="${opts.height - bottomMargin + 12}" font-size="9" fill="#666" text-anchor="middle">${xmax}</text>`;
+		svg += `<text x="${leftMargin}" y="${opts.height - bottomMargin + _SPARKLINES_CONSTS.X_AXIS_TEXT_OFFSET}" font-size="${_SPARKLINES_CONSTS.AXIS_FONT_SIZE}" fill="${_SPARKLINES_CONSTS.AXIS_TEXT_COLOR}" text-anchor="middle">${xmin}</text>`;
+		svg += `<text x="${xTickEnd}" y="${opts.height - bottomMargin + _SPARKLINES_CONSTS.X_AXIS_TEXT_OFFSET}" font-size="${_SPARKLINES_CONSTS.AXIS_FONT_SIZE}" fill="${_SPARKLINES_CONSTS.AXIS_TEXT_COLOR}" text-anchor="middle">${xmax}</text>`;
 	}
 
 	svg += '</svg>';
