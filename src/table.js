@@ -309,7 +309,16 @@ class DataTable {
             if (customConfig?.filterFunction) {
                 try {
                     customFilter = customConfig.filterFunction(filterValue);
-                    isValid = typeof customFilter === 'function';
+                    // If custom function returns null, fall back to default
+                    if (customFilter === null) {
+                        customFilter = null;
+                        if (type === 'number') {
+                            const numFilter = this.parseNumericFilter(filterValue);
+                            isValid = numFilter !== null;
+                        }
+                    } else {
+                        isValid = typeof customFilter === 'function';
+                    }
                 } catch (e) {
                     isValid = false;
                 }
