@@ -3,6 +3,16 @@
 // origin: https://github.com/mivanit/js-dev-toolkit
 // license: GPLv3
 
+// SVG Icons
+const TABLE_ICONS = {
+    sort: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 L7 9 L10 9 L10 15 L7 15 L12 20 L17 15 L14 15 L14 9 L17 9 Z" fill="currentColor" /></svg>',
+    sortUp: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 4 L6 12 L10 12 L10 20 L14 20 L14 12 L18 12 Z" fill="currentColor" /></svg>',
+    sortDown: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 20 L6 12 L10 12 L10 4 L14 4 L14 12 L18 12 Z" fill="currentColor" /></svg>',
+    filter: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="5" width="16" height="2" rx="1" fill="currentColor" /><rect x="7" y="10" width="10" height="2" rx="1" fill="currentColor" /><rect x="10" y="15" width="4" height="2" rx="1" fill="currentColor" /></svg>',
+    download: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 3 L12 14 M12 14 L7 9 M12 14 L17 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><path d="M5 16 L5 20 L19 20 L19 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>',
+    copy: '<svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="5" y="9" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /><rect x="9" y="5" width="10" height="10" fill="white" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>'
+};
+
 class DataTable {
     constructor(container, config = {}) {
         this.container = typeof container === 'string' ? document.querySelector(container) : container;
@@ -95,7 +105,9 @@ class DataTable {
 
             const sortIcon = document.createElement('span');
             sortIcon.className = 'datatable-sort-icon';
-            sortIcon.textContent = ' ↕';
+            sortIcon.innerHTML = TABLE_ICONS.sort;
+            sortIcon.style.marginLeft = '4px';
+            sortIcon.style.opacity = '0.6';
             headerContent.appendChild(sortIcon);
 
             headerContent.onclick = () => this.handleSort(col.key);
@@ -145,6 +157,14 @@ class DataTable {
                     filterContainer.style.display = 'flex';
                     filterContainer.style.alignItems = 'center';
 
+                    // Add filter icon
+                    const filterIcon = document.createElement('span');
+                    filterIcon.innerHTML = TABLE_ICONS.filter;
+                    filterIcon.style.marginRight = '4px';
+                    filterIcon.style.opacity = '0.5';
+                    filterIcon.style.display = 'flex';
+                    filterIcon.style.alignItems = 'center';
+
                     const input = document.createElement('input');
                     input.className = 'datatable-filter-input';
                     input.type = 'text';
@@ -153,11 +173,12 @@ class DataTable {
                     input.style.border = '1px solid #ccc';
                     input.style.padding = '2px 4px';
                     input.style.borderRadius = '3px';
-
+                    
                     // Add tooltip for filter help
                     const tooltipText = this.getFilterTooltip(col);
                     input.title = tooltipText;
-
+                    filterIcon.title = tooltipText;
+                    
                     const clearBtn = document.createElement('button');
                     clearBtn.textContent = '×';
                     clearBtn.style.border = 'none';
@@ -177,6 +198,7 @@ class DataTable {
                         this.clearFilter(col.key, input);
                     });
 
+                    filterContainer.appendChild(filterIcon);
                     filterContainer.appendChild(input);
                     filterContainer.appendChild(clearBtn);
                     td.appendChild(filterContainer);
@@ -457,12 +479,15 @@ class DataTable {
 
             if (this.sortColumn === col.key) {
                 if (this.sortDirection === 'asc') {
-                    sortIcon.textContent = ' ↑';
+                    sortIcon.innerHTML = TABLE_ICONS.sortUp;
+                    sortIcon.style.opacity = '1';
                 } else if (this.sortDirection === 'desc') {
-                    sortIcon.textContent = ' ↓';
+                    sortIcon.innerHTML = TABLE_ICONS.sortDown;
+                    sortIcon.style.opacity = '1';
                 }
             } else {
-                sortIcon.textContent = ' ↕';
+                sortIcon.innerHTML = TABLE_ICONS.sort;
+                sortIcon.style.opacity = '0.6';
             }
         });
     }
@@ -553,14 +578,23 @@ class DataTable {
             this.paginationListeners.push({ element: pageSizeSelect, event: 'change', handler });
         }
 
-        // Add export CSV button listener
-        const exportBtn = this.paginationBottom.querySelector('.export-csv-btn');
-        if (exportBtn) {
+        // Add export CSV button listeners
+        const exportDownloadBtn = this.paginationBottom.querySelector('.export-csv-download-btn');
+        if (exportDownloadBtn) {
             const handler = () => {
                 this.exportAndDownloadCSV();
             };
-            exportBtn.addEventListener('click', handler);
-            this.paginationListeners.push({ element: exportBtn, event: 'click', handler });
+            exportDownloadBtn.addEventListener('click', handler);
+            this.paginationListeners.push({ element: exportDownloadBtn, event: 'click', handler });
+        }
+
+        const exportCopyBtn = this.paginationBottom.querySelector('.export-csv-copy-btn');
+        if (exportCopyBtn) {
+            const handler = () => {
+                this.copyCSVToClipboard();
+            };
+            exportCopyBtn.addEventListener('click', handler);
+            this.paginationListeners.push({ element: exportCopyBtn, event: 'click', handler });
         }
 
         // Add clear filters button listener
@@ -579,7 +613,7 @@ class DataTable {
 
         // Left side - controls
         html += '<div style="display: flex; align-items: center; gap: 10px;">';
-        html += `<button class="export-csv-btn">Export CSV</button>`;
+        html += this.createExportCSVButton();
         if (this.showFilters) {
             html += `<button class="clear-filters-btn">Clear Filters</button>`;
         }
@@ -679,6 +713,18 @@ class DataTable {
         return items.slice(0, 10); // Ensure exactly 10 elements
     }
 
+    createExportCSVButton() {
+        return `<div style="display: flex; align-items: center; gap: 4px; border: 1px solid #ccc; border-radius: 4px; padding: 2px; margin: 3px">
+            <button class="export-csv-download-btn" style="border: none; background: none; padding: 4px 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                Export CSV ${TABLE_ICONS.download}
+            </button>
+            <div style="border-left: 1px solid #ccc; height: 20px;"></div>
+            <button class="export-csv-copy-btn" style="border: none; background: none; padding: 4px 8px; cursor: pointer; display: flex; align-items: center;" title="Copy to clipboard">
+                ${TABLE_ICONS.copy}
+            </button>
+        </div>`;
+    }
+
     createPageSizeSelector() {
         const options = this.pageSizeOptions.map(size =>
             `<option value="${size}" ${this.pageSize === size ? 'selected' : ''}>${size}</option>`
@@ -752,6 +798,55 @@ class DataTable {
         a.download = 'table-data.csv';
         a.click();
         URL.revokeObjectURL(url);
+    }
+
+    async copyCSVToClipboard() {
+        const csv = this.exportCSV();
+        try {
+            await navigator.clipboard.writeText(csv);
+            // Provide visual feedback
+            const copyBtn = this.paginationBottom.querySelector('.export-csv-copy-btn');
+            if (copyBtn) {
+                const originalTitle = copyBtn.title;
+                copyBtn.title = 'Copied!';
+                copyBtn.style.color = 'green';
+                setTimeout(() => {
+                    copyBtn.title = originalTitle;
+                    copyBtn.style.color = '';
+                }, 1500);
+            }
+        } catch (err) {
+            console.error('Failed to copy CSV to clipboard:', err);
+            // Fallback for older browsers
+            this.fallbackCopyToClipboard(csv);
+        }
+    }
+
+    fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            const copyBtn = this.paginationBottom.querySelector('.export-csv-copy-btn');
+            if (copyBtn) {
+                const originalTitle = copyBtn.title;
+                copyBtn.title = 'Copied!';
+                copyBtn.style.color = 'green';
+                setTimeout(() => {
+                    copyBtn.title = originalTitle;
+                    copyBtn.style.color = '';
+                }, 1500);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+        }
+        document.body.removeChild(textArea);
     }
 
     clearAllFilters() {
