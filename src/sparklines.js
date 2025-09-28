@@ -25,6 +25,7 @@ const _PLOT_OPTS_DEFAULT = {
 		line: false,  // boolean: show axis line
 		ticks: false,  // boolean: show tick labels (min/max values)
 		text_offset: 2,  // number: pixels left of axis for tick labels
+		text_y_offset: 0,  // number: pixels down from top edge for max label to prevent cutoff
 		label_margin: 10,  // number: extra margin in pixels when ticks shown
 		limits_length: 2  // number: expected array length for ylims (internal)
 	},
@@ -229,7 +230,7 @@ function plot(values, yvalues = null, options = {}) {
                       stroke="${opts.axis_style.color}" stroke-width="${opts.axis_style.width}"/>`;
 		}
 		if (opts.yAxis.ticks) {
-			svg += `<text x="${yAxisX - opts.yAxis.text_offset}" y="${opts.margin + opts.yAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="end">${ymax}</text>`;
+			svg += `<text x="${yAxisX - opts.yAxis.text_offset}" y="${opts.margin + opts.yAxis.text_y_offset + opts.axis_style.font_size}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="end">${ymax}</text>`;
 			svg += `<text x="${yAxisX - opts.yAxis.text_offset}" y="${opts.height - bottomMargin + opts.yAxis.text_offset}" font-size="${opts.axis_style.font_size}" fill="${opts.axis_style.text_color}" text-anchor="end">${ymin}</text>`;
 		}
 	}
