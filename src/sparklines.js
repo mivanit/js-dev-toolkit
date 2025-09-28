@@ -1,61 +1,80 @@
 const _PLOT_OPTS_DEFAULT = {
 	// Chart dimensions and basic styling
-	width: 120,  // SVG width in pixels
-	height: 40,  // SVG height in pixels
-	color: '#4169E1',  // Primary color for line/bars/markers
-	shading: 0.3,  // Area fill: false = none, true = solid, 0-1 = gradient opacity
-	lineWidth: 2,  // Stroke width for line charts
-	markers: null,  // Data point markers: null = none, number = circle radius
-	margin: 5,  // Base margin around chart content
-	style: 'line',  // Chart type: 'line' or 'bar' (internal, set by sparkline/sparkbars)
-	barWidthRatio: 1,  // Bar width ratio: 1 = touching, 0.8 = small gaps, 0.5 = wide gaps
+	width: 120,  // number: SVG width in pixels
+	height: 40,  // number: SVG height in pixels
+	color: '#4169E1',  // string: CSS color for line/bars/markers
+	shading: 0.3,  // boolean|number: false=none, true=solid fill, 0-1=gradient opacity
+	lineWidth: 2,  // number: stroke width for line charts in pixels
+	markers: null,  // null|number: null=no markers, positive number=circle radius
+	margin: 5,  // number: base margin around chart content in pixels
+	style: 'line',  // string: 'line' or 'bar' (internal, set by sparkline/sparkbars)
+	barWidthRatio: 1,  // number: 0-1 ratio, 1=touching bars, <1=gaps between bars
 
 	// X-axis configuration
 	xAxis: {
-		line: false,  // Show axis line
-		ticks: false,  // Show tick labels (min/max values)
-		text_offset: 10,  // Pixels below axis line for tick labels
-		label_margin: 5,  // Extra margin when ticks are shown
-		limits_length: 2  // Expected array length for xlims validation
+		line: false,  // boolean: show axis line
+		ticks: false,  // boolean: show tick labels (min/max values)
+		text_offset: 10,  // number: pixels below axis for tick labels
+		label_margin: 5,  // number: extra margin in pixels when ticks shown
+		limits_length: 2  // number: expected array length for xlims (internal)
 	},
 
 	// Y-axis configuration
 	yAxis: {
-		line: false,  // Show axis line
-		ticks: false,  // Show tick labels (min/max values)
-		text_offset: 10,  // Pixels left of axis line for tick labels
-		label_margin: 5,  // Extra margin when ticks are shown
-		limits_length: 2  // Expected array length for ylims validation
+		line: false,  // boolean: show axis line
+		ticks: false,  // boolean: show tick labels (min/max values)
+		text_offset: 10,  // number: pixels left of axis for tick labels
+		label_margin: 5,  // number: extra margin in pixels when ticks shown
+		limits_length: 2  // number: expected array length for ylims (internal)
 	},
 
-	xlims: null,  // X-axis range: [min, max] or null for auto from data
-	ylims: null,  // Y-axis range: [min, max] or null for auto from data
+	xlims: null,  // null|array: [min, max] numbers or null for auto from data
+	ylims: null,  // null|array: [min, max] numbers or null for auto from data
 
 	// Bar chart specific settings
 	bar: {
-		opacity: 0.8,  // Opacity of bar rectangles
-		y_axis_shift_ratio: 0.75,  // How much to shift Y-axis left (as ratio of bar width)
-		y_axis_reduction_factor: 1  // Width reduction factor for Y-axis labels
+		opacity: 0.8,  // number: 0-1 opacity of bar rectangles
+		y_axis_shift_ratio: 0.75,  // number: Y-axis left shift as ratio of bar width
+		y_axis_reduction_factor: 1  // number: width reduction factor for Y-axis labels
 	},
 
 	// Axis styling (applies to both X and Y)
 	axis_style: {
-		color: '#ccc',  // Axis line color
-		width: 1,  // Axis line stroke width
-		font_size: 10,  // Tick label font size in pixels
-		text_color: '#666'  // Tick label text color
+		color: '#ccc',  // string: CSS color for axis lines
+		width: 1,  // number: axis line stroke width in pixels
+		font_size: 10,  // number: tick label font size in pixels
+		text_color: '#666'  // string: CSS color for tick labels
 	},
 
 	// Gradient fill configuration (when shading is 0-1)
 	gradient: {
-		start_offset: '0%',  // Gradient start position (top)
-		end_offset: '100%',  // Gradient end position (bottom)
-		end_opacity: 0  // Opacity at gradient end (bottom)
+		start_offset: '0%',  // string: SVG gradient start position
+		end_offset: '100%',  // string: SVG gradient end position
+		end_opacity: 0  // number: 0-1 opacity at gradient end
 	},
 
-	min_range: 1  // Minimum range fallback when max = min in data
+	min_range: 1  // number: minimum range when max equals min in data
 };
-function plot(values, yvalues = null, options = {}) {
+/**
+ * Deep merge options with defaults
+ */
+function merge_options(options = {}) {
+	return {
+		..._PLOT_OPTS_DEFAULT,
+		...options,
+		xAxis: { ..._PLOT_OPTS_DEFAULT.xAxis, ...(options.xAxis || {}) },
+		yAxis: { ..._PLOT_OPTS_DEFAULT.yAxis, ...(options.yAxis || {}) },
+		bar: { ..._PLOT_OPTS_DEFAULT.bar, ...(options.bar || {}) },
+		axis_style: { ..._PLOT_OPTS_DEFAULT.axis_style, ...(options.axis_style || {}) },
+		gradient: { ..._PLOT_OPTS_DEFAULT.gradient, ...(options.gradient || {}) }
+	};
+}
+
+/**
+ * Process and validate input values
+ * Returns { xvalues, yvalues } arrays
+ */
+function process_values(values, yvalues = null) {
 	// Validate inputs
 	if (!Array.isArray(values)) {
 		throw new Error(`First parameter must be an array, got: ${typeof values}`);
@@ -65,56 +84,32 @@ function plot(values, yvalues = null, options = {}) {
 		throw new Error('Values array cannot be empty');
 	}
 
-	// Merge user options with defaults (handle nested objects)
-	const opts = {
-		..._PLOT_OPTS_DEFAULT,
-		...options,
-		xAxis: { ..._PLOT_OPTS_DEFAULT.xAxis, ...(options.xAxis || {}) },
-		yAxis: { ..._PLOT_OPTS_DEFAULT.yAxis, ...(options.yAxis || {}) },
-		bar: { ..._PLOT_OPTS_DEFAULT.bar, ...(options.bar || {}) },
-		axis_style: { ..._PLOT_OPTS_DEFAULT.axis_style, ...(options.axis_style || {}) },
-		gradient: { ..._PLOT_OPTS_DEFAULT.gradient, ...(options.gradient || {}) }
-	};
-
-	// Handle matplotlib-style parameter interpretation
-	let xvalues, yvals;
+	let xvals, yvals;
 
 	if (yvalues === null) {
 		// values is y-values, generate x-values as 0..n-1
 		yvals = values;
-		xvalues = Array.from({ length: values.length }, (_, i) => i);
+		xvals = Array.from({ length: values.length }, (_, i) => i);
 	} else {
 		// values is x-values, yvalues is y-values
 		if (!Array.isArray(yvalues)) {
 			throw new Error(`Second parameter must be an array or null, got: ${typeof yvalues}`);
 		}
-		xvalues = values;
+		xvals = values;
 		yvals = yvalues;
 	}
 
 	// Validate that x and y arrays have same length
-	if (xvalues.length !== yvals.length) {
-		throw new Error(`x-values length (${xvalues.length}) must match y-values length (${yvals ? yvals.length : 'undefined'})`);
+	if (xvals.length !== yvals.length) {
+		throw new Error(`x-values length (${xvals.length}) must match y-values length (${yvals.length})`);
 	}
 
-	// Validate xlims and ylims format if provided
-	if (opts.xlims !== null) {
-		if (!Array.isArray(opts.xlims) || opts.xlims.length !== opts.xAxis.limits_length) {
-			throw new Error('xlims must be an array of two numbers [min, max]');
-		}
-		if (opts.xlims[0] >= opts.xlims[1]) {
-			throw new Error('xlims[0] must be less than xlims[1]');
-		}
-	}
+	return { xvalues: xvals, yvalues: yvals };
+}
 
-	if (opts.ylims !== null) {
-		if (!Array.isArray(opts.ylims) || opts.ylims.length !== opts.yAxis.limits_length) {
-			throw new Error('ylims must be an array of two numbers [min, max]');
-		}
-		if (opts.ylims[0] >= opts.ylims[1]) {
-			throw new Error('ylims[0] must be less than ylims[1]');
-		}
-	}
+function plot(values, yvalues = null, options = {}) {
+	const opts = merge_options(options);
+	const { xvalues, yvalues: yvals } = process_values(values, yvalues);
 
 	// Calculate margins based on what's shown
 	const needsLeftMargin = opts.yAxis.ticks;
