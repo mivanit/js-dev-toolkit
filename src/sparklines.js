@@ -239,7 +239,7 @@ function plot(values, yvalues = null, options = {}) {
 			points.push({ x, y, xval, yval });
 
 			// Start new path segment if previous was skipped
-			const moveCmd = (i === 0 || (opts.logScale && i > 0 && yvals[i-1] === 0)) ? 'M' : 'L';
+			const moveCmd = (i === 0 || (opts.logScale && i > 0 && yvals[i - 1] === 0)) ? 'M' : 'L';
 			path += `${moveCmd} ${x} ${y} `;
 
 			// Add markers if specified
