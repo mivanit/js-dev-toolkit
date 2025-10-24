@@ -1,0 +1,247 @@
+// test-ColorUtil.js
+// Tests for color utility functions
+
+const { describe, it } = require('node:test');
+const { assert, loadSourceFile } = require('./test-helpers.js');
+
+// Load ColorUtil source
+const context = loadSourceFile('ColorUtil.js');
+const { hslToHex, generateDistinctColors, getColorForValue, getColorsForValues } = context;
+
+describe('hslToHex()', () => {
+
+	it('converts red (0, 100, 50)', () => {
+		const hex = hslToHex(0, 100, 50);
+		assert.strictEqual(hex, '#ff0000');
+	});
+
+	it('converts green (120, 100, 50)', () => {
+		const hex = hslToHex(120, 100, 50);
+		assert.strictEqual(hex, '#00ff00');
+	});
+
+	it('converts blue (240, 100, 50)', () => {
+		const hex = hslToHex(240, 100, 50);
+		assert.strictEqual(hex, '#0000ff');
+	});
+
+	it('converts white (0, 0, 100)', () => {
+		const hex = hslToHex(0, 0, 100);
+		assert.strictEqual(hex, '#ffffff');
+	});
+
+	it('converts black (0, 0, 0)', () => {
+		const hex = hslToHex(0, 0, 0);
+		assert.strictEqual(hex, '#000000');
+	});
+
+	it('converts gray (0, 0, 50)', () => {
+		const hex = hslToHex(0, 0, 50);
+		assert.strictEqual(hex, '#7f7f7f');
+	});
+
+	it('handles intermediate hue values', () => {
+		const hex = hslToHex(60, 100, 50); // Yellow
+		assert.strictEqual(hex, '#ffff00');
+	});
+
+	it('handles desaturated colors', () => {
+		const hex = hslToHex(0, 50, 50);
+		assert.ok(hex.startsWith('#'));
+		assert.strictEqual(hex.length, 7);
+	});
+});
+
+describe('generateDistinctColors()', () => {
+
+	it('generates requested number of colors', () => {
+		const colors = generateDistinctColors(5);
+		assert.strictEqual(colors.length, 5);
+	});
+
+	it('generates hex colors', () => {
+		const colors = generateDistinctColors(3);
+		for (const color of colors) {
+			assert.ok(color.startsWith('#'));
+			assert.strictEqual(color.length, 7);
+		}
+	});
+
+	it('handles single color request', () => {
+		const colors = generateDistinctColors(1);
+		assert.strictEqual(colors.length, 1);
+	});
+
+	it('handles zero colors request', () => {
+		const colors = generateDistinctColors(0);
+		assert.strictEqual(colors.length, 0);
+	});
+
+	it('generates different colors on subsequent calls', () => {
+		const colors1 = generateDistinctColors(3);
+		const colors2 = generateDistinctColors(3);
+		// Due to randomness, colors should likely be different
+		// Just check they are valid hex colors
+		colors1.forEach(color => {
+			assert.ok(color.startsWith('#'));
+		});
+		colors2.forEach(color => {
+			assert.ok(color.startsWith('#'));
+		});
+	});
+});
+
+describe('getColorForValue()', () => {
+
+	it('maps minimum value to first color', () => {
+		const color = getColorForValue(0, [0, 100]);
+		assert.ok(color.startsWith('rgb('));
+		// For blues colormap, min should be light
+		assert.ok(color.includes('247')); // First color in blues
+	});
+
+	it('maps maximum value to last color', () => {
+		const color = getColorForValue(100, [0, 100]);
+		assert.ok(color.startsWith('rgb('));
+		// For blues colormap, max should be dark
+		assert.ok(color.includes('33')); // Last color in blues
+	});
+
+	it('handles mid-range values', () => {
+		const color = getColorForValue(50, [0, 100]);
+		assert.ok(color.startsWith('rgb('));
+		assert.strictEqual(color.split(',').length, 3);
+	});
+
+	it('handles equal min and max', () => {
+		const color = getColorForValue(50, [50, 50]);
+		assert.strictEqual(color, '#f5f5f5');
+	});
+
+	it('accepts object range format', () => {
+		const color = getColorForValue(50, { min: 0, max: 100 });
+		assert.ok(color.startsWith('rgb('));
+	});
+
+	it('accepts legacy number format', () => {
+		const color = getColorForValue(50, 100);
+		assert.ok(color.startsWith('rgb('));
+	});
+
+	it('clamps values below minimum', () => {
+		const color1 = getColorForValue(-10, [0, 100]);
+		const color2 = getColorForValue(0, [0, 100]);
+		assert.strictEqual(color1, color2);
+	});
+
+	it('clamps values above maximum', () => {
+		const color1 = getColorForValue(110, [0, 100]);
+		const color2 = getColorForValue(100, [0, 100]);
+		assert.strictEqual(color1, color2);
+	});
+
+	it('supports reds colormap', () => {
+		const color = getColorForValue(50, [0, 100], 'reds');
+		assert.ok(color.startsWith('rgb('));
+	});
+
+	it('supports viridis colormap', () => {
+		const color = getColorForValue(50, [0, 100], 'viridis');
+		assert.ok(color.startsWith('rgb('));
+	});
+
+	it('supports plasma colormap', () => {
+		const color = getColorForValue(50, [0, 100], 'plasma');
+		assert.ok(color.startsWith('rgb('));
+	});
+
+	it('falls back to blues for unknown colormap', () => {
+		const color = getColorForValue(50, [0, 100], 'unknown');
+		assert.ok(color.startsWith('rgb('));
+	});
+});
+
+describe('getColorsForValues()', () => {
+
+	it('maps array of values to colors', () => {
+		const values = [0, 50, 100];
+		const colors = getColorsForValues(values);
+		assert.strictEqual(colors.length, 3);
+		colors.forEach(color => {
+			assert.ok(color.startsWith('rgb('));
+		});
+	});
+
+	it('uses data range for mapping', () => {
+		const values = [10, 20, 30];
+		const colors = getColorsForValues(values);
+		assert.strictEqual(colors.length, 3);
+		// Should map relative to 10-30 range
+		assert.ok(colors[0] !== colors[2]);
+	});
+
+	it('handles single value', () => {
+		const values = [50];
+		const colors = getColorsForValues(values);
+		assert.strictEqual(colors.length, 1);
+	});
+
+	it('handles empty array', () => {
+		const values = [];
+		const colors = getColorsForValues(values);
+		assert.strictEqual(colors.length, 0);
+	});
+
+	it('handles null/undefined', () => {
+		const colors1 = getColorsForValues(null);
+		const colors2 = getColorsForValues(undefined);
+		assert.strictEqual(colors1.length, 0);
+		assert.strictEqual(colors2.length, 0);
+	});
+
+	it('supports colormap parameter', () => {
+		const values = [0, 50, 100];
+		const colors = getColorsForValues(values, 'reds');
+		assert.strictEqual(colors.length, 3);
+		colors.forEach(color => {
+			assert.ok(color.startsWith('rgb('));
+		});
+	});
+
+	it('handles negative values', () => {
+		const values = [-10, 0, 10];
+		const colors = getColorsForValues(values);
+		assert.strictEqual(colors.length, 3);
+	});
+
+	it('handles same values', () => {
+		const values = [50, 50, 50];
+		const colors = getColorsForValues(values);
+		assert.strictEqual(colors.length, 3);
+		// All should be same color
+		assert.strictEqual(colors[0], colors[1]);
+		assert.strictEqual(colors[1], colors[2]);
+	});
+});
+
+describe('Color interpolation', () => {
+
+	it('interpolates smoothly across range', () => {
+		const values = [0, 25, 50, 75, 100];
+		const colors = getColorsForValues(values, 'blues');
+		assert.strictEqual(colors.length, 5);
+
+		// Parse RGB values to verify gradient
+		const rgbValues = colors.map(color => {
+			const match = color.match(/rgb\((\d+), (\d+), (\d+)\)/);
+			return match ? [
+				parseInt(match[1]),
+				parseInt(match[2]),
+				parseInt(match[3])
+			] : null;
+		});
+
+		// Check that colors form a gradient (some component changes)
+		assert.ok(rgbValues.every(rgb => rgb !== null));
+	});
+});

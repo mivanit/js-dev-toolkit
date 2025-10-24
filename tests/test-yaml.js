@@ -1,0 +1,314 @@
+// test-yaml.js
+// Tests for YAML serialization functions
+
+const { describe, it } = require('node:test');
+const { assert, loadSourceFile } = require('./test-helpers.js');
+
+// Load yaml source
+const context = loadSourceFile('yaml.js', { JSON });
+const { toYAML, createYAMLFrontmatter } = context;
+
+describe('toYAML() - primitive values', () => {
+
+	it('serializes string values', () => {
+		const obj = { name: 'Alice', city: 'NYC' };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('name: "Alice"'));
+		assert.ok(yaml.includes('city: "NYC"'));
+	});
+
+	it('serializes number values', () => {
+		const obj = { age: 30, score: 95.5 };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('age: 30'));
+		assert.ok(yaml.includes('score: 95.5'));
+	});
+
+	it('serializes boolean values', () => {
+		const obj = { active: true, verified: false };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('active: true'));
+		assert.ok(yaml.includes('verified: false'));
+	});
+
+	it('serializes null values', () => {
+		const obj = { value: null };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('value: null'));
+	});
+
+	it('serializes undefined as null', () => {
+		const obj = { value: undefined };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('value: null'));
+	});
+});
+
+describe('toYAML() - arrays', () => {
+
+	it('serializes empty array', () => {
+		const obj = { items: [] };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('items: []'));
+	});
+
+	it('serializes simple array inline', () => {
+		const obj = { numbers: [1, 2, 3] };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('numbers: [1, 2, 3]'));
+	});
+
+	it('serializes string array inline', () => {
+		const obj = { names: ['Alice', 'Bob', 'Charlie'] };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('names:'));
+		assert.ok(yaml.includes('"Alice"'));
+		assert.ok(yaml.includes('"Bob"'));
+	});
+
+	it('serializes array of objects multiline', () => {
+		const obj = {
+			users: [
+				{ name: 'Alice', age: 30 },
+				{ name: 'Bob', age: 25 }
+			]
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('users:'));
+		assert.ok(yaml.includes('-'));
+		assert.ok(yaml.includes('name: "Alice"'));
+		assert.ok(yaml.includes('age: 30'));
+	});
+});
+
+describe('toYAML() - nested objects', () => {
+
+	it('serializes nested objects', () => {
+		const obj = {
+			user: {
+				name: 'Alice',
+				address: {
+					city: 'NYC',
+					zip: '10001'
+				}
+			}
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('user:'));
+		assert.ok(yaml.includes('name: "Alice"'));
+		assert.ok(yaml.includes('address:'));
+		assert.ok(yaml.includes('city: "NYC"'));
+	});
+
+	it('serializes deeply nested structures', () => {
+		const obj = {
+			level1: {
+				level2: {
+					level3: {
+						value: 'deep'
+					}
+				}
+			}
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('level1:'));
+		assert.ok(yaml.includes('level2:'));
+		assert.ok(yaml.includes('level3:'));
+		assert.ok(yaml.includes('value: "deep"'));
+	});
+});
+
+describe('toYAML() - mixed types', () => {
+
+	it('serializes object with mixed types', () => {
+		const obj = {
+			name: 'Alice',
+			age: 30,
+			active: true,
+			scores: [95, 87, 92],
+			address: {
+				city: 'NYC'
+			}
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('name: "Alice"'));
+		assert.ok(yaml.includes('age: 30'));
+		assert.ok(yaml.includes('active: true'));
+		assert.ok(yaml.includes('scores:'));
+		assert.ok(yaml.includes('address:'));
+	});
+});
+
+describe('toYAML() - indentation', () => {
+
+	it('uses correct indentation at top level', () => {
+		const obj = { key1: 'value1', key2: 'value2' };
+		const yaml = toYAML(obj);
+		const lines = yaml.split('\n');
+		// Top level should have no indentation
+		for (const line of lines) {
+			if (line.trim()) {
+				assert.ok(!line.startsWith(' '));
+			}
+		}
+	});
+
+	it('indents nested objects correctly', () => {
+		const obj = {
+			parent: {
+				child: 'value'
+			}
+		};
+		const yaml = toYAML(obj);
+		const lines = yaml.split('\n');
+		// Find the 'child' line
+		const childLine = lines.find(line => line.includes('child'));
+		assert.ok(childLine.startsWith('  ')); // Should be indented
+	});
+
+	it('uses custom indentation level', () => {
+		const obj = { key: 'value' };
+		const yaml = toYAML(obj, 2);
+		const lines = yaml.split('\n');
+		// With indent=2, should be indented 4 spaces
+		for (const line of lines) {
+			if (line.trim() && line !== lines[0]) {
+				// Check that indented lines use multiples of 2
+				const indent = line.match(/^ */)[0].length;
+				assert.strictEqual(indent % 2, 0);
+			}
+		}
+	});
+});
+
+describe('toYAML() - special characters', () => {
+
+	it('handles strings with colons', () => {
+		const obj = { time: '12:30:45' };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('time: "12:30:45"'));
+	});
+
+	it('handles strings with quotes', () => {
+		const obj = { quote: 'She said "hello"' };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('quote:'));
+	});
+
+	it('handles multiline strings', () => {
+		const obj = { text: 'Line 1\nLine 2' };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('text:'));
+	});
+});
+
+describe('toYAML() - empty structures', () => {
+
+	it('handles empty object', () => {
+		const obj = {};
+		const yaml = toYAML(obj);
+		assert.strictEqual(yaml, '');
+	});
+
+	it('handles object with empty nested object', () => {
+		const obj = { empty: {} };
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('empty:'));
+	});
+});
+
+describe('createYAMLFrontmatter()', () => {
+
+	it('creates frontmatter with delimiters', () => {
+		const obj = { title: 'My Document', author: 'Alice' };
+		const frontmatter = createYAMLFrontmatter(obj);
+		assert.ok(frontmatter.startsWith('---\n'));
+		assert.ok(frontmatter.endsWith('\n---'));
+	});
+
+	it('includes YAML content between delimiters', () => {
+		const obj = { title: 'Test', count: 42 };
+		const frontmatter = createYAMLFrontmatter(obj);
+		assert.ok(frontmatter.includes('title: "Test"'));
+		assert.ok(frontmatter.includes('count: 42'));
+	});
+
+	it('handles complex objects', () => {
+		const obj = {
+			metadata: {
+				version: 1,
+				tags: ['test', 'demo']
+			}
+		};
+		const frontmatter = createYAMLFrontmatter(obj);
+		assert.ok(frontmatter.includes('---\n'));
+		assert.ok(frontmatter.includes('metadata:'));
+		assert.ok(frontmatter.endsWith('\n---'));
+	});
+
+	it('handles empty object', () => {
+		const obj = {};
+		const frontmatter = createYAMLFrontmatter(obj);
+		assert.strictEqual(frontmatter, '---\n\n---');
+	});
+});
+
+describe('toYAML() - real-world examples', () => {
+
+	it('serializes blog post metadata', () => {
+		const obj = {
+			title: 'My Blog Post',
+			author: 'Alice Smith',
+			date: '2024-01-01',
+			tags: ['javascript', 'yaml', 'testing'],
+			published: true
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('title: "My Blog Post"'));
+		assert.ok(yaml.includes('author: "Alice Smith"'));
+		assert.ok(yaml.includes('tags:'));
+		assert.ok(yaml.includes('published: true'));
+	});
+
+	it('serializes configuration object', () => {
+		const obj = {
+			server: {
+				host: 'localhost',
+				port: 8080
+			},
+			database: {
+				url: 'mongodb://localhost',
+				name: 'mydb'
+			},
+			features: {
+				enableLogging: true,
+				maxConnections: 100
+			}
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('server:'));
+		assert.ok(yaml.includes('host: "localhost"'));
+		assert.ok(yaml.includes('port: 8080'));
+		assert.ok(yaml.includes('database:'));
+		assert.ok(yaml.includes('features:'));
+	});
+
+	it('serializes user profile', () => {
+		const obj = {
+			username: 'alice123',
+			profile: {
+				firstName: 'Alice',
+				lastName: 'Smith',
+				email: 'alice@example.com'
+			},
+			preferences: {
+				theme: 'dark',
+				notifications: true
+			}
+		};
+		const yaml = toYAML(obj);
+		assert.ok(yaml.includes('username: "alice123"'));
+		assert.ok(yaml.includes('profile:'));
+		assert.ok(yaml.includes('preferences:'));
+	});
+});
