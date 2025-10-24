@@ -354,6 +354,133 @@ describe('DataFrame CSV round-trip', () => {
 		assert.strictEqual(df2.get(1, 'age'), df1.get(1, 'age'));
 	});
 });
+
+describe('DataFrame.get()', () => {
+
+	it('gets cell value with valid indices', () => {
+		const df = new DataFrame([
+			{ name: 'Alice', age: 30 },
+			{ name: 'Bob', age: 25 }
+		]);
+		assert.strictEqual(df.get(0, 'name'), 'Alice');
+		assert.strictEqual(df.get(0, 'age'), 30);
+		assert.strictEqual(df.get(1, 'name'), 'Bob');
+		assert.strictEqual(df.get(1, 'age'), 25);
+	});
+
+	it('throws error for invalid row index', () => {
+		const df = new DataFrame([{ name: 'Alice' }]);
+		assert.throws(() => df.get(5, 'name'), /out of bounds/);
+		assert.throws(() => df.get(-1, 'name'), /out of bounds/);
+	});
+
+	it('throws error for invalid column name', () => {
+		const df = new DataFrame([{ name: 'Alice' }]);
+		assert.throws(() => df.get(0, 'invalid'), /not found/);
+	});
+});
+
+describe('DataFrame.col_apply()', () => {
+
+	it('applies function to column values', () => {
+		const df = new DataFrame([
+			{ x: 2, y: 10 },
+			{ x: 3, y: 20 },
+			{ x: 4, y: 30 }
+		]);
+		df.col_apply('x', val => val * val);
+		assert.strictEqual(df.get(0, 'x'), 4);
+		assert.strictEqual(df.get(1, 'x'), 9);
+		assert.strictEqual(df.get(2, 'x'), 16);
+	});
+
+	it('provides row index to function', () => {
+		const df = new DataFrame([
+			{ value: 10 },
+			{ value: 20 },
+			{ value: 30 }
+		]);
+		df.col_apply('value', (val, idx) => val + idx);
+		assert.strictEqual(df.get(0, 'value'), 10);
+		assert.strictEqual(df.get(1, 'value'), 21);
+		assert.strictEqual(df.get(2, 'value'), 32);
+	});
+
+	it('throws error for invalid column', () => {
+		const df = new DataFrame([{ x: 1 }]);
+		assert.throws(() => df.col_apply('invalid', val => val), /not found/);
+	});
+});
+
+describe('DataFrame.from_jsonl()', () => {
+
+	it('parses JSONL string', () => {
+		const jsonl = '{"name":"Alice","age":30}\n{"name":"Bob","age":25}\n{"name":"Charlie","age":35}';
+		const df = DataFrame.from_jsonl(jsonl);
+		assert.strictEqual(df.length, 3);
+		assert.strictEqual(df.get(0, 'name'), 'Alice');
+		assert.strictEqual(df.get(1, 'name'), 'Bob');
+		assert.strictEqual(df.get(2, 'name'), 'Charlie');
+	});
+
+	it('handles single line', () => {
+		const jsonl = '{"x":1,"y":2}';
+		const df = DataFrame.from_jsonl(jsonl);
+		assert.strictEqual(df.length, 1);
+		assert.strictEqual(df.get(0, 'x'), 1);
+		assert.strictEqual(df.get(0, 'y'), 2);
+	});
+
+	it('collects all unique columns', () => {
+		const jsonl = '{"a":1}\n{"b":2}\n{"a":3,"b":4}';
+		const df = DataFrame.from_jsonl(jsonl);
+		assert.ok(df.columns.includes('a'));
+		assert.ok(df.columns.includes('b'));
+	});
+});
+
+describe('DataFrame.to_jsonl()', () => {
+
+	it('exports to JSONL format', () => {
+		const df = new DataFrame([
+			{ name: 'Alice', age: 30 },
+			{ name: 'Bob', age: 25 }
+		]);
+		const jsonl = df.to_jsonl();
+		const lines = jsonl.split('\n');
+		assert.strictEqual(lines.length, 2);
+		const obj1 = JSON.parse(lines[0]);
+		const obj2 = JSON.parse(lines[1]);
+		assert.strictEqual(obj1.name, 'Alice');
+		assert.strictEqual(obj2.name, 'Bob');
+	});
+
+	it('handles empty dataframe', () => {
+		const df = new DataFrame([]);
+		const jsonl = df.to_jsonl();
+		assert.strictEqual(jsonl, '');
+	});
+});
+
+describe('DataFrame CSV parsing edge cases', () => {
+
+	it('handles simple quoted strings', () => {
+		const csv = 'name,age\n"Alice",30\n"Bob",25';
+		const df = DataFrame.from_csv(csv);
+		assert.strictEqual(df.length, 2);
+		assert.strictEqual(df.get(0, 'name'), 'Alice');
+		assert.strictEqual(df.get(1, 'name'), 'Bob');
+	});
+
+	it('handles null values', () => {
+		const csv = 'name,value\nAlice,null\nBob,\nCharlie,123';
+		const df = DataFrame.from_csv(csv);
+		assert.strictEqual(df.length, 3);
+		assert.strictEqual(df.get(0, 'value'), null);
+		assert.strictEqual(df.get(1, 'value'), null);
+		assert.strictEqual(df.get(2, 'value'), 123);
+	});
+});
 	</script>
 </body>
 </html>

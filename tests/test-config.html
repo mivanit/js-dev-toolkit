@@ -392,6 +392,78 @@ describe('Configuration differences with special types', () => {
 		assert.strictEqual(diffs.length, 1);
 	});
 });
+
+describe('resetConfigPreserveKey()', () => {
+
+	it('resets config to loaded state', () => {
+		// Set up initial state
+		CONFIG = { theme: 'light', debug: false, user: { name: 'Alice' } };
+		LOADED_CONFIG = { theme: 'dark', debug: false, user: { name: 'Bob' } };
+
+		// Modify CONFIG
+		CONFIG.theme = 'light';
+		CONFIG.user.name = 'Alice';
+
+		// Reset
+		resetConfigPreserveKey();
+
+		// Should be back to loaded state
+		assert.strictEqual(CONFIG.theme, 'dark');
+		assert.strictEqual(CONFIG.user.name, 'Bob');
+	});
+
+	it('preserves specified key', () => {
+		CONFIG = { theme: 'light', debug: true, value: 42 };
+		LOADED_CONFIG = { theme: 'dark', debug: false, value: 0 };
+
+		resetConfigPreserveKey('theme');
+
+		assert.strictEqual(CONFIG.theme, 'light'); // Preserved
+		assert.strictEqual(CONFIG.debug, false); // Reset
+		assert.strictEqual(CONFIG.value, 0); // Reset
+	});
+
+	it('handles missing loaded config', () => {
+		CONFIG = { test: 123 };
+		LOADED_CONFIG = null;
+
+		// Mock console.warn to suppress expected warning
+		const originalWarn = console.warn;
+		console.warn = () => {};
+
+		try {
+			// Should not throw
+			resetConfigPreserveKey('test');
+			assert.ok(CONFIG);
+		} finally {
+			console.warn = originalWarn;
+		}
+	});
+});
+
+describe('exportConfigToNewTab()', () => {
+
+	it('creates JSON blob without throwing', () => {
+		CONFIG = { test: 'value', nested: { key: 123 } };
+
+		// Mock window.open to avoid actually opening tabs in tests
+		const originalOpen = window.open;
+		let capturedUrl = null;
+		window.open = (url) => {
+			capturedUrl = url;
+			return { close: () => {} };
+		};
+
+		try {
+			exportConfigToNewTab();
+			// Should have created a blob URL
+			assert.ok(capturedUrl);
+			assert.ok(capturedUrl.startsWith('blob:'));
+		} finally {
+			window.open = originalOpen;
+		}
+	});
+});
 	</script>
 </body>
 </html>

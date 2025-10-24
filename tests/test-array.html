@@ -405,6 +405,64 @@ describe('NDArray edge cases', () => {
 		assert.strictEqual(arr._size, 16);
 	});
 });
+
+describe('float16ToFloat32()', () => {
+
+	it('converts float16 zero to float32', () => {
+		const result = float16ToFloat32(0x0000);
+		assert.strictEqual(result, 0);
+	});
+
+	it('converts float16 one to float32', () => {
+		const result = float16ToFloat32(0x3c00);
+		assert.strictEqual(result, 1.0);
+	});
+
+	it('converts float16 negative one to float32', () => {
+		const result = float16ToFloat32(0xbc00);
+		assert.strictEqual(result, -1.0);
+	});
+
+	it('converts float16 positive infinity', () => {
+		const result = float16ToFloat32(0x7c00);
+		assert.strictEqual(result, Infinity);
+	});
+
+	it('converts float16 negative infinity', () => {
+		const result = float16ToFloat32(0xfc00);
+		assert.strictEqual(result, -Infinity);
+	});
+
+	it('converts float16 NaN', () => {
+		const result = float16ToFloat32(0x7e00);
+		assert.ok(isNaN(result));
+	});
+
+	it('converts float16 negative zero', () => {
+		const result = float16ToFloat32(0x8000);
+		assert.strictEqual(result, -0);
+		assert.strictEqual(1 / result, -Infinity); // Verify it's -0, not +0
+	});
+});
+
+describe('float16ToFloat32Array()', () => {
+
+	it('converts array of float16 values', () => {
+		const float16Array = new Uint16Array([0x0000, 0x3c00, 0xbc00]);
+		const result = float16ToFloat32Array(float16Array);
+		assert.ok(result instanceof Float32Array);
+		assert.strictEqual(result.length, 3);
+		assert.strictEqual(result[0], 0);
+		assert.strictEqual(result[1], 1.0);
+		assert.strictEqual(result[2], -1.0);
+	});
+
+	it('handles empty array', () => {
+		const float16Array = new Uint16Array([]);
+		const result = float16ToFloat32Array(float16Array);
+		assert.strictEqual(result.length, 0);
+	});
+});
 	</script>
 </body>
 </html>

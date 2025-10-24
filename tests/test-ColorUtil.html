@@ -253,6 +253,34 @@ describe('Color interpolation', () => {
 		assert.ok(rgbValues.every(rgb => rgb !== null));
 	});
 });
+
+describe('generateDistinctColors()', () => {
+
+	it('generates requested number of colors', () => {
+		const colors = generateDistinctColors(5);
+		assert.strictEqual(colors.length, 5);
+	});
+
+	it('returns empty array for zero', () => {
+		const colors = generateDistinctColors(0);
+		assert.strictEqual(colors.length, 0);
+	});
+
+	it('generates valid hex color format', () => {
+		const colors = generateDistinctColors(10);
+		const hexPattern = /^#[0-9a-f]{6}$/i;
+		for (const color of colors) {
+			assert.ok(hexPattern.test(color), `Color ${color} is not valid hex format`);
+		}
+	});
+
+	it('generates different colors', () => {
+		const colors = generateDistinctColors(5);
+		const uniqueColors = new Set(colors);
+		// Most should be unique (allowing for small chance of collision due to randomness)
+		assert.ok(uniqueColors.size >= 3, 'Should generate mostly distinct colors');
+	});
+});
 	</script>
 </body>
 </html>

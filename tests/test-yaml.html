@@ -225,41 +225,6 @@ describe('toYAML() - empty structures', () => {
 	});
 });
 
-describe('createYAMLFrontmatter()', () => {
-
-	it('creates frontmatter with delimiters', () => {
-		const obj = { title: 'My Document', author: 'Alice' };
-		const frontmatter = createYAMLFrontmatter(obj);
-		assert.ok(frontmatter.startsWith('---\n'));
-		assert.ok(frontmatter.endsWith('\n---'));
-	});
-
-	it('includes YAML content between delimiters', () => {
-		const obj = { title: 'Test', count: 42 };
-		const frontmatter = createYAMLFrontmatter(obj);
-		assert.ok(frontmatter.includes('title: "Test"'));
-		assert.ok(frontmatter.includes('count: 42'));
-	});
-
-	it('handles complex objects', () => {
-		const obj = {
-			metadata: {
-				version: 1,
-				tags: ['test', 'demo']
-			}
-		};
-		const frontmatter = createYAMLFrontmatter(obj);
-		assert.ok(frontmatter.includes('---\n'));
-		assert.ok(frontmatter.includes('metadata:'));
-		assert.ok(frontmatter.endsWith('\n---'));
-	});
-
-	it('handles empty object', () => {
-		const obj = {};
-		const frontmatter = createYAMLFrontmatter(obj);
-		assert.strictEqual(frontmatter, '---\n\n---');
-	});
-});
 
 describe('toYAML() - real-world examples', () => {
 

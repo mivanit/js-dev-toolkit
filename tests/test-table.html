@@ -602,6 +602,249 @@ describe('DataTable sorting', () => {
 		document.body.removeChild(container);
 	});
 });
+
+describe('DataTable.addRow()', () => {
+
+	it('adds row to table', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'Alice', age: 30 }
+		];
+		const table = new DataTable(container, { data });
+		assert.strictEqual(table.data.length, 1);
+
+		table.addRow({ name: 'Bob', age: 25 });
+		assert.strictEqual(table.data.length, 2);
+		assert.strictEqual(table.data[1].name, 'Bob');
+		assert.strictEqual(table.data[1].age, 25);
+
+		document.body.removeChild(container);
+	});
+});
+
+describe('DataTable.setPageSize()', () => {
+
+	it('changes page size', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = Array.from({ length: 50 }, (_, i) => ({ id: i }));
+		const table = new DataTable(container, { data, pageSize: 10 });
+		assert.strictEqual(table.pageSize, 10);
+
+		table.setPageSize(25);
+		assert.strictEqual(table.pageSize, 25);
+		assert.strictEqual(table.currentPage, 1); // Should reset to page 1
+
+		document.body.removeChild(container);
+	});
+});
+
+describe('DataTable.clearAllFilters()', () => {
+
+	it('clears all filters', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'Alice', age: 30 },
+			{ name: 'Bob', age: 25 },
+			{ name: 'Charlie', age: 35 }
+		];
+		const table = new DataTable(container, { data });
+
+		// Apply filters
+		table.filters = {
+			name: { value: 'Alice', type: 'string', valid: true },
+			age: { value: '>25', type: 'number', valid: true }
+		};
+		table.applyFiltersAndSort();
+		assert.strictEqual(table.filteredData.length, 1);
+
+		// Clear all filters
+		table.clearAllFilters();
+		assert.strictEqual(Object.keys(table.filters).length, 0);
+		assert.strictEqual(table.filteredData.length, 3);
+
+		document.body.removeChild(container);
+	});
+});
+
+describe('DataTable.exportCSV()', () => {
+
+	it('exports to CSV string', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'Alice', age: 30 },
+			{ name: 'Bob', age: 25 }
+		];
+		const table = new DataTable(container, { data });
+
+		const csv = table.exportCSV();
+		const lines = csv.split('\n');
+
+		assert.strictEqual(lines.length, 3); // Header + 2 rows
+		assert.ok(lines[0].includes('Name')); // Header
+		assert.ok(lines[0].includes('Age'));
+		assert.ok(lines[1].includes('Alice'));
+		assert.ok(lines[2].includes('Bob'));
+
+		document.body.removeChild(container);
+	});
+
+	it('escapes commas in values', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'Smith, John', age: 30 }
+		];
+		const table = new DataTable(container, { data });
+
+		const csv = table.exportCSV();
+		assert.ok(csv.includes('"Smith, John"'));
+
+		document.body.removeChild(container);
+	});
+});
+
+describe('DataTable numeric filters', () => {
+
+	it('filters with > operator', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ value: 10 },
+			{ value: 50 },
+			{ value: 100 }
+		];
+		const columns = [{ key: 'value', label: 'Value', type: 'number' }];
+		const table = new DataTable(container, { data, columns });
+
+		table.filters = {
+			value: { value: '>50', type: 'number', valid: true }
+		};
+		table.applyFiltersAndSort();
+
+		assert.strictEqual(table.filteredData.length, 1);
+		assert.strictEqual(table.filteredData[0].value, 100);
+
+		document.body.removeChild(container);
+	});
+
+	it('filters with <= operator', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ value: 10 },
+			{ value: 50 },
+			{ value: 100 }
+		];
+		const columns = [{ key: 'value', label: 'Value', type: 'number' }];
+		const table = new DataTable(container, { data, columns });
+
+		table.filters = {
+			value: { value: '<=50', type: 'number', valid: true }
+		};
+		table.applyFiltersAndSort();
+
+		assert.strictEqual(table.filteredData.length, 2);
+		assert.strictEqual(table.filteredData[0].value, 10);
+		assert.strictEqual(table.filteredData[1].value, 50);
+
+		document.body.removeChild(container);
+	});
+
+	it('filters with == operator', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ value: 10 },
+			{ value: 42 },
+			{ value: 100 }
+		];
+		const columns = [{ key: 'value', label: 'Value', type: 'number' }];
+		const table = new DataTable(container, { data, columns });
+
+		table.filters = {
+			value: { value: '==42', type: 'number', valid: true }
+		};
+		table.applyFiltersAndSort();
+
+		assert.strictEqual(table.filteredData.length, 1);
+		assert.strictEqual(table.filteredData[0].value, 42);
+
+		document.body.removeChild(container);
+	});
+});
+
+describe('DataTable wildcard filters', () => {
+
+	it('filters with prefix wildcard (foo*)', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'football' },
+			{ name: 'foo' },
+			{ name: 'bar' },
+			{ name: 'food' }
+		];
+		const table = new DataTable(container, { data });
+
+		table.filters = {
+			name: { value: 'foo*', type: 'string', valid: true }
+		};
+		table.applyFiltersAndSort();
+
+		assert.strictEqual(table.filteredData.length, 3);
+		assert.ok(table.filteredData.every(row => row.name.startsWith('foo')));
+
+		document.body.removeChild(container);
+	});
+
+	it('filters with suffix wildcard (*bar)', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'foobar' },
+			{ name: 'bar' },
+			{ name: 'baz' },
+			{ name: 'crowbar' }
+		];
+		const table = new DataTable(container, { data });
+
+		table.filters = {
+			name: { value: '*bar', type: 'string', valid: true }
+		};
+		table.applyFiltersAndSort();
+
+		assert.strictEqual(table.filteredData.length, 3);
+		assert.ok(table.filteredData.every(row => row.name.endsWith('bar')));
+
+		document.body.removeChild(container);
+	});
+
+	it('filters with middle wildcard (*baz*)', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const data = [
+			{ name: 'bazinga' },
+			{ name: 'baz' },
+			{ name: 'foobaz' },
+			{ name: 'bar' }
+		];
+		const table = new DataTable(container, { data });
+
+		table.filters = {
+			name: { value: '*baz*', type: 'string', valid: true }
+		};
+		table.applyFiltersAndSort();
+
+		assert.strictEqual(table.filteredData.length, 3);
+		assert.ok(table.filteredData.every(row => row.name.includes('baz')));
+
+		document.body.removeChild(container);
+	});
+});
 	</script>
 </body>
 </html>
