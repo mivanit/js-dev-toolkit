@@ -545,7 +545,7 @@ describe('DataTable.exportCSV()', () => {
 		];
 		const table = new DataTable(container, { data });
 		table.filters = {
-			age: { value: '>26', type: 'number', valid: true, customFilter: null }
+			age: { key: 'age', value: '>26', type: 'number', valid: true, customFilter: null }
 		};
 		table.applyFiltersAndSort();
 		const csv = table.exportCSV();
@@ -565,7 +565,7 @@ describe('DataTable sorting', () => {
 			{ name: 'Alice', age: 30 }
 		];
 		const table = new DataTable(container, { data });
-		table.sortColumn = 'name';
+		table.sortColumnId = 'name';
 		table.sortDirection = 'asc';
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData[0].name, 'Alice');
@@ -580,7 +580,7 @@ describe('DataTable sorting', () => {
 			{ name: 'Bob', age: 25 }
 		];
 		const table = new DataTable(container, { data });
-		table.sortColumn = 'age';
+		table.sortColumnId = 'age';
 		table.sortDirection = 'desc';
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData[0].age, 30);
@@ -595,7 +595,7 @@ describe('DataTable sorting', () => {
 			{ name: 'Bob', age: null }
 		];
 		const table = new DataTable(container, { data });
-		table.sortColumn = 'age';
+		table.sortColumnId = 'age';
 		table.sortDirection = 'asc';
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData[0].age, 30);
@@ -654,8 +654,8 @@ describe('DataTable.clearAllFilters()', () => {
 
 		// Apply filters
 		table.filters = {
-			name: { value: 'Alice', type: 'string', valid: true },
-			age: { value: '>25', type: 'number', valid: true }
+			name: { key: 'name', value: 'Alice', type: 'string', valid: true },
+			age: { key: 'age', value: '>25', type: 'number', valid: true }
 		};
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData.length, 1);
@@ -721,7 +721,7 @@ describe('DataTable numeric filters', () => {
 		const table = new DataTable(container, { data, columns });
 
 		table.filters = {
-			value: { value: '>50', type: 'number', valid: true }
+			value: { key: 'value', value: '>50', type: 'number', valid: true }
 		};
 		table.applyFiltersAndSort();
 
@@ -743,7 +743,7 @@ describe('DataTable numeric filters', () => {
 		const table = new DataTable(container, { data, columns });
 
 		table.filters = {
-			value: { value: '<=50', type: 'number', valid: true }
+			value: { key: 'value', value: '<=50', type: 'number', valid: true }
 		};
 		table.applyFiltersAndSort();
 
@@ -766,7 +766,7 @@ describe('DataTable numeric filters', () => {
 		const table = new DataTable(container, { data, columns });
 
 		table.filters = {
-			value: { value: '==42', type: 'number', valid: true }
+			value: { key: 'value', value: '==42', type: 'number', valid: true }
 		};
 		table.applyFiltersAndSort();
 
@@ -791,7 +791,7 @@ describe('DataTable wildcard filters', () => {
 		const table = new DataTable(container, { data });
 
 		table.filters = {
-			name: { value: 'foo*', type: 'string', valid: true }
+			name: { key: 'name', value: 'foo*', type: 'string', valid: true }
 		};
 		table.applyFiltersAndSort();
 
@@ -813,7 +813,7 @@ describe('DataTable wildcard filters', () => {
 		const table = new DataTable(container, { data });
 
 		table.filters = {
-			name: { value: '*bar', type: 'string', valid: true }
+			name: { key: 'name', value: '*bar', type: 'string', valid: true }
 		};
 		table.applyFiltersAndSort();
 
@@ -835,7 +835,7 @@ describe('DataTable wildcard filters', () => {
 		const table = new DataTable(container, { data });
 
 		table.filters = {
-			name: { value: '*baz*', type: 'string', valid: true }
+			name: { key: 'name', value: '*baz*', type: 'string', valid: true }
 		};
 		table.applyFiltersAndSort();
 
