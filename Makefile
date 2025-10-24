@@ -23,3 +23,9 @@ format:
 	@echo "Formatting code in src/"
 	npx -y prettier --write "**/*.js" "**/*.html" "**/*.css"
 	uv run --with ruff ruff format tests/
+
+.PHONY: format-check
+format-check:
+	@echo "Checking code formatting"
+	npx -y prettier --check "**/*.js" "**/*.html" "**/*.css"
+	uv run --with ruff ruff format --check tests/
