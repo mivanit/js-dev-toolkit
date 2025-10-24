@@ -3,6 +3,10 @@
 // license: GPLv3
 
 /**
+ * !!!!!!!!!!!!!!!!!!!!     IMPORTANT     !!!!!!!!!!!!!!!!!!!!
+ * find comments marked as `TODO[YOUR APP]` and customize them
+ * to fit your specific application's configuration needs.
+ * !!!!!!!!!!!!!!!!!!!!     IMPORTANT     !!!!!!!!!!!!!!!!!!!!
  * Configuration Handler
  *
  * Provides a flexible configuration system with multiple override levels:
@@ -27,12 +31,12 @@ const FLOAT_COMPARISON_EPSILON = 0.0001; // For float comparisons
 
 // paths that shouldn't be persisted in URLs, e.g. large data arrays
 const URL_SKIP_PATHS = [
-  // TODO
+  // TODO[YOUR APP]
 ];
 
 // keys that change frequently but shouldn't trigger URL updates
 const COMPARISON_SKIP_KEYS = [
-  // TODO
+  // TODO[YOUR APP]
 ];
 
 // For inline config overrides - this will be set below by a build script if needed
@@ -53,7 +57,7 @@ let URL_UPDATE_TIMEOUT = null;
 function getDefaultConfig() {
   // the actual default configuration should be defined here
   let default_cfg = {
-    // TODO: Define your config structure and default configuration here
+    // TODO[YOUR APP]: Define your config structure and default configuration here
   };
 
   if (INLINE_CONFIG) {
@@ -172,14 +176,14 @@ function setNestedConfigValue(obj, path, value) {
 /**
  * Encode a value for URL-friendly representation
  *
- * TODO: Customize this function for your specific encoding needs
+ * TODO[YOUR APP]: Customize this function for your specific encoding needs
  * Example: encoding special characters, handling custom data types
  *
  * @param {any} value - Value to encode
  * @returns {string} URL-friendly encoded value
  */
 function encodeForURL(value) {
-  // TODO: Add custom encoding logic for your application
+  // TODO[YOUR APP]: Add custom encoding logic for your application
   // Example: Replace special characters with URL-safe equivalents
   // if (typeof value === "string") {
   //   if (value.includes(":")) {
@@ -205,7 +209,7 @@ function decodeFromURL(value) {
     return parseFloat(value);
   }
 
-  // TODO: add custom decoding logic that reverses encodeForURL
+  // TODO[YOUR APP]: add custom decoding logic that reverses encodeForURL
 
   // otherwise, return as-is
   return value;
@@ -409,7 +413,7 @@ function resetConfigToLoaded() {
  * Reset CONFIG to the loaded config.json state but preserve specific key(s)
  * Useful for resetting configuration while keeping certain values
  *
- * TODO: Customize this function for your specific use case
+ * TODO[YOUR APP]: Customize this function for your specific use case
  * Example: preserving user preferences while resetting other settings
  *
  * @param {string} [preserveKey] - Optional key to preserve during reset
