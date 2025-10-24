@@ -33,8 +33,11 @@ function loadJSON(filePath) {
 
 /**
  * Load and execute a source file in a sandbox environment
+ * @param {string} filename - Name of the file in src/ directory
+ * @param {Object} sandbox - Additional globals to add to the context
+ * @param {string[]} exposeClasses - Array of class names to explicitly expose to context
  */
-function loadSourceFile(filename, sandbox = {}) {
+function loadSourceFile(filename, sandbox = {}, exposeClasses = []) {
 	const srcPath = path.join(__dirname, '..', 'src', filename);
 	const code = fs.readFileSync(srcPath, 'utf8');
 
@@ -56,7 +59,15 @@ function loadSourceFile(filename, sandbox = {}) {
 	};
 
 	vm.createContext(context);
+
+	// Execute the code
 	vm.runInContext(code, context);
+
+	// Explicitly expose classes to the context (for classes that aren't automatically hoisted)
+	if (exposeClasses.length > 0) {
+		const exposeCode = exposeClasses.map(className => `this.${className} = ${className};`).join('\n');
+		vm.runInContext(exposeCode, context);
+	}
 
 	return context;
 }

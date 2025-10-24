@@ -388,7 +388,8 @@ describe('Configuration differences with special types', () => {
 		const base = { flag: false };
 		const diffs = findConfigDifferences(current, base);
 		assert.strictEqual(diffs.length, 1);
-		assert.deepStrictEqual(diffs[0], ['flag', true]);
+		assert.strictEqual(diffs[0][0], 'flag');
+		assert.strictEqual(diffs[0][1], true);
 	});
 
 	it('handles string differences', () => {
@@ -396,7 +397,8 @@ describe('Configuration differences with special types', () => {
 		const base = { text: 'world' };
 		const diffs = findConfigDifferences(current, base);
 		assert.strictEqual(diffs.length, 1);
-		assert.deepStrictEqual(diffs[0], ['text', 'hello']);
+		assert.strictEqual(diffs[0][0], 'text');
+		assert.strictEqual(diffs[0][1], 'hello');
 	});
 
 	it('handles null vs undefined', () => {

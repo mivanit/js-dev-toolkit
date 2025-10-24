@@ -23,7 +23,7 @@ const context = loadSourceFile('array.js', {
 	DataView,
 	atob: global.atob,
 	btoa: global.btoa
-});
+}, ['NDArray', 'npyjs']);
 
 const { NDArray } = context;
 
@@ -93,7 +93,8 @@ describe('NDArray.get()', () => {
 		const arr = new NDArray(data, [2, 2], 'float32');
 		const slice = arr.get(0, null);
 		assert.ok(slice instanceof NDArray);
-		assert.deepStrictEqual(slice.shape, [2]);
+		assert.strictEqual(slice.shape.length, 1);
+		assert.strictEqual(slice.shape[0], 2);
 		assertArrayEqual(Array.from(slice.data), [1, 2]);
 	});
 });

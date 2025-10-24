@@ -13,7 +13,7 @@ const context = loadSourceFile('notif.js', {
 	window,
 	setTimeout: global.setTimeout,
 	clearTimeout: global.clearTimeout
-});
+}, ['NotificationManager']);
 
 const { NotificationManager } = context;
 

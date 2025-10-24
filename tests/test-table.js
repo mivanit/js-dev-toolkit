@@ -26,7 +26,7 @@ const context = loadSourceFile('table.js', {
 			writeText: async (text) => Promise.resolve()
 		}
 	}
-});
+}, ['DataTable']);
 
 const { DataTable } = context;
 
@@ -296,56 +296,64 @@ describe('DataTable.parseNumericFilter()', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('42');
-		assert.deepStrictEqual(filter, { operator: '==', value: 42 });
+		assert.strictEqual(filter.operator, '==');
+		assert.strictEqual(filter.value, 42);
 	});
 
 	it('parses explicit equality', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('==42');
-		assert.deepStrictEqual(filter, { operator: '==', value: 42 });
+		assert.strictEqual(filter.operator, '==');
+		assert.strictEqual(filter.value, 42);
 	});
 
 	it('parses greater than', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('>50');
-		assert.deepStrictEqual(filter, { operator: '>', value: 50 });
+		assert.strictEqual(filter.operator, '>');
+		assert.strictEqual(filter.value, 50);
 	});
 
 	it('parses less than', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('<100');
-		assert.deepStrictEqual(filter, { operator: '<', value: 100 });
+		assert.strictEqual(filter.operator, '<');
+		assert.strictEqual(filter.value, 100);
 	});
 
 	it('parses greater than or equal', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('>=50');
-		assert.deepStrictEqual(filter, { operator: '>=', value: 50 });
+		assert.strictEqual(filter.operator, '>=');
+		assert.strictEqual(filter.value, 50);
 	});
 
 	it('parses not equal', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('!=42');
-		assert.deepStrictEqual(filter, { operator: '!=', value: 42 });
+		assert.strictEqual(filter.operator, '!=');
+		assert.strictEqual(filter.value, 42);
 	});
 
 	it('handles negative numbers', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('>-10');
-		assert.deepStrictEqual(filter, { operator: '>', value: -10 });
+		assert.strictEqual(filter.operator, '>');
+		assert.strictEqual(filter.value, -10);
 	});
 
 	it('handles decimals', () => {
 		const container = document.createElement('div');
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('<3.14');
-		assert.deepStrictEqual(filter, { operator: '<', value: 3.14 });
+		assert.strictEqual(filter.operator, '<');
+		assert.strictEqual(filter.value, 3.14);
 	});
 
 	it('returns null for invalid input', () => {

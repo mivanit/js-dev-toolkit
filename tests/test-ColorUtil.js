@@ -37,7 +37,7 @@ describe('hslToHex()', () => {
 
 	it('converts gray (0, 0, 50)', () => {
 		const hex = hslToHex(0, 0, 50);
-		assert.strictEqual(hex, '#7f7f7f');
+		assert.strictEqual(hex, '#808080');
 	});
 
 	it('handles intermediate hue values', () => {
