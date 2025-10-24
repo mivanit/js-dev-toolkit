@@ -1,48 +1,21 @@
-// test-config.js
-// Tests for configuration management system
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Config Tests</title>
+</head>
+<body>
+	<h1>Config Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it, before } = require('node:test');
-const { assert, createMockDOM, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Create mock DOM
-const mockDOM = createMockDOM();
-const { window } = mockDOM;
+	<!-- Load source file -->
+	<script src="../src/config.js"></script>
 
-// Mock fetch
-const mockFetch = async (url, options) => {
-	if (url === 'config.json') {
-		return {
-			ok: true,
-			json: async () => ({
-				theme: 'dark',
-				debug: true
-			})
-		};
-	}
-	return { ok: false, status: 404 };
-};
-
-// Load config source with mocked globals
-const context = loadSourceFile('config.js', {
-	window,
-	fetch: mockFetch,
-	console,
-	setTimeout: global.setTimeout,
-	clearTimeout: global.clearTimeout
-});
-
-const {
-	deepMerge,
-	setNestedConfigValue,
-	getConfigValue,
-	setConfigValue,
-	encodeForURL,
-	findConfigDifferences,
-	arraysEqual,
-	shouldSkipInURL,
-	shouldSkipInComparison
-} = context;
-
+	<!-- Tests -->
+	<script>
 describe('deepMerge()', () => {
 
 	it('merges simple objects', () => {
@@ -126,28 +99,27 @@ describe('setNestedConfigValue()', () => {
 describe('getConfigValue()', () => {
 
 	it('gets simple property', () => {
-		// Mock CONFIG
-		context.CONFIG = { key: 'value' };
+		CONFIG = { key: 'value' };
 		assert.strictEqual(getConfigValue('key'), 'value');
 	});
 
 	it('gets nested property', () => {
-		context.CONFIG = { a: { b: { c: 'value' } } };
+		CONFIG = { a: { b: { c: 'value' } } };
 		assert.strictEqual(getConfigValue('a.b.c'), 'value');
 	});
 
 	it('returns undefined for missing property', () => {
-		context.CONFIG = { key: 'value' };
+		CONFIG = { key: 'value' };
 		assert.strictEqual(getConfigValue('missing'), undefined);
 	});
 
 	it('returns default value for missing property', () => {
-		context.CONFIG = { key: 'value' };
+		CONFIG = { key: 'value' };
 		assert.strictEqual(getConfigValue('missing', 'default'), 'default');
 	});
 
 	it('handles null in chain', () => {
-		context.CONFIG = { a: null };
+		CONFIG = { a: null };
 		assert.strictEqual(getConfigValue('a.b'), undefined);
 	});
 });
@@ -155,22 +127,22 @@ describe('getConfigValue()', () => {
 describe('setConfigValue()', () => {
 
 	it('sets config value', () => {
-		context.CONFIG = {};
+		CONFIG = {};
 		setConfigValue('key', 'value', false);
-		assert.strictEqual(context.CONFIG.key, 'value');
+		assert.strictEqual(CONFIG.key, 'value');
 	});
 
 	it('sets nested config value', () => {
-		context.CONFIG = {};
+		CONFIG = {};
 		setConfigValue('a.b.c', 'value', false);
-		assert.strictEqual(context.CONFIG.a.b.c, 'value');
+		assert.strictEqual(CONFIG.a.b.c, 'value');
 	});
 
 	it('does not update URL when updateUrl=false', () => {
-		context.CONFIG = {};
-		context.URL_UPDATE_TIMEOUT = null;
+		CONFIG = {};
+		URL_UPDATE_TIMEOUT = null;
 		setConfigValue('key', 'value', false);
-		assert.strictEqual(context.URL_UPDATE_TIMEOUT, null);
+		assert.strictEqual(URL_UPDATE_TIMEOUT, null);
 	});
 });
 
@@ -297,8 +269,6 @@ describe('shouldSkipInComparison()', () => {
 describe('Configuration system integration', () => {
 
 	it('merges default with inline config', () => {
-		// This tests the getDefaultConfig behavior
-		const getDefaultConfig = context.getDefaultConfig;
 		const config = getDefaultConfig();
 		assert.ok(config);
 		assert.ok(typeof config === 'object');
@@ -308,7 +278,7 @@ describe('Configuration system integration', () => {
 describe('URL parameter handling', () => {
 
 	it('parses boolean from URL', () => {
-		const decodeFromURL = context.decodeFromURL || context.parseConfigValue;
+		const decodeFromURL = window.decodeFromURL || window.parseConfigValue;
 		if (decodeFromURL) {
 			assert.strictEqual(decodeFromURL('true'), true);
 			assert.strictEqual(decodeFromURL('false'), false);
@@ -316,7 +286,7 @@ describe('URL parameter handling', () => {
 	});
 
 	it('parses number from URL', () => {
-		const decodeFromURL = context.decodeFromURL || context.parseConfigValue;
+		const decodeFromURL = window.decodeFromURL || window.parseConfigValue;
 		if (decodeFromURL) {
 			assert.strictEqual(decodeFromURL('42'), 42);
 			assert.strictEqual(decodeFromURL('3.14'), 3.14);
@@ -324,7 +294,7 @@ describe('URL parameter handling', () => {
 	});
 
 	it('keeps string as-is', () => {
-		const decodeFromURL = context.decodeFromURL || context.parseConfigValue;
+		const decodeFromURL = window.decodeFromURL || window.parseConfigValue;
 		if (decodeFromURL) {
 			assert.strictEqual(decodeFromURL('hello'), 'hello');
 		}
@@ -422,3 +392,6 @@ describe('Configuration differences with special types', () => {
 		assert.strictEqual(diffs.length, 1);
 	});
 });
+	</script>
+</body>
+</html>

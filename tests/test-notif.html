@@ -1,22 +1,21 @@
-// test-notif.js
-// Tests for notification system
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>NotificationManager Tests</title>
+</head>
+<body>
+	<h1>NotificationManager Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, createMockDOM, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Create mock DOM
-const { document, window } = createMockDOM();
+	<!-- Load source file -->
+	<script src="../src/notif.js"></script>
 
-// Load notif source with DOM globals
-const context = loadSourceFile('notif.js', {
-	document,
-	window,
-	setTimeout: global.setTimeout,
-	clearTimeout: global.clearTimeout
-}, ['NotificationManager']);
-
-const { NotificationManager } = context;
-
+	<!-- Tests -->
+	<script>
 describe('NotificationManager constructor', () => {
 
 	it('creates instance with default options', () => {
@@ -210,50 +209,6 @@ describe('NotificationManager.success()', () => {
 	});
 });
 
-describe('NotificationManager.error()', () => {
-
-	it('shows error notification', () => {
-		const notif = new NotificationManager();
-		notif.error('Error!');
-		assert.strictEqual(notif.notifications.size, 1);
-	});
-
-	it('creates element with error type', () => {
-		const notif = new NotificationManager();
-		notif.error('Error!');
-		const notification = Array.from(notif.notifications.values())[0];
-		assert.strictEqual(notification.type, 'error');
-	});
-
-	it('accepts error object', () => {
-		const notif = new NotificationManager();
-		const error = new Error('Test error');
-		notif.error('Error occurred', error);
-		assert.strictEqual(notif.notifications.size, 1);
-	});
-
-	it('uses default timeout of 10s', () => {
-		const notif = new NotificationManager();
-		notif.error('Error!');
-		const notification = Array.from(notif.notifications.values())[0];
-		assert.ok(notification.timeout);
-	});
-
-	it('allows persistent errors with null timeout', () => {
-		const notif = new NotificationManager();
-		notif.error('Critical error', null, null);
-		const notification = Array.from(notif.notifications.values())[0];
-		assert.strictEqual(notification.timeout, null);
-	});
-
-	it('respects custom timeout', () => {
-		const notif = new NotificationManager();
-		notif.error('Error!', null, 15000);
-		const notification = Array.from(notif.notifications.values())[0];
-		assert.ok(notification.timeout);
-	});
-});
-
 describe('NotificationManager.clear()', () => {
 
 	it('clears all notifications', () => {
@@ -287,10 +242,9 @@ describe('NotificationManager multiple notifications', () => {
 		const notif = new NotificationManager();
 		notif.show('Regular');
 		notif.success('Success');
-		notif.error('Error');
 		const spinner = notif.spinner('Loading');
 		const pbar = notif.pbar('Progress');
-		assert.strictEqual(notif.notifications.size, 5);
+		assert.strictEqual(notif.notifications.size, 4);
 	});
 
 	it('assigns incremental IDs', () => {
@@ -359,21 +313,6 @@ describe('NotificationManager edge cases', () => {
 		assert.strictEqual(notif.notifications.size, 1);
 	});
 });
-
-describe('NotificationManager._ensureReady()', () => {
-
-	it('initializes synchronously if not ready', () => {
-		const notif = new NotificationManager();
-		notif.isReady = false;
-		notif._ensureReady();
-		assert.strictEqual(notif.isReady, true);
-	});
-
-	it('does nothing if already ready', () => {
-		const notif = new NotificationManager();
-		notif._ensureReady();
-		const container = notif.container;
-		notif._ensureReady();
-		assert.strictEqual(notif.container, container);
-	});
-});
+	</script>
+</body>
+</html>

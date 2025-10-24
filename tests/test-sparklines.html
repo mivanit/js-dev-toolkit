@@ -1,13 +1,21 @@
-// test-sparklines.js
-// Tests for sparkline SVG generation
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Sparklines Tests</title>
+</head>
+<body>
+	<h1>Sparklines Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Load sparklines source
-const context = loadSourceFile('sparklines.js');
-const { sparkline, sparkbars } = context;
+	<!-- Load source file -->
+	<script src="../src/sparklines.js"></script>
 
+	<!-- Tests -->
+	<script>
 describe('sparkline() - basic functionality', () => {
 
 	it('generates SVG string', () => {
@@ -363,3 +371,6 @@ describe('Integration - sparkline and sparkbars', () => {
 		assert.ok(bars.includes('#ff0000'));
 	});
 });
+	</script>
+</body>
+</html>

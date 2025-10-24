@@ -1,13 +1,21 @@
-// test-ColorUtil.js
-// Tests for color utility functions
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>ColorUtil Tests</title>
+</head>
+<body>
+	<h1>ColorUtil Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Load ColorUtil source
-const context = loadSourceFile('ColorUtil.js');
-const { hslToHex, generateDistinctColors, getColorForValue, getColorsForValues } = context;
+	<!-- Load source file -->
+	<script src="../src/ColorUtil.js"></script>
 
+	<!-- Tests -->
+	<script>
 describe('hslToHex()', () => {
 
 	it('converts red (0, 100, 50)', () => {
@@ -245,3 +253,6 @@ describe('Color interpolation', () => {
 		assert.ok(rgbValues.every(rgb => rgb !== null));
 	});
 });
+	</script>
+</body>
+</html>

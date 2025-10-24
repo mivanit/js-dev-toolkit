@@ -136,8 +136,6 @@ function plot(values, yvalues = null, options = {}) {
 	// For log scale, assert all values >= 0
 	if (opts.logScale) {
 		if (yvals.some(v => v < 0) || ymin < 0 || ymax < 0) {
-			console.error('y-values:', yvals);
-			console.error('ymin:', ymin, 'ymax:', ymax);
 			throw new Error('Log scale requires all values >= 0');
 		}
 	}

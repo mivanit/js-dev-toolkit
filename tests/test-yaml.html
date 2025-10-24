@@ -1,13 +1,21 @@
-// test-yaml.js
-// Tests for YAML serialization functions
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>YAML Tests</title>
+</head>
+<body>
+	<h1>YAML Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Load yaml source
-const context = loadSourceFile('yaml.js', { JSON });
-const { toYAML, createYAMLFrontmatter } = context;
+	<!-- Load source file -->
+	<script src="../src/yaml.js"></script>
 
+	<!-- Tests -->
+	<script>
 describe('toYAML() - primitive values', () => {
 
 	it('serializes string values', () => {
@@ -312,3 +320,6 @@ describe('toYAML() - real-world examples', () => {
 		assert.ok(yaml.includes('preferences:'));
 	});
 });
+	</script>
+</body>
+</html>

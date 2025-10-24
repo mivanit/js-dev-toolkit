@@ -1,13 +1,21 @@
-// test-DataFrame.js
-// Tests for DataFrame class
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>DataFrame Tests</title>
+</head>
+<body>
+	<h1>DataFrame Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Load DataFrame source
-const context = loadSourceFile('DataFrame.js', {}, ['DataFrame']);
-const { DataFrame } = context;
+	<!-- Load source file -->
+	<script src="../src/DataFrame.js"></script>
 
+	<!-- Tests -->
+	<script>
 describe('DataFrame constructor', () => {
 
 	it('creates empty DataFrame', () => {
@@ -346,3 +354,6 @@ describe('DataFrame CSV round-trip', () => {
 		assert.strictEqual(df2.get(1, 'age'), df1.get(1, 'age'));
 	});
 });
+	</script>
+</body>
+</html>

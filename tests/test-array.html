@@ -1,32 +1,21 @@
-// test-array.js
-// Tests for NDArray class and array utilities
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>NDArray Tests</title>
+</head>
+<body>
+	<h1>NDArray Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, assertArrayEqual, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Polyfill browser globals for Node.js
-global.atob = (str) => Buffer.from(str, 'base64').toString('binary');
-global.btoa = (str) => Buffer.from(str, 'binary').toString('base64');
+	<!-- Load source file -->
+	<script src="../src/array.js"></script>
 
-// Load array source with required globals
-const context = loadSourceFile('array.js', {
-	Uint8Array,
-	Uint16Array,
-	Uint32Array,
-	Int8Array,
-	Int16Array,
-	Int32Array,
-	Float32Array,
-	Float64Array,
-	BigInt64Array,
-	BigUint64Array,
-	DataView,
-	atob: global.atob,
-	btoa: global.btoa
-}, ['NDArray', 'npyjs']);
-
-const { NDArray } = context;
-
+	<!-- Tests -->
+	<script>
 describe('NDArray constructor', () => {
 
 	it('creates 1D array', () => {
@@ -416,3 +405,6 @@ describe('NDArray edge cases', () => {
 		assert.strictEqual(arr._size, 16);
 	});
 });
+	</script>
+</body>
+</html>

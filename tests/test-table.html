@@ -1,39 +1,26 @@
-// test-table.js
-// Tests for DataTable class
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>DataTable Tests</title>
+</head>
+<body>
+	<h1>DataTable Tests</h1>
+	<p>Check console for results...</p>
 
-const { describe, it } = require('node:test');
-const { assert, createMockDOM, loadSourceFile } = require('./test-helpers.js');
+	<!-- Load test framework -->
+	<script src="test-framework.js"></script>
 
-// Create mock DOM
-const { document, window } = createMockDOM();
+	<!-- Load source file -->
+	<script src="../src/table.js"></script>
 
-// Load table source with DOM globals
-const context = loadSourceFile('table.js', {
-	document,
-	window,
-	URL: {
-		createObjectURL: () => 'mock-url',
-		revokeObjectURL: () => {}
-	},
-	Blob: class {
-		constructor(parts, options) {
-			this.parts = parts;
-			this.type = options?.type;
-		}
-	},
-	navigator: {
-		clipboard: {
-			writeText: async (text) => Promise.resolve()
-		}
-	}
-}, ['DataTable']);
-
-const { DataTable } = context;
-
+	<!-- Tests -->
+	<script>
 describe('DataTable constructor', () => {
 
 	it('creates table with data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 },
 			{ name: 'Bob', age: 25 }
@@ -41,10 +28,12 @@ describe('DataTable constructor', () => {
 		const table = new DataTable(container, { data });
 		assert.ok(table);
 		assert.strictEqual(table.data.length, 2);
+		document.body.removeChild(container);
 	});
 
 	it('infers columns from data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 }
 		];
@@ -52,10 +41,12 @@ describe('DataTable constructor', () => {
 		assert.strictEqual(table.columns.length, 2);
 		assert.ok(table.columns.some(col => col.key === 'name'));
 		assert.ok(table.columns.some(col => col.key === 'age'));
+		document.body.removeChild(container);
 	});
 
 	it('accepts explicit columns', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 }
 		];
@@ -66,18 +57,23 @@ describe('DataTable constructor', () => {
 		const table = new DataTable(container, { data, columns });
 		assert.strictEqual(table.columns.length, 2);
 		assert.strictEqual(table.columns[0].label, 'Name');
+		document.body.removeChild(container);
 	});
 
 	it('sets default page size', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.pageSize, 10);
+		document.body.removeChild(container);
 	});
 
 	it('accepts custom page size', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, { pageSize: 25 });
 		assert.strictEqual(table.pageSize, 25);
+		document.body.removeChild(container);
 	});
 
 	it('throws error for invalid container', () => {
@@ -89,35 +85,45 @@ describe('DataTable.inferType()', () => {
 
 	it('infers number type', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.inferType(42), 'number');
 		assert.strictEqual(table.inferType(3.14), 'number');
+		document.body.removeChild(container);
 	});
 
 	it('infers string type', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.inferType('hello'), 'string');
+		document.body.removeChild(container);
 	});
 
 	it('infers boolean type', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.inferType(true), 'boolean');
 		assert.strictEqual(table.inferType(false), 'boolean');
+		document.body.removeChild(container);
 	});
 
 	it('infers date type', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.inferType(new Date()), 'date');
+		document.body.removeChild(container);
 	});
 
 	it('defaults to string for null/undefined', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.inferType(null), 'string');
 		assert.strictEqual(table.inferType(undefined), 'string');
+		document.body.removeChild(container);
 	});
 });
 
@@ -125,37 +131,47 @@ describe('DataTable.getNestedValue()', () => {
 
 	it('gets simple property', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const obj = { name: 'Alice' };
 		assert.strictEqual(table.getNestedValue(obj, 'name'), 'Alice');
+		document.body.removeChild(container);
 	});
 
 	it('gets nested property with dot notation', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const obj = { user: { name: 'Alice' } };
 		assert.strictEqual(table.getNestedValue(obj, 'user.name'), 'Alice');
+		document.body.removeChild(container);
 	});
 
 	it('handles deeply nested properties', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const obj = { a: { b: { c: 'value' } } };
 		assert.strictEqual(table.getNestedValue(obj, 'a.b.c'), 'value');
+		document.body.removeChild(container);
 	});
 
 	it('returns undefined for missing property', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const obj = { name: 'Alice' };
 		assert.strictEqual(table.getNestedValue(obj, 'missing'), undefined);
+		document.body.removeChild(container);
 	});
 
 	it('handles null in chain', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const obj = { user: null };
 		assert.strictEqual(table.getNestedValue(obj, 'user.name'), undefined);
+		document.body.removeChild(container);
 	});
 });
 
@@ -163,16 +179,19 @@ describe('DataTable.setData()', () => {
 
 	it('updates table data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, { data: [] });
 		const newData = [
 			{ name: 'Alice', age: 30 }
 		];
 		table.setData(newData);
 		assert.strictEqual(table.data.length, 1);
+		document.body.removeChild(container);
 	});
 
 	it('resets to first page', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {
 			data: new Array(30).fill(null).map((_, i) => ({ id: i })),
 			pageSize: 10
@@ -180,6 +199,7 @@ describe('DataTable.setData()', () => {
 		table.currentPage = 3;
 		table.setData([{ id: 0 }]);
 		assert.strictEqual(table.currentPage, 1);
+		document.body.removeChild(container);
 	});
 });
 
@@ -187,18 +207,22 @@ describe('DataTable.addRow()', () => {
 
 	it('adds row to table', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, { data: [] });
 		table.addRow({ name: 'Alice', age: 30 });
 		assert.strictEqual(table.data.length, 1);
+		document.body.removeChild(container);
 	});
 
 	it('preserves existing data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {
 			data: [{ name: 'Alice', age: 30 }]
 		});
 		table.addRow({ name: 'Bob', age: 25 });
 		assert.strictEqual(table.data.length, 2);
+		document.body.removeChild(container);
 	});
 });
 
@@ -206,13 +230,16 @@ describe('DataTable.setPageSize()', () => {
 
 	it('updates page size', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, { pageSize: 10 });
 		table.setPageSize(25);
 		assert.strictEqual(table.pageSize, 25);
+		document.body.removeChild(container);
 	});
 
 	it('resets to first page', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {
 			data: new Array(30).fill(null).map((_, i) => ({ id: i })),
 			pageSize: 10
@@ -220,6 +247,7 @@ describe('DataTable.setPageSize()', () => {
 		table.currentPage = 3;
 		table.setPageSize(25);
 		assert.strictEqual(table.currentPage, 1);
+		document.body.removeChild(container);
 	});
 });
 
@@ -227,35 +255,43 @@ describe('DataTable.getTotalPages()', () => {
 
 	it('calculates total pages', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {
 			data: new Array(25).fill(null).map((_, i) => ({ id: i })),
 			pageSize: 10
 		});
 		assert.strictEqual(table.getTotalPages(), 3);
+		document.body.removeChild(container);
 	});
 
 	it('handles exact page size', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {
 			data: new Array(20).fill(null).map((_, i) => ({ id: i })),
 			pageSize: 10
 		});
 		assert.strictEqual(table.getTotalPages(), 2);
+		document.body.removeChild(container);
 	});
 
 	it('handles single page', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {
 			data: new Array(5).fill(null).map((_, i) => ({ id: i })),
 			pageSize: 10
 		});
 		assert.strictEqual(table.getTotalPages(), 1);
+		document.body.removeChild(container);
 	});
 
 	it('handles empty data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, { data: [] });
 		assert.strictEqual(table.getTotalPages(), 0);
+		document.body.removeChild(container);
 	});
 });
 
@@ -263,30 +299,36 @@ describe('DataTable.getPageData()', () => {
 
 	it('returns correct page data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = new Array(25).fill(null).map((_, i) => ({ id: i }));
 		const table = new DataTable(container, { data, pageSize: 10 });
 		const page1 = table.getPageData();
 		assert.strictEqual(page1.length, 10);
 		assert.strictEqual(page1[0].id, 0);
+		document.body.removeChild(container);
 	});
 
 	it('returns correct data for page 2', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = new Array(25).fill(null).map((_, i) => ({ id: i }));
 		const table = new DataTable(container, { data, pageSize: 10 });
 		table.currentPage = 2;
 		const page2 = table.getPageData();
 		assert.strictEqual(page2.length, 10);
 		assert.strictEqual(page2[0].id, 10);
+		document.body.removeChild(container);
 	});
 
 	it('returns partial data for last page', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = new Array(25).fill(null).map((_, i) => ({ id: i }));
 		const table = new DataTable(container, { data, pageSize: 10 });
 		table.currentPage = 3;
 		const page3 = table.getPageData();
 		assert.strictEqual(page3.length, 5);
+		document.body.removeChild(container);
 	});
 });
 
@@ -294,111 +336,150 @@ describe('DataTable.parseNumericFilter()', () => {
 
 	it('parses equality', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('42');
 		assert.strictEqual(filter.operator, '==');
 		assert.strictEqual(filter.value, 42);
+		document.body.removeChild(container);
 	});
 
 	it('parses explicit equality', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('==42');
 		assert.strictEqual(filter.operator, '==');
 		assert.strictEqual(filter.value, 42);
+		document.body.removeChild(container);
 	});
 
 	it('parses greater than', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('>50');
 		assert.strictEqual(filter.operator, '>');
 		assert.strictEqual(filter.value, 50);
+		document.body.removeChild(container);
 	});
 
 	it('parses less than', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('<100');
 		assert.strictEqual(filter.operator, '<');
 		assert.strictEqual(filter.value, 100);
+		document.body.removeChild(container);
 	});
 
 	it('parses greater than or equal', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('>=50');
 		assert.strictEqual(filter.operator, '>=');
 		assert.strictEqual(filter.value, 50);
+		document.body.removeChild(container);
 	});
 
 	it('parses not equal', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('!=42');
 		assert.strictEqual(filter.operator, '!=');
 		assert.strictEqual(filter.value, 42);
+		document.body.removeChild(container);
 	});
 
 	it('handles negative numbers', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('>-10');
 		assert.strictEqual(filter.operator, '>');
 		assert.strictEqual(filter.value, -10);
+		document.body.removeChild(container);
 	});
 
 	it('handles decimals', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		const filter = table.parseNumericFilter('<3.14');
 		assert.strictEqual(filter.operator, '<');
 		assert.strictEqual(filter.value, 3.14);
+		document.body.removeChild(container);
 	});
 
 	it('returns null for invalid input', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const table = new DataTable(container, {});
 		assert.strictEqual(table.parseNumericFilter('invalid'), null);
 		assert.strictEqual(table.parseNumericFilter(''), null);
+		document.body.removeChild(container);
 	});
 });
 
 describe('DataTable.applyNumericFilter()', () => {
 
-	const container = document.createElement('div');
-	const table = new DataTable(container, {});
-
 	it('applies equality', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const table = new DataTable(container, {});
 		assert.ok(table.applyNumericFilter(42, { operator: '==', value: 42 }));
 		assert.ok(!table.applyNumericFilter(43, { operator: '==', value: 42 }));
+		document.body.removeChild(container);
 	});
 
 	it('applies not equal', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const table = new DataTable(container, {});
 		assert.ok(table.applyNumericFilter(43, { operator: '!=', value: 42 }));
 		assert.ok(!table.applyNumericFilter(42, { operator: '!=', value: 42 }));
+		document.body.removeChild(container);
 	});
 
 	it('applies greater than', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const table = new DataTable(container, {});
 		assert.ok(table.applyNumericFilter(51, { operator: '>', value: 50 }));
 		assert.ok(!table.applyNumericFilter(50, { operator: '>', value: 50 }));
+		document.body.removeChild(container);
 	});
 
 	it('applies less than', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const table = new DataTable(container, {});
 		assert.ok(table.applyNumericFilter(49, { operator: '<', value: 50 }));
 		assert.ok(!table.applyNumericFilter(50, { operator: '<', value: 50 }));
+		document.body.removeChild(container);
 	});
 
 	it('applies greater than or equal', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const table = new DataTable(container, {});
 		assert.ok(table.applyNumericFilter(50, { operator: '>=', value: 50 }));
 		assert.ok(table.applyNumericFilter(51, { operator: '>=', value: 50 }));
 		assert.ok(!table.applyNumericFilter(49, { operator: '>=', value: 50 }));
+		document.body.removeChild(container);
 	});
 
 	it('applies less than or equal', () => {
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const table = new DataTable(container, {});
 		assert.ok(table.applyNumericFilter(50, { operator: '<=', value: 50 }));
 		assert.ok(table.applyNumericFilter(49, { operator: '<=', value: 50 }));
 		assert.ok(!table.applyNumericFilter(51, { operator: '<=', value: 50 }));
+		document.body.removeChild(container);
 	});
 });
 
@@ -406,6 +487,7 @@ describe('DataTable.exportCSV()', () => {
 
 	it('exports data to CSV', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 },
 			{ name: 'Bob', age: 25 }
@@ -415,40 +497,48 @@ describe('DataTable.exportCSV()', () => {
 		assert.ok(csv.includes('Name,Age'));
 		assert.ok(csv.includes('Alice,30'));
 		assert.ok(csv.includes('Bob,25'));
+		document.body.removeChild(container);
 	});
 
 	it('handles null values', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: null }
 		];
 		const table = new DataTable(container, { data });
 		const csv = table.exportCSV();
 		assert.ok(csv.includes('Alice,'));
+		document.body.removeChild(container);
 	});
 
 	it('quotes strings with commas', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Smith, Alice' }
 		];
 		const table = new DataTable(container, { data });
 		const csv = table.exportCSV();
 		assert.ok(csv.includes('"Smith, Alice"'));
+		document.body.removeChild(container);
 	});
 
 	it('escapes quotes', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ quote: 'She said "hello"' }
 		];
 		const table = new DataTable(container, { data });
 		const csv = table.exportCSV();
 		assert.ok(csv.includes('""'));
+		document.body.removeChild(container);
 	});
 
 	it('exports only filtered data', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 },
 			{ name: 'Bob', age: 25 }
@@ -461,6 +551,7 @@ describe('DataTable.exportCSV()', () => {
 		const csv = table.exportCSV();
 		assert.ok(csv.includes('Alice'));
 		assert.ok(!csv.includes('Bob'));
+		document.body.removeChild(container);
 	});
 });
 
@@ -468,6 +559,7 @@ describe('DataTable sorting', () => {
 
 	it('sorts ascending', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Bob', age: 25 },
 			{ name: 'Alice', age: 30 }
@@ -477,10 +569,12 @@ describe('DataTable sorting', () => {
 		table.sortDirection = 'asc';
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData[0].name, 'Alice');
+		document.body.removeChild(container);
 	});
 
 	it('sorts descending', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 },
 			{ name: 'Bob', age: 25 }
@@ -490,10 +584,12 @@ describe('DataTable sorting', () => {
 		table.sortDirection = 'desc';
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData[0].age, 30);
+		document.body.removeChild(container);
 	});
 
 	it('handles null values', () => {
 		const container = document.createElement('div');
+		document.body.appendChild(container);
 		const data = [
 			{ name: 'Alice', age: 30 },
 			{ name: 'Bob', age: null }
@@ -503,5 +599,9 @@ describe('DataTable sorting', () => {
 		table.sortDirection = 'asc';
 		table.applyFiltersAndSort();
 		assert.strictEqual(table.filteredData[0].age, 30);
+		document.body.removeChild(container);
 	});
 });
+	</script>
+</body>
+</html>
