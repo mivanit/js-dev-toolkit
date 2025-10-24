@@ -6,7 +6,7 @@ test:
 .PHONY: install-playwright
 install-playwright:
 	@echo "Install Playwright browsers"
-	uv run playwright install chromium
+	uv run --with playwright playwright install chromium
 
 .PHONY: clean
 clean:

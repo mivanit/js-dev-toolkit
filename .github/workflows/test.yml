@@ -19,9 +19,7 @@ jobs:
       uses: astral-sh/setup-uv@v5
 
     - name: Install Playwright browsers
-      run: |
-        uv run playwright install
-        uv run playwright install-deps
+      run: make install-playwright
 
     - name: Run tests
       run: make test
