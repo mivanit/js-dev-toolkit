@@ -116,18 +116,11 @@
 ## Code Quality
 
 ### High Priority
-- [ ] Address TypeScript diagnostics
-  - [ ] Convert CommonJS to ES modules (or suppress warnings)
-  - [ ] Fix unused parameter warnings in test-helpers.js
 
 - [ ] Fix cSpell warnings
   - [ ] Add technical terms to dictionary (ndim, dtypes, colormap, etc.)
 
 - [ ] Review and implement TODOs in source files (CRITICAL)
-  - [ ] config.js:175-182 - Customize encodeForURL for special characters
-  - [ ] config.js:208 - Add custom decoding logic that reverses encodeForURL
-  - [x] config.js:144 - Implement decodeFromURL to reverse encoding (already exists, was using wrong name)
-  - [ ] config.js:412 - Customize shouldSkipInURL function for specific use case
   - [ ] table.js - Verify all _TABLE_CONSTS are used correctly
   - [ ] array.js:212 - Implement NDArray operations (sum, mean, reshape, transpose)
 
@@ -136,16 +129,8 @@
   - [x] Removed debug console.error from sparklines.js:139-140
 
 ### Medium Priority
-- [ ] Add error handling improvements
-  - [ ] Better error messages with context
-  - [ ] Input validation for all public APIs
-  - [ ] Graceful degradation when features unavailable
 
-- [ ] Code organization
-  - [ ] Consider splitting large files (table.js is 1100+ lines, index.html is 900+ lines)
-  - [ ] Extract constants to separate files
-  - [ ] Create a unified exports file
-  - [ ] Consider bundling notif.css with notif.js or documenting requirement clearly
+- [ ] Consider bundling notif.css with notif.js or documenting requirement clearly
 
 - [ ] CSS/Styling
   - [ ] Document that notif.css is required for NotificationManager
@@ -160,13 +145,12 @@
   - [ ] Implement sum, mean, min, max aggregations
   - [ ] Implement reshape operation
   - [ ] Implement transpose operation
-  - [ ] Add more utility methods
 
 - [ ] DataTable enhancements
   - [ ] Add keyboard navigation
   - [ ] Add column reordering (drag & drop)
   - [ ] Add row selection
-  - [ ] Add bulk actions
+  - [ ] column groups, collapsing/expanding?
 
 ### Medium Priority
 - [ ] DataFrame enhancements
@@ -174,16 +158,6 @@
   - [ ] Add sorting methods
   - [ ] Add groupby operations
   - [ ] Add merge/join operations
-
-- [ ] Sparklines enhancements
-  - [ ] Add more chart types (area, scatter)
-  - [ ] Add interactive tooltips
-  - [ ] Add annotations
-
-- [ ] ColorUtil enhancements
-  - [ ] Add more colormaps
-  - [ ] Add color interpolation methods
-  - [ ] Add color contrast calculation
 
 ### Low Priority
 - [ ] notif.js improvements
@@ -194,42 +168,15 @@
 
 - [ ] config.js improvements
   - [ ] Add config validation schemas
-  - [ ] Add config migration support
   - [ ] Add config import/export UI
 
-## Build & Distribution
-
-### High Priority
-- [ ] Create package.json (CRITICAL - does not exist)
-  - [ ] Add metadata (name, version, description, author, license)
-  - [ ] Define entry points for each module
-  - [ ] Add npm scripts (test, lint, build)
-  - [ ] Define dependencies (none currently)
-  - [ ] Define peer/optional dependencies (JSZip for NPZ support)
-  - [ ] Add keywords for npm discoverability
-  - [ ] Add repository, bugs, homepage URLs
-
 - [ ] Set up build process
-  - [ ] Bundle for browser use
   - [ ] Minify for production
-  - [ ] Generate source maps
 
-- [ ] Package for distribution
-  - [ ] Prepare for npm publishing
-  - [ ] Create CHANGELOG.md
-  - [ ] Add .npmignore file
-
-### Medium Priority
 - [ ] Set up CI/CD
   - [ ] GitHub Actions for tests
   - [ ] Automated testing on push
   - [ ] Coverage reporting
-  - [ ] Automated releases
-
-- [ ] Browser builds
-  - [ ] Create UMD bundle
-  - [ ] Create ES module bundle
-  - [ ] Create separate bundles per module
 
 ## Dependencies & Compatibility
 
@@ -244,34 +191,11 @@
     - [ ] window.open() for config export to new tab
   - [ ] No npm dependencies currently - all vanilla JS
 
-- [ ] Add polyfills if needed
-  - [ ] Fetch polyfill for older browsers
-  - [ ] URL polyfill
-  - [ ] Promise polyfill
-
-- [ ] Node.js compatibility
-  - [ ] Test with Node 18, 20, 22
-  - [ ] Document minimum Node version
-
-## Maintenance
-
-### Ongoing
-- [ ] Keep dependencies updated
-- [ ] Monitor issues and PRs
-- [ ] Update documentation as needed
-- [ ] Add new tests for bug fixes
-- [ ] Performance monitoring
-
 ## Nice to Have
 
 - [ ] Add TypeScript definitions (.d.ts files)
-- [ ] Create interactive playground/demo site
-- [ ] Add VS Code extension with snippets
-- [ ] Create video tutorials
-- [ ] Benchmark against similar libraries
+- [~] Create interactive playground/demo site
 - [ ] Add accessibility (a11y) improvements to DataTable
-- [ ] Add internationalization (i18n) support
-- [ ] Create Storybook for UI components
 
 ## Notes
 
@@ -279,6 +203,5 @@
 - [x] Added smoke tests for high-priority untested functions
 - [ ] Some features still have TODO comments in source code that need attention
 - [ ] Browser compatibility testing needed (Chrome, Firefox, Safari)
-- [ ] Consider splitting into separate npm packages if modules are used independently
 - Test runner uses Python pytest with Playwright for browser automation
 - All tests run in real browser environment (not Node.js VM or mocks)
