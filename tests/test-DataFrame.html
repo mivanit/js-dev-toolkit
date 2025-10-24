@@ -1,765 +1,786 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-	<meta charset="utf-8">
-	<title>DataFrame Tests</title>
-</head>
-<body>
-	<h1>DataFrame Tests</h1>
-	<p>Check console for results...</p>
+	<head>
+		<meta charset="utf-8" />
+		<title>DataFrame Tests</title>
+	</head>
+	<body>
+		<h1>DataFrame Tests</h1>
+		<p>Check console for results...</p>
 
-	<!-- Load test framework -->
-	<script src="test-framework.js"></script>
+		<!-- Load test framework -->
+		<script src="test-framework.js"></script>
 
-	<!-- Load source file -->
-	<script src="../src/DataFrame.js"></script>
+		<!-- Load source file -->
+		<script src="../src/DataFrame.js"></script>
 
-	<!-- Tests -->
-	<script>
-describe('DataFrame constructor', () => {
+		<!-- Tests -->
+		<script>
+			describe("DataFrame constructor", () => {
+				it("creates empty DataFrame", () => {
+					const df = new DataFrame();
+					assert.strictEqual(df.length, 0);
+					assert.strictEqual(df.columns.length, 0);
+					assert.ok(Array.isArray(df.columns));
+				});
 
-	it('creates empty DataFrame', () => {
-		const df = new DataFrame();
-		assert.strictEqual(df.length, 0);
-		assert.strictEqual(df.columns.length, 0);
-		assert.ok(Array.isArray(df.columns));
-	});
+				it("creates DataFrame with data and inferred columns", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					assert.strictEqual(df.length, 2);
+					assert.deepStrictEqual(df.columns, ["name", "age"]);
+				});
 
-	it('creates DataFrame with data and inferred columns', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		assert.strictEqual(df.length, 2);
-		assert.deepStrictEqual(df.columns, ['name', 'age']);
-	});
+				it("creates DataFrame with explicit columns", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data, ["name", "age"]);
+					assert.strictEqual(df.length, 2);
+					assert.deepStrictEqual(df.columns, ["name", "age"]);
+				});
+			});
 
-	it('creates DataFrame with explicit columns', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data, ['name', 'age']);
-		assert.strictEqual(df.length, 2);
-		assert.deepStrictEqual(df.columns, ['name', 'age']);
-	});
-});
+			describe("DataFrame.col()", () => {
+				it("returns column values", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					assert.deepStrictEqual(df.col("name"), ["Alice", "Bob"]);
+					assert.deepStrictEqual(df.col("age"), [30, 25]);
+				});
 
-describe('DataFrame.col()', () => {
+				it("throws error for non-existent column", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(
+						() => df.col("missing"),
+						/Column 'missing' not found/,
+					);
+				});
+			});
 
-	it('returns column values', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		assert.deepStrictEqual(df.col('name'), ['Alice', 'Bob']);
-		assert.deepStrictEqual(df.col('age'), [30, 25]);
-	});
+			describe("DataFrame.get()", () => {
+				it("returns cell value", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					assert.strictEqual(df.get(0, "name"), "Alice");
+					assert.strictEqual(df.get(1, "age"), 25);
+				});
 
-	it('throws error for non-existent column', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.col('missing'), /Column 'missing' not found/);
-	});
-});
+				it("throws error for invalid row index", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(
+						() => df.get(5, "name"),
+						/Row index 5 out of bounds/,
+					);
+					assert.throws(
+						() => df.get(-1, "name"),
+						/Row index -1 out of bounds/,
+					);
+				});
 
-describe('DataFrame.get()', () => {
+				it("throws error for invalid column", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(
+						() => df.get(0, "missing"),
+						/Column 'missing' not found/,
+					);
+				});
+			});
 
-	it('returns cell value', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		assert.strictEqual(df.get(0, 'name'), 'Alice');
-		assert.strictEqual(df.get(1, 'age'), 25);
-	});
+			describe("DataFrame.row()", () => {
+				it("returns row object", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					assert.deepStrictEqual(df.row(0), {
+						name: "Alice",
+						age: 30,
+					});
+					assert.deepStrictEqual(df.row(1), { name: "Bob", age: 25 });
+				});
 
-	it('throws error for invalid row index', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.get(5, 'name'), /Row index 5 out of bounds/);
-		assert.throws(() => df.get(-1, 'name'), /Row index -1 out of bounds/);
-	});
+				it("throws error for invalid row index", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(() => df.row(5), /Row index 5 out of bounds/);
+				});
+			});
 
-	it('throws error for invalid column', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.get(0, 'missing'), /Column 'missing' not found/);
-	});
-});
+			describe("DataFrame.col_unique()", () => {
+				it("returns unique values as Set", () => {
+					const data = [
+						{ name: "Alice", city: "NYC" },
+						{ name: "Bob", city: "LA" },
+						{ name: "Charlie", city: "NYC" },
+					];
+					const df = new DataFrame(data);
+					const uniqueCities = df.col_unique("city");
+					assert.ok(uniqueCities instanceof Set);
+					assert.strictEqual(uniqueCities.size, 2);
+					assert.ok(uniqueCities.has("NYC"));
+					assert.ok(uniqueCities.has("LA"));
+				});
+			});
 
-describe('DataFrame.row()', () => {
+			describe("DataFrame.col_apply()", () => {
+				it("applies function to column", () => {
+					const data = [
+						{ name: "alice", age: 30 },
+						{ name: "bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					df.col_apply("name", (val) => val.toUpperCase());
+					assert.strictEqual(df.get(0, "name"), "ALICE");
+					assert.strictEqual(df.get(1, "name"), "BOB");
+				});
 
-	it('returns row object', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		assert.deepStrictEqual(df.row(0), { name: 'Alice', age: 30 });
-		assert.deepStrictEqual(df.row(1), { name: 'Bob', age: 25 });
-	});
+				it("applies function with row index", () => {
+					const data = [{ value: 10 }, { value: 20 }];
+					const df = new DataFrame(data);
+					df.col_apply("value", (val, idx) => val + idx);
+					assert.strictEqual(df.get(0, "value"), 10);
+					assert.strictEqual(df.get(1, "value"), 21);
+				});
 
-	it('throws error for invalid row index', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.row(5), /Row index 5 out of bounds/);
-	});
-});
+				it("throws error for non-existent column", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(
+						() => df.col_apply("missing", (x) => x),
+						/Column 'missing' not found/,
+					);
+				});
+			});
 
-describe('DataFrame.col_unique()', () => {
-
-	it('returns unique values as Set', () => {
-		const data = [
-			{ name: 'Alice', city: 'NYC' },
-			{ name: 'Bob', city: 'LA' },
-			{ name: 'Charlie', city: 'NYC' }
-		];
-		const df = new DataFrame(data);
-		const uniqueCities = df.col_unique('city');
-		assert.ok(uniqueCities instanceof Set);
-		assert.strictEqual(uniqueCities.size, 2);
-		assert.ok(uniqueCities.has('NYC'));
-		assert.ok(uniqueCities.has('LA'));
-	});
-});
-
-describe('DataFrame.col_apply()', () => {
-
-	it('applies function to column', () => {
-		const data = [
-			{ name: 'alice', age: 30 },
-			{ name: 'bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		df.col_apply('name', (val) => val.toUpperCase());
-		assert.strictEqual(df.get(0, 'name'), 'ALICE');
-		assert.strictEqual(df.get(1, 'name'), 'BOB');
-	});
-
-	it('applies function with row index', () => {
-		const data = [
-			{ value: 10 },
-			{ value: 20 }
-		];
-		const df = new DataFrame(data);
-		df.col_apply('value', (val, idx) => val + idx);
-		assert.strictEqual(df.get(0, 'value'), 10);
-		assert.strictEqual(df.get(1, 'value'), 21);
-	});
-
-	it('throws error for non-existent column', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.col_apply('missing', x => x), /Column 'missing' not found/);
-	});
-});
-
-describe('DataFrame.from_csv()', () => {
-
-	it('parses simple CSV', () => {
-		const csv = `name,age
+			describe("DataFrame.from_csv()", () => {
+				it("parses simple CSV", () => {
+					const csv = `name,age
 Alice,30
 Bob,25`;
-		const df = DataFrame.from_csv(csv);
-		assert.strictEqual(df.length, 2);
-		assert.strictEqual(df.columns.length, 2);
-		assert.strictEqual(df.columns[0], 'name');
-		assert.strictEqual(df.columns[1], 'age');
-		assert.strictEqual(df.get(0, 'name'), 'Alice');
-		assert.strictEqual(df.get(0, 'age'), 30);
-	});
+					const df = DataFrame.from_csv(csv);
+					assert.strictEqual(df.length, 2);
+					assert.strictEqual(df.columns.length, 2);
+					assert.strictEqual(df.columns[0], "name");
+					assert.strictEqual(df.columns[1], "age");
+					assert.strictEqual(df.get(0, "name"), "Alice");
+					assert.strictEqual(df.get(0, "age"), 30);
+				});
 
-	it('handles numbers and strings', () => {
-		const csv = `name,score,active
+				it("handles numbers and strings", () => {
+					const csv = `name,score,active
 Alice,95.5,true
 Bob,82,false`;
-		const df = DataFrame.from_csv(csv);
-		assert.strictEqual(typeof df.get(0, 'score'), 'number');
-		assert.strictEqual(df.get(0, 'score'), 95.5);
-	});
+					const df = DataFrame.from_csv(csv);
+					assert.strictEqual(typeof df.get(0, "score"), "number");
+					assert.strictEqual(df.get(0, "score"), 95.5);
+				});
 
-	it('handles null values', () => {
-		const csv = `name,age
+				it("handles null values", () => {
+					const csv = `name,age
 Alice,
 Bob,null`;
-		const df = DataFrame.from_csv(csv);
-		assert.strictEqual(df.get(0, 'age'), null);
-		assert.strictEqual(df.get(1, 'age'), null);
-	});
+					const df = DataFrame.from_csv(csv);
+					assert.strictEqual(df.get(0, "age"), null);
+					assert.strictEqual(df.get(1, "age"), null);
+				});
 
-	it('handles empty CSV', () => {
-		const csv = '';
-		const df = DataFrame.from_csv(csv);
-		assert.strictEqual(df.length, 0);
-	});
-});
+				it("handles empty CSV", () => {
+					const csv = "";
+					const df = DataFrame.from_csv(csv);
+					assert.strictEqual(df.length, 0);
+				});
+			});
 
-describe('DataFrame.to_csv()', () => {
+			describe("DataFrame.to_csv()", () => {
+				it("exports to CSV format", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					const csv = df.to_csv();
+					assert.ok(csv.includes("name,age"));
+					assert.ok(csv.includes("Alice,30"));
+					assert.ok(csv.includes("Bob,25"));
+				});
 
-	it('exports to CSV format', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		const csv = df.to_csv();
-		assert.ok(csv.includes('name,age'));
-		assert.ok(csv.includes('Alice,30'));
-		assert.ok(csv.includes('Bob,25'));
-	});
+				it("handles null values", () => {
+					const data = [
+						{ name: "Alice", age: null },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					const csv = df.to_csv();
+					assert.ok(csv.includes("Alice,"));
+				});
 
-	it('handles null values', () => {
-		const data = [
-			{ name: 'Alice', age: null },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		const csv = df.to_csv();
-		assert.ok(csv.includes('Alice,'));
-	});
+				it("quotes strings with commas", () => {
+					const data = [
+						{ name: "Alice", address: "123 Main St, NYC" },
+					];
+					const df = new DataFrame(data);
+					const csv = df.to_csv();
+					assert.ok(csv.includes('"123 Main St, NYC"'));
+				});
 
-	it('quotes strings with commas', () => {
-		const data = [
-			{ name: 'Alice', address: '123 Main St, NYC' }
-		];
-		const df = new DataFrame(data);
-		const csv = df.to_csv();
-		assert.ok(csv.includes('"123 Main St, NYC"'));
-	});
+				it("escapes quotes in strings", () => {
+					const data = [{ name: "Alice", quote: 'She said "hello"' }];
+					const df = new DataFrame(data);
+					const csv = df.to_csv();
+					assert.ok(csv.includes('""'));
+				});
 
-	it('escapes quotes in strings', () => {
-		const data = [
-			{ name: 'Alice', quote: 'She said "hello"' }
-		];
-		const df = new DataFrame(data);
-		const csv = df.to_csv();
-		assert.ok(csv.includes('""'));
-	});
+				it("handles empty DataFrame", () => {
+					const df = new DataFrame([], ["name", "age"]);
+					const csv = df.to_csv();
+					assert.strictEqual(csv, "name,age");
+				});
+			});
 
-	it('handles empty DataFrame', () => {
-		const df = new DataFrame([], ['name', 'age']);
-		const csv = df.to_csv();
-		assert.strictEqual(csv, 'name,age');
-	});
-});
-
-describe('DataFrame.from_jsonl()', () => {
-
-	it('parses JSONL format', () => {
-		const jsonl = `{"name":"Alice","age":30}
+			describe("DataFrame.from_jsonl()", () => {
+				it("parses JSONL format", () => {
+					const jsonl = `{"name":"Alice","age":30}
 {"name":"Bob","age":25}`;
-		const df = DataFrame.from_jsonl(jsonl);
-		assert.strictEqual(df.length, 2);
-		assert.ok(df.columns.includes('name'));
-		assert.ok(df.columns.includes('age'));
-		assert.strictEqual(df.get(0, 'name'), 'Alice');
-	});
+					const df = DataFrame.from_jsonl(jsonl);
+					assert.strictEqual(df.length, 2);
+					assert.ok(df.columns.includes("name"));
+					assert.ok(df.columns.includes("age"));
+					assert.strictEqual(df.get(0, "name"), "Alice");
+				});
 
-	it('handles varying fields', () => {
-		const jsonl = `{"name":"Alice","age":30}
+				it("handles varying fields", () => {
+					const jsonl = `{"name":"Alice","age":30}
 {"name":"Bob","city":"NYC"}`;
-		const df = DataFrame.from_jsonl(jsonl);
-		assert.strictEqual(df.columns.length, 3);
-		assert.ok(df.columns.includes('name'));
-		assert.ok(df.columns.includes('age'));
-		assert.ok(df.columns.includes('city'));
-	});
-});
+					const df = DataFrame.from_jsonl(jsonl);
+					assert.strictEqual(df.columns.length, 3);
+					assert.ok(df.columns.includes("name"));
+					assert.ok(df.columns.includes("age"));
+					assert.ok(df.columns.includes("city"));
+				});
+			});
 
-describe('DataFrame.to_jsonl()', () => {
+			describe("DataFrame.to_jsonl()", () => {
+				it("exports to JSONL format", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					const jsonl = df.to_jsonl();
+					const lines = jsonl.split("\n");
+					assert.strictEqual(lines.length, 2);
+					assert.deepStrictEqual(JSON.parse(lines[0]), {
+						name: "Alice",
+						age: 30,
+					});
+					assert.deepStrictEqual(JSON.parse(lines[1]), {
+						name: "Bob",
+						age: 25,
+					});
+				});
+			});
 
-	it('exports to JSONL format', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		const jsonl = df.to_jsonl();
-		const lines = jsonl.split('\n');
-		assert.strictEqual(lines.length, 2);
-		assert.deepStrictEqual(JSON.parse(lines[0]), { name: 'Alice', age: 30 });
-		assert.deepStrictEqual(JSON.parse(lines[1]), { name: 'Bob', age: 25 });
-	});
-});
+			describe("DataFrame.toString()", () => {
+				it("returns string representation", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					const str = df.toString();
+					assert.ok(str.includes("2 rows"));
+					assert.ok(str.includes("2 columns"));
+					assert.ok(str.includes("name"));
+					assert.ok(str.includes("age"));
+				});
 
-describe('DataFrame.toString()', () => {
+				it("handles empty DataFrame", () => {
+					const df = new DataFrame();
+					const str = df.toString();
+					assert.strictEqual(str, "Empty DataFrame");
+				});
+			});
 
-	it('returns string representation', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		const str = df.toString();
-		assert.ok(str.includes('2 rows'));
-		assert.ok(str.includes('2 columns'));
-		assert.ok(str.includes('name'));
-		assert.ok(str.includes('age'));
-	});
+			describe("DataFrame.display_simple()", () => {
+				it("generates HTML table", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df = new DataFrame(data);
+					const html = df.display_simple();
+					assert.ok(html.includes("<table>"));
+					assert.ok(html.includes("<thead>"));
+					assert.ok(html.includes("<tbody>"));
+					assert.ok(html.includes("Alice"));
+					assert.ok(html.includes("30"));
+				});
 
-	it('handles empty DataFrame', () => {
-		const df = new DataFrame();
-		const str = df.toString();
-		assert.strictEqual(str, 'Empty DataFrame');
-	});
-});
+				it("throws error for empty DataFrame", () => {
+					const df = new DataFrame();
+					assert.throws(
+						() => df.display_simple(),
+						/Cannot display empty DataFrame/,
+					);
+				});
 
-describe('DataFrame.display_simple()', () => {
+				it("handles null values", () => {
+					const data = [{ name: "Alice", age: null }];
+					const df = new DataFrame(data);
+					const html = df.display_simple();
+					assert.ok(html.includes("<td></td>"));
+				});
+			});
 
-	it('generates HTML table', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df = new DataFrame(data);
-		const html = df.display_simple();
-		assert.ok(html.includes('<table>'));
-		assert.ok(html.includes('<thead>'));
-		assert.ok(html.includes('<tbody>'));
-		assert.ok(html.includes('Alice'));
-		assert.ok(html.includes('30'));
-	});
+			describe("DataFrame CSV round-trip", () => {
+				it("preserves data through CSV export/import", () => {
+					const data = [
+						{ name: "Alice", age: 30, city: "NYC" },
+						{ name: "Bob", age: 25, city: "LA" },
+					];
+					const df1 = new DataFrame(data);
+					const csv = df1.to_csv();
+					const df2 = DataFrame.from_csv(csv);
 
-	it('throws error for empty DataFrame', () => {
-		const df = new DataFrame();
-		assert.throws(() => df.display_simple(), /Cannot display empty DataFrame/);
-	});
+					assert.strictEqual(df2.length, df1.length);
+					assert.strictEqual(df2.columns.length, df1.columns.length);
+					for (let i = 0; i < df1.columns.length; i++) {
+						assert.strictEqual(df2.columns[i], df1.columns[i]);
+					}
+					assert.strictEqual(df2.get(0, "name"), df1.get(0, "name"));
+					assert.strictEqual(df2.get(1, "age"), df1.get(1, "age"));
+				});
+			});
 
-	it('handles null values', () => {
-		const data = [
-			{ name: 'Alice', age: null }
-		];
-		const df = new DataFrame(data);
-		const html = df.display_simple();
-		assert.ok(html.includes('<td></td>'));
-	});
-});
+			describe("DataFrame.get()", () => {
+				it("gets cell value with valid indices", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					assert.strictEqual(df.get(0, "name"), "Alice");
+					assert.strictEqual(df.get(0, "age"), 30);
+					assert.strictEqual(df.get(1, "name"), "Bob");
+					assert.strictEqual(df.get(1, "age"), 25);
+				});
 
-describe('DataFrame CSV round-trip', () => {
+				it("throws error for invalid row index", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(() => df.get(5, "name"), /out of bounds/);
+					assert.throws(() => df.get(-1, "name"), /out of bounds/);
+				});
 
-	it('preserves data through CSV export/import', () => {
-		const data = [
-			{ name: 'Alice', age: 30, city: 'NYC' },
-			{ name: 'Bob', age: 25, city: 'LA' }
-		];
-		const df1 = new DataFrame(data);
-		const csv = df1.to_csv();
-		const df2 = DataFrame.from_csv(csv);
+				it("throws error for invalid column name", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(() => df.get(0, "invalid"), /not found/);
+				});
+			});
 
-		assert.strictEqual(df2.length, df1.length);
-		assert.strictEqual(df2.columns.length, df1.columns.length);
-		for (let i = 0; i < df1.columns.length; i++) {
-			assert.strictEqual(df2.columns[i], df1.columns[i]);
-		}
-		assert.strictEqual(df2.get(0, 'name'), df1.get(0, 'name'));
-		assert.strictEqual(df2.get(1, 'age'), df1.get(1, 'age'));
-	});
-});
+			describe("DataFrame.col_apply()", () => {
+				it("applies function to column values", () => {
+					const df = new DataFrame([
+						{ x: 2, y: 10 },
+						{ x: 3, y: 20 },
+						{ x: 4, y: 30 },
+					]);
+					df.col_apply("x", (val) => val * val);
+					assert.strictEqual(df.get(0, "x"), 4);
+					assert.strictEqual(df.get(1, "x"), 9);
+					assert.strictEqual(df.get(2, "x"), 16);
+				});
 
-describe('DataFrame.get()', () => {
+				it("provides row index to function", () => {
+					const df = new DataFrame([
+						{ value: 10 },
+						{ value: 20 },
+						{ value: 30 },
+					]);
+					df.col_apply("value", (val, idx) => val + idx);
+					assert.strictEqual(df.get(0, "value"), 10);
+					assert.strictEqual(df.get(1, "value"), 21);
+					assert.strictEqual(df.get(2, "value"), 32);
+				});
 
-	it('gets cell value with valid indices', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		assert.strictEqual(df.get(0, 'name'), 'Alice');
-		assert.strictEqual(df.get(0, 'age'), 30);
-		assert.strictEqual(df.get(1, 'name'), 'Bob');
-		assert.strictEqual(df.get(1, 'age'), 25);
-	});
+				it("throws error for invalid column", () => {
+					const df = new DataFrame([{ x: 1 }]);
+					assert.throws(
+						() => df.col_apply("invalid", (val) => val),
+						/not found/,
+					);
+				});
+			});
 
-	it('throws error for invalid row index', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.get(5, 'name'), /out of bounds/);
-		assert.throws(() => df.get(-1, 'name'), /out of bounds/);
-	});
+			describe("DataFrame.from_jsonl()", () => {
+				it("parses JSONL string", () => {
+					const jsonl =
+						'{"name":"Alice","age":30}\n{"name":"Bob","age":25}\n{"name":"Charlie","age":35}';
+					const df = DataFrame.from_jsonl(jsonl);
+					assert.strictEqual(df.length, 3);
+					assert.strictEqual(df.get(0, "name"), "Alice");
+					assert.strictEqual(df.get(1, "name"), "Bob");
+					assert.strictEqual(df.get(2, "name"), "Charlie");
+				});
 
-	it('throws error for invalid column name', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.get(0, 'invalid'), /not found/);
-	});
-});
+				it("handles single line", () => {
+					const jsonl = '{"x":1,"y":2}';
+					const df = DataFrame.from_jsonl(jsonl);
+					assert.strictEqual(df.length, 1);
+					assert.strictEqual(df.get(0, "x"), 1);
+					assert.strictEqual(df.get(0, "y"), 2);
+				});
 
-describe('DataFrame.col_apply()', () => {
+				it("collects all unique columns", () => {
+					const jsonl = '{"a":1}\n{"b":2}\n{"a":3,"b":4}';
+					const df = DataFrame.from_jsonl(jsonl);
+					assert.ok(df.columns.includes("a"));
+					assert.ok(df.columns.includes("b"));
+				});
+			});
 
-	it('applies function to column values', () => {
-		const df = new DataFrame([
-			{ x: 2, y: 10 },
-			{ x: 3, y: 20 },
-			{ x: 4, y: 30 }
-		]);
-		df.col_apply('x', val => val * val);
-		assert.strictEqual(df.get(0, 'x'), 4);
-		assert.strictEqual(df.get(1, 'x'), 9);
-		assert.strictEqual(df.get(2, 'x'), 16);
-	});
+			describe("DataFrame.to_jsonl()", () => {
+				it("exports to JSONL format", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					const jsonl = df.to_jsonl();
+					const lines = jsonl.split("\n");
+					assert.strictEqual(lines.length, 2);
+					const obj1 = JSON.parse(lines[0]);
+					const obj2 = JSON.parse(lines[1]);
+					assert.strictEqual(obj1.name, "Alice");
+					assert.strictEqual(obj2.name, "Bob");
+				});
 
-	it('provides row index to function', () => {
-		const df = new DataFrame([
-			{ value: 10 },
-			{ value: 20 },
-			{ value: 30 }
-		]);
-		df.col_apply('value', (val, idx) => val + idx);
-		assert.strictEqual(df.get(0, 'value'), 10);
-		assert.strictEqual(df.get(1, 'value'), 21);
-		assert.strictEqual(df.get(2, 'value'), 32);
-	});
+				it("handles empty dataframe", () => {
+					const df = new DataFrame([]);
+					const jsonl = df.to_jsonl();
+					assert.strictEqual(jsonl, "");
+				});
+			});
 
-	it('throws error for invalid column', () => {
-		const df = new DataFrame([{ x: 1 }]);
-		assert.throws(() => df.col_apply('invalid', val => val), /not found/);
-	});
-});
+			describe("DataFrame CSV parsing edge cases", () => {
+				it("handles simple quoted strings", () => {
+					const csv = 'name,age\n"Alice",30\n"Bob",25';
+					const df = DataFrame.from_csv(csv);
+					assert.strictEqual(df.length, 2);
+					assert.strictEqual(df.get(0, "name"), "Alice");
+					assert.strictEqual(df.get(1, "name"), "Bob");
+				});
 
-describe('DataFrame.from_jsonl()', () => {
+				it("handles null values", () => {
+					const csv = "name,value\nAlice,null\nBob,\nCharlie,123";
+					const df = DataFrame.from_csv(csv);
+					assert.strictEqual(df.length, 3);
+					assert.strictEqual(df.get(0, "value"), null);
+					assert.strictEqual(df.get(1, "value"), null);
+					assert.strictEqual(df.get(2, "value"), 123);
+				});
+			});
 
-	it('parses JSONL string', () => {
-		const jsonl = '{"name":"Alice","age":30}\n{"name":"Bob","age":25}\n{"name":"Charlie","age":35}';
-		const df = DataFrame.from_jsonl(jsonl);
-		assert.strictEqual(df.length, 3);
-		assert.strictEqual(df.get(0, 'name'), 'Alice');
-		assert.strictEqual(df.get(1, 'name'), 'Bob');
-		assert.strictEqual(df.get(2, 'name'), 'Charlie');
-	});
+			describe("DataFrame.clone()", () => {
+				it("creates a deep copy of DataFrame", () => {
+					const data = [
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					];
+					const df1 = new DataFrame(data);
+					const df2 = df1.clone();
 
-	it('handles single line', () => {
-		const jsonl = '{"x":1,"y":2}';
-		const df = DataFrame.from_jsonl(jsonl);
-		assert.strictEqual(df.length, 1);
-		assert.strictEqual(df.get(0, 'x'), 1);
-		assert.strictEqual(df.get(0, 'y'), 2);
-	});
+					// Verify they have the same data
+					assert.strictEqual(df2.length, df1.length);
+					assert.deepStrictEqual(df2.columns, df1.columns);
+					assert.strictEqual(df2.get(0, "name"), df1.get(0, "name"));
 
-	it('collects all unique columns', () => {
-		const jsonl = '{"a":1}\n{"b":2}\n{"a":3,"b":4}';
-		const df = DataFrame.from_jsonl(jsonl);
-		assert.ok(df.columns.includes('a'));
-		assert.ok(df.columns.includes('b'));
-	});
-});
+					// Verify they are separate objects by checking reference inequality
+					assert.ok(
+						df2.data !== df1.data,
+						"Data arrays should be different objects",
+					);
 
-describe('DataFrame.to_jsonl()', () => {
+					// Verify modifying one doesn't affect the other
+					df2.data[0].name = "Charlie";
+					assert.strictEqual(df1.get(0, "name"), "Alice");
+					assert.strictEqual(df2.get(0, "name"), "Charlie");
+				});
 
-	it('exports to JSONL format', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		const jsonl = df.to_jsonl();
-		const lines = jsonl.split('\n');
-		assert.strictEqual(lines.length, 2);
-		const obj1 = JSON.parse(lines[0]);
-		const obj2 = JSON.parse(lines[1]);
-		assert.strictEqual(obj1.name, 'Alice');
-		assert.strictEqual(obj2.name, 'Bob');
-	});
+				it("handles empty DataFrame", () => {
+					const df1 = new DataFrame();
+					const df2 = df1.clone();
+					assert.strictEqual(df2.length, 0);
+					assert.strictEqual(df2.columns.length, 0);
+				});
+			});
 
-	it('handles empty dataframe', () => {
-		const df = new DataFrame([]);
-		const jsonl = df.to_jsonl();
-		assert.strictEqual(jsonl, '');
-	});
-});
+			describe("DataFrame.filter()", () => {
+				it("filters rows with predicate", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+						{ name: "Charlie", age: 35 },
+					]);
+					const filtered = df.filter((row) => row.age >= 30);
+					assert.strictEqual(filtered.length, 2);
+					assert.strictEqual(filtered.get(0, "name"), "Alice");
+					assert.strictEqual(filtered.get(1, "name"), "Charlie");
+				});
 
-describe('DataFrame CSV parsing edge cases', () => {
+				it("returns empty DataFrame when no rows match", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					const filtered = df.filter((row) => row.age > 100);
+					assert.strictEqual(filtered.length, 0);
+					assert.deepStrictEqual(filtered.columns, df.columns);
+				});
 
-	it('handles simple quoted strings', () => {
-		const csv = 'name,age\n"Alice",30\n"Bob",25';
-		const df = DataFrame.from_csv(csv);
-		assert.strictEqual(df.length, 2);
-		assert.strictEqual(df.get(0, 'name'), 'Alice');
-		assert.strictEqual(df.get(1, 'name'), 'Bob');
-	});
+				it("returns all rows when all match", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					const filtered = df.filter((row) => row.age > 0);
+					assert.strictEqual(filtered.length, 2);
+				});
 
-	it('handles null values', () => {
-		const csv = 'name,value\nAlice,null\nBob,\nCharlie,123';
-		const df = DataFrame.from_csv(csv);
-		assert.strictEqual(df.length, 3);
-		assert.strictEqual(df.get(0, 'value'), null);
-		assert.strictEqual(df.get(1, 'value'), null);
-		assert.strictEqual(df.get(2, 'value'), 123);
-	});
-});
+				it("does not mutate original DataFrame", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					const filtered = df.filter((row) => row.age >= 30);
+					assert.strictEqual(df.length, 2);
+					assert.strictEqual(filtered.length, 1);
+				});
+			});
 
-describe('DataFrame.clone()', () => {
+			describe("DataFrame.filterBy()", () => {
+				it("filters by exact value match", () => {
+					const df = new DataFrame([
+						{ name: "Alice", city: "NYC" },
+						{ name: "Bob", city: "LA" },
+						{ name: "Charlie", city: "NYC" },
+					]);
+					const filtered = df.filterBy("city", "NYC");
+					assert.strictEqual(filtered.length, 2);
+					assert.strictEqual(filtered.get(0, "name"), "Alice");
+					assert.strictEqual(filtered.get(1, "name"), "Charlie");
+				});
 
-	it('creates a deep copy of DataFrame', () => {
-		const data = [
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		];
-		const df1 = new DataFrame(data);
-		const df2 = df1.clone();
+				it("filters by predicate function", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+						{ name: "Charlie", age: 27 },
+					]);
+					const filtered = df.filterBy(
+						"age",
+						(age) => age >= 25 && age < 30,
+					);
+					assert.strictEqual(filtered.length, 2);
+					assert.strictEqual(filtered.get(0, "name"), "Bob");
+					assert.strictEqual(filtered.get(1, "name"), "Charlie");
+				});
 
-		// Verify they have the same data
-		assert.strictEqual(df2.length, df1.length);
-		assert.deepStrictEqual(df2.columns, df1.columns);
-		assert.strictEqual(df2.get(0, 'name'), df1.get(0, 'name'));
+				it("throws error for invalid column", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(
+						() => df.filterBy("invalid", "value"),
+						/Column 'invalid' not found/,
+					);
+				});
 
-		// Verify they are separate objects by checking reference inequality
-		assert.ok(df2.data !== df1.data, 'Data arrays should be different objects');
+				it("does not mutate original DataFrame", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					const filtered = df.filterBy("age", 30);
+					assert.strictEqual(df.length, 2);
+					assert.strictEqual(filtered.length, 1);
+				});
+			});
 
-		// Verify modifying one doesn't affect the other
-		df2.data[0].name = 'Charlie';
-		assert.strictEqual(df1.get(0, 'name'), 'Alice');
-		assert.strictEqual(df2.get(0, 'name'), 'Charlie');
-	});
+			describe("DataFrame.sort()", () => {
+				it("sorts by column ascending", () => {
+					const df = new DataFrame([
+						{ name: "Charlie", age: 35 },
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+					]);
+					const sorted = df.sort("age");
+					assert.strictEqual(sorted.get(0, "name"), "Bob");
+					assert.strictEqual(sorted.get(1, "name"), "Alice");
+					assert.strictEqual(sorted.get(2, "name"), "Charlie");
+				});
 
-	it('handles empty DataFrame', () => {
-		const df1 = new DataFrame();
-		const df2 = df1.clone();
-		assert.strictEqual(df2.length, 0);
-		assert.strictEqual(df2.columns.length, 0);
-	});
-});
+				it("sorts by column descending", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+						{ name: "Charlie", age: 35 },
+					]);
+					const sorted = df.sort("age", false);
+					assert.strictEqual(sorted.get(0, "name"), "Charlie");
+					assert.strictEqual(sorted.get(1, "name"), "Alice");
+					assert.strictEqual(sorted.get(2, "name"), "Bob");
+				});
 
-describe('DataFrame.filter()', () => {
+				it("sorts strings alphabetically", () => {
+					const df = new DataFrame([
+						{ name: "Charlie" },
+						{ name: "Alice" },
+						{ name: "Bob" },
+					]);
+					const sorted = df.sort("name");
+					assert.strictEqual(sorted.get(0, "name"), "Alice");
+					assert.strictEqual(sorted.get(1, "name"), "Bob");
+					assert.strictEqual(sorted.get(2, "name"), "Charlie");
+				});
 
-	it('filters rows with predicate', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 },
-			{ name: 'Charlie', age: 35 }
-		]);
-		const filtered = df.filter(row => row.age >= 30);
-		assert.strictEqual(filtered.length, 2);
-		assert.strictEqual(filtered.get(0, 'name'), 'Alice');
-		assert.strictEqual(filtered.get(1, 'name'), 'Charlie');
-	});
+				it("handles null values (places at end)", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: null },
+						{ name: "Charlie", age: 25 },
+						{ name: "David", age: undefined },
+					]);
+					const sorted = df.sort("age");
+					assert.strictEqual(sorted.get(0, "name"), "Charlie");
+					assert.strictEqual(sorted.get(1, "name"), "Alice");
+					// Nulls should be at the end
+					assert.ok(
+						sorted.get(2, "age") === null ||
+							sorted.get(2, "age") === undefined,
+					);
+					assert.ok(
+						sorted.get(3, "age") === null ||
+							sorted.get(3, "age") === undefined,
+					);
+				});
 
-	it('returns empty DataFrame when no rows match', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		const filtered = df.filter(row => row.age > 100);
-		assert.strictEqual(filtered.length, 0);
-		assert.deepStrictEqual(filtered.columns, df.columns);
-	});
+				it("handles equal values", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 25 },
+						{ name: "Bob", age: 25 },
+						{ name: "Charlie", age: 30 },
+					]);
+					const sorted = df.sort("age");
+					assert.strictEqual(sorted.get(0, "age"), 25);
+					assert.strictEqual(sorted.get(1, "age"), 25);
+					assert.strictEqual(sorted.get(2, "age"), 30);
+				});
 
-	it('returns all rows when all match', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		const filtered = df.filter(row => row.age > 0);
-		assert.strictEqual(filtered.length, 2);
-	});
+				it("throws error for invalid column", () => {
+					const df = new DataFrame([{ name: "Alice" }]);
+					assert.throws(
+						() => df.sort("invalid"),
+						/Column 'invalid' not found/,
+					);
+				});
 
-	it('does not mutate original DataFrame', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		const filtered = df.filter(row => row.age >= 30);
-		assert.strictEqual(df.length, 2);
-		assert.strictEqual(filtered.length, 1);
-	});
-});
+				it("does not mutate original DataFrame", () => {
+					const df = new DataFrame([
+						{ name: "Charlie", age: 35 },
+						{ name: "Alice", age: 30 },
+					]);
+					const sorted = df.sort("age");
+					assert.strictEqual(df.get(0, "name"), "Charlie");
+					assert.strictEqual(sorted.get(0, "name"), "Alice");
+				});
+			});
 
-describe('DataFrame.filterBy()', () => {
+			describe("DataFrame.sortBy()", () => {
+				it("sorts with custom comparator", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30 },
+						{ name: "Bob", age: 25 },
+						{ name: "Charlie", age: 35 },
+					]);
+					const sorted = df.sortBy((a, b) => a.age - b.age);
+					assert.strictEqual(sorted.get(0, "name"), "Bob");
+					assert.strictEqual(sorted.get(1, "name"), "Alice");
+					assert.strictEqual(sorted.get(2, "name"), "Charlie");
+				});
 
-	it('filters by exact value match', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', city: 'NYC' },
-			{ name: 'Bob', city: 'LA' },
-			{ name: 'Charlie', city: 'NYC' }
-		]);
-		const filtered = df.filterBy('city', 'NYC');
-		assert.strictEqual(filtered.length, 2);
-		assert.strictEqual(filtered.get(0, 'name'), 'Alice');
-		assert.strictEqual(filtered.get(1, 'name'), 'Charlie');
-	});
+				it("sorts by multiple columns", () => {
+					const df = new DataFrame([
+						{ name: "Alice", city: "NYC", age: 30 },
+						{ name: "Bob", city: "LA", age: 25 },
+						{ name: "Charlie", city: "NYC", age: 35 },
+						{ name: "David", city: "LA", age: 20 },
+					]);
+					const sorted = df.sortBy((a, b) => {
+						// Sort by city, then by age
+						if (a.city !== b.city)
+							return a.city.localeCompare(b.city);
+						return a.age - b.age;
+					});
+					assert.strictEqual(sorted.get(0, "name"), "David");
+					assert.strictEqual(sorted.get(0, "city"), "LA");
+					assert.strictEqual(sorted.get(1, "name"), "Bob");
+					assert.strictEqual(sorted.get(1, "city"), "LA");
+					assert.strictEqual(sorted.get(2, "name"), "Alice");
+					assert.strictEqual(sorted.get(2, "city"), "NYC");
+					assert.strictEqual(sorted.get(3, "name"), "Charlie");
+					assert.strictEqual(sorted.get(3, "city"), "NYC");
+				});
 
-	it('filters by predicate function', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 },
-			{ name: 'Charlie', age: 27 }
-		]);
-		const filtered = df.filterBy('age', age => age >= 25 && age < 30);
-		assert.strictEqual(filtered.length, 2);
-		assert.strictEqual(filtered.get(0, 'name'), 'Bob');
-		assert.strictEqual(filtered.get(1, 'name'), 'Charlie');
-	});
+				it("does not mutate original DataFrame", () => {
+					const df = new DataFrame([
+						{ name: "Charlie", age: 35 },
+						{ name: "Alice", age: 30 },
+					]);
+					const sorted = df.sortBy((a, b) => a.age - b.age);
+					assert.strictEqual(df.get(0, "name"), "Charlie");
+					assert.strictEqual(sorted.get(0, "name"), "Alice");
+				});
+			});
 
-	it('throws error for invalid column', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.filterBy('invalid', 'value'), /Column 'invalid' not found/);
-	});
+			describe("DataFrame filtering and sorting chaining", () => {
+				it("can chain filter and sort operations", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30, city: "NYC" },
+						{ name: "Bob", age: 25, city: "LA" },
+						{ name: "Charlie", age: 35, city: "NYC" },
+						{ name: "David", age: 20, city: "SF" },
+					]);
 
-	it('does not mutate original DataFrame', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		const filtered = df.filterBy('age', 30);
-		assert.strictEqual(df.length, 2);
-		assert.strictEqual(filtered.length, 1);
-	});
-});
+					// Filter for NYC residents, then sort by age
+					const result = df.filterBy("city", "NYC").sort("age");
+					assert.strictEqual(result.length, 2);
+					assert.strictEqual(result.get(0, "name"), "Alice");
+					assert.strictEqual(result.get(1, "name"), "Charlie");
+				});
 
-describe('DataFrame.sort()', () => {
+				it("can chain multiple filters", () => {
+					const df = new DataFrame([
+						{ name: "Alice", age: 30, city: "NYC" },
+						{ name: "Bob", age: 25, city: "LA" },
+						{ name: "Charlie", age: 35, city: "NYC" },
+						{ name: "David", age: 20, city: "NYC" },
+					]);
 
-	it('sorts by column ascending', () => {
-		const df = new DataFrame([
-			{ name: 'Charlie', age: 35 },
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 }
-		]);
-		const sorted = df.sort('age');
-		assert.strictEqual(sorted.get(0, 'name'), 'Bob');
-		assert.strictEqual(sorted.get(1, 'name'), 'Alice');
-		assert.strictEqual(sorted.get(2, 'name'), 'Charlie');
-	});
-
-	it('sorts by column descending', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 },
-			{ name: 'Charlie', age: 35 }
-		]);
-		const sorted = df.sort('age', false);
-		assert.strictEqual(sorted.get(0, 'name'), 'Charlie');
-		assert.strictEqual(sorted.get(1, 'name'), 'Alice');
-		assert.strictEqual(sorted.get(2, 'name'), 'Bob');
-	});
-
-	it('sorts strings alphabetically', () => {
-		const df = new DataFrame([
-			{ name: 'Charlie' },
-			{ name: 'Alice' },
-			{ name: 'Bob' }
-		]);
-		const sorted = df.sort('name');
-		assert.strictEqual(sorted.get(0, 'name'), 'Alice');
-		assert.strictEqual(sorted.get(1, 'name'), 'Bob');
-		assert.strictEqual(sorted.get(2, 'name'), 'Charlie');
-	});
-
-	it('handles null values (places at end)', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: null },
-			{ name: 'Charlie', age: 25 },
-			{ name: 'David', age: undefined }
-		]);
-		const sorted = df.sort('age');
-		assert.strictEqual(sorted.get(0, 'name'), 'Charlie');
-		assert.strictEqual(sorted.get(1, 'name'), 'Alice');
-		// Nulls should be at the end
-		assert.ok(sorted.get(2, 'age') === null || sorted.get(2, 'age') === undefined);
-		assert.ok(sorted.get(3, 'age') === null || sorted.get(3, 'age') === undefined);
-	});
-
-	it('handles equal values', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 25 },
-			{ name: 'Bob', age: 25 },
-			{ name: 'Charlie', age: 30 }
-		]);
-		const sorted = df.sort('age');
-		assert.strictEqual(sorted.get(0, 'age'), 25);
-		assert.strictEqual(sorted.get(1, 'age'), 25);
-		assert.strictEqual(sorted.get(2, 'age'), 30);
-	});
-
-	it('throws error for invalid column', () => {
-		const df = new DataFrame([{ name: 'Alice' }]);
-		assert.throws(() => df.sort('invalid'), /Column 'invalid' not found/);
-	});
-
-	it('does not mutate original DataFrame', () => {
-		const df = new DataFrame([
-			{ name: 'Charlie', age: 35 },
-			{ name: 'Alice', age: 30 }
-		]);
-		const sorted = df.sort('age');
-		assert.strictEqual(df.get(0, 'name'), 'Charlie');
-		assert.strictEqual(sorted.get(0, 'name'), 'Alice');
-	});
-});
-
-describe('DataFrame.sortBy()', () => {
-
-	it('sorts with custom comparator', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30 },
-			{ name: 'Bob', age: 25 },
-			{ name: 'Charlie', age: 35 }
-		]);
-		const sorted = df.sortBy((a, b) => a.age - b.age);
-		assert.strictEqual(sorted.get(0, 'name'), 'Bob');
-		assert.strictEqual(sorted.get(1, 'name'), 'Alice');
-		assert.strictEqual(sorted.get(2, 'name'), 'Charlie');
-	});
-
-	it('sorts by multiple columns', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', city: 'NYC', age: 30 },
-			{ name: 'Bob', city: 'LA', age: 25 },
-			{ name: 'Charlie', city: 'NYC', age: 35 },
-			{ name: 'David', city: 'LA', age: 20 }
-		]);
-		const sorted = df.sortBy((a, b) => {
-			// Sort by city, then by age
-			if (a.city !== b.city) return a.city.localeCompare(b.city);
-			return a.age - b.age;
-		});
-		assert.strictEqual(sorted.get(0, 'name'), 'David');
-		assert.strictEqual(sorted.get(0, 'city'), 'LA');
-		assert.strictEqual(sorted.get(1, 'name'), 'Bob');
-		assert.strictEqual(sorted.get(1, 'city'), 'LA');
-		assert.strictEqual(sorted.get(2, 'name'), 'Alice');
-		assert.strictEqual(sorted.get(2, 'city'), 'NYC');
-		assert.strictEqual(sorted.get(3, 'name'), 'Charlie');
-		assert.strictEqual(sorted.get(3, 'city'), 'NYC');
-	});
-
-	it('does not mutate original DataFrame', () => {
-		const df = new DataFrame([
-			{ name: 'Charlie', age: 35 },
-			{ name: 'Alice', age: 30 }
-		]);
-		const sorted = df.sortBy((a, b) => a.age - b.age);
-		assert.strictEqual(df.get(0, 'name'), 'Charlie');
-		assert.strictEqual(sorted.get(0, 'name'), 'Alice');
-	});
-});
-
-describe('DataFrame filtering and sorting chaining', () => {
-
-	it('can chain filter and sort operations', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30, city: 'NYC' },
-			{ name: 'Bob', age: 25, city: 'LA' },
-			{ name: 'Charlie', age: 35, city: 'NYC' },
-			{ name: 'David', age: 20, city: 'SF' }
-		]);
-
-		// Filter for NYC residents, then sort by age
-		const result = df.filterBy('city', 'NYC').sort('age');
-		assert.strictEqual(result.length, 2);
-		assert.strictEqual(result.get(0, 'name'), 'Alice');
-		assert.strictEqual(result.get(1, 'name'), 'Charlie');
-	});
-
-	it('can chain multiple filters', () => {
-		const df = new DataFrame([
-			{ name: 'Alice', age: 30, city: 'NYC' },
-			{ name: 'Bob', age: 25, city: 'LA' },
-			{ name: 'Charlie', age: 35, city: 'NYC' },
-			{ name: 'David', age: 20, city: 'NYC' }
-		]);
-
-		// Filter for NYC residents over 25
-		const result = df.filterBy('city', 'NYC').filter(row => row.age > 25);
-		assert.strictEqual(result.length, 2);
-		assert.strictEqual(result.get(0, 'name'), 'Alice');
-		assert.strictEqual(result.get(1, 'name'), 'Charlie');
-	});
-});
-	</script>
-</body>
+					// Filter for NYC residents over 25
+					const result = df
+						.filterBy("city", "NYC")
+						.filter((row) => row.age > 25);
+					assert.strictEqual(result.length, 2);
+					assert.strictEqual(result.get(0, "name"), "Alice");
+					assert.strictEqual(result.get(1, "name"), "Charlie");
+				});
+			});
+		</script>
+	</body>
 </html>

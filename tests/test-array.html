@@ -1,858 +1,902 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-	<meta charset="utf-8">
-	<title>NDArray Tests</title>
-</head>
-<body>
-	<h1>NDArray Tests</h1>
-	<p>Check console for results...</p>
-
-	<!-- Load test framework -->
-	<script src="test-framework.js"></script>
-
-	<!-- Load source file -->
-	<script src="../src/array.js"></script>
-
-	<!-- Tests -->
-	<script>
-describe('NDArray constructor', () => {
-
-	it('creates 1D array', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		assert.strictEqual(arr.ndim, 1);
-		assert.deepStrictEqual(arr.shape, [3]);
-		assert.strictEqual(arr.dtype, 'float32');
-	});
-
-	it('creates 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.strictEqual(arr.ndim, 2);
-		assert.deepStrictEqual(arr.shape, [2, 2]);
-	});
-
-	it('validates data length matches shape', () => {
-		const data = new Float32Array([1, 2, 3]);
-		assert.throws(() => new NDArray(data, [2, 2], 'float32'), /doesn't match shape/);
-	});
-
-	it('calculates size from shape', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		assert.strictEqual(arr._size, 6);
-	});
-});
-
-describe('NDArray.get()', () => {
-
-	it('gets single element from 1D array', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		assert.strictEqual(arr.get(0), 1);
-		assert.strictEqual(arr.get(1), 2);
-		assert.strictEqual(arr.get(2), 3);
-	});
-
-	it('gets single element from 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.strictEqual(arr.get(0, 0), 1);
-		assert.strictEqual(arr.get(0, 1), 2);
-		assert.strictEqual(arr.get(1, 0), 3);
-		assert.strictEqual(arr.get(1, 1), 4);
-	});
-
-	it('handles negative indices', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		assert.strictEqual(arr.get(-1), 3);
-		assert.strictEqual(arr.get(-2), 2);
-	});
-
-	it('throws error for out of bounds index', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		assert.throws(() => arr.get(5), /out of bounds/);
-	});
-
-	it('gets slice with null index', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		const slice = arr.get(0, null);
-		assert.ok(slice instanceof NDArray);
-		assert.strictEqual(slice.shape.length, 1);
-		assert.strictEqual(slice.shape[0], 2);
-		assertArrayEqual(Array.from(slice.data), [1, 2]);
-	});
-});
-
-describe('NDArray.set()', () => {
-
-	it('sets single element in 1D array', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		arr.set(1, 99);
-		assert.strictEqual(arr.get(1), 99);
-	});
-
-	it('sets single element in 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		arr.set(0, 1, 99);
-		assert.strictEqual(arr.get(0, 1), 99);
-	});
-
-	it('sets multiple elements with null index', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		arr.set(0, null, 99);
-		assert.strictEqual(arr.get(0, 0), 99);
-		assert.strictEqual(arr.get(0, 1), 99);
-	});
-
-	it('sets multiple elements with array', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		arr.set(0, null, [10, 20]);
-		assert.strictEqual(arr.get(0, 0), 10);
-		assert.strictEqual(arr.get(0, 1), 20);
-	});
-});
-
-describe('NDArray.toString()', () => {
-
-	it('formats 1D array', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		const str = arr.toString();
-		assert.ok(str.includes('1'));
-		assert.ok(str.includes('2'));
-		assert.ok(str.includes('3'));
-	});
-
-	it('formats higher dimensional arrays', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		const str = arr.toString();
-		assert.ok(str.includes('2X2'));
-		assert.ok(str.includes('float32'));
-	});
-});
-
-describe('NDArray.inferFormat()', () => {
-
-	it('infers array_list_meta', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_list_meta",
-			"data": [[1, 2], [3, 4]]
-		};
-		assert.strictEqual(NDArray.inferFormat(obj), "array_list_meta");
-	});
-
-	it('infers array_b64_meta', () => {
-		const obj = {
-			"__muutils_format__": "torch.Tensor:array_b64_meta",
-			"data": "ABC="
-		};
-		assert.strictEqual(NDArray.inferFormat(obj), "array_b64_meta");
-	});
-
-	it('infers array_hex_meta', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_hex_meta",
-			"data": "deadbeef"
-		};
-		assert.strictEqual(NDArray.inferFormat(obj), "array_hex_meta");
-	});
-
-	it('infers zero_dim', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:zero_dim",
-			"data": 3.14
-		};
-		assert.strictEqual(NDArray.inferFormat(obj), "zero_dim");
-	});
-
-	it('infers list for plain arrays', () => {
-		assert.strictEqual(NDArray.inferFormat([1, 2, 3]), "list");
-	});
-
-	it('returns null for plain objects', () => {
-		assert.strictEqual(NDArray.inferFormat({}), null);
-		assert.strictEqual(NDArray.inferFormat({ foo: "bar" }), null);
-	});
-
-	it('returns null for primitives', () => {
-		assert.strictEqual(NDArray.inferFormat(null), null);
-		assert.strictEqual(NDArray.inferFormat(42), null);
-		assert.strictEqual(NDArray.inferFormat("string"), null);
-	});
-});
-
-describe('NDArray.fromJSON() - array_list_meta', () => {
-
-	it('deserializes array_list_meta format', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_list_meta",
-			"shape": [2, 3],
-			"dtype": "float32",
-			"data": [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]],
-			"n_elements": 6
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.shape[0], 2);
-		assert.strictEqual(arr.shape[1], 3);
-		assert.strictEqual(arr.dtype, "float32");
-		assertArrayEqual(Array.from(arr.data), [1, 2, 3, 4, 5, 6]);
-	});
-
-	it('handles int64 with BigInt', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_list_meta",
-			"shape": [2],
-			"dtype": "int64",
-			"data": [100, 200],
-			"n_elements": 2
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.dtype, "int64");
-		assert.strictEqual(arr.data[0], 100n);
-		assert.strictEqual(arr.data[1], 200n);
-	});
-});
-
-describe('NDArray.fromJSON() - array_b64_meta', () => {
-
-	it('deserializes array_b64_meta format', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_b64_meta",
-			"shape": [3],
-			"dtype": "float32",
-			"data": "AACAPwAAAEAAAEBA", // [1.0, 2.0, 3.0]
-			"n_elements": 3
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.shape[0], 3);
-		assert.strictEqual(arr.dtype, "float32");
-		assertArrayEqual(Array.from(arr.data), [1.0, 2.0, 3.0]);
-	});
-
-	it('handles different dtypes', () => {
-		// uint8: [1, 2, 3]
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_b64_meta",
-			"shape": [3],
-			"dtype": "uint8",
-			"data": "AQID",
-			"n_elements": 3
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.dtype, "uint8");
-		assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
-	});
-});
-
-describe('NDArray.fromJSON() - array_hex_meta', () => {
-
-	it('deserializes array_hex_meta format', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_hex_meta",
-			"shape": [3],
-			"dtype": "uint8",
-			"data": "010203",
-			"n_elements": 3
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.shape[0], 3);
-		assert.strictEqual(arr.dtype, "uint8");
-		assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
-	});
-});
-
-describe('NDArray.fromJSON() - zero_dim', () => {
-
-	it('deserializes zero_dim format', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:zero_dim",
-			"shape": [],
-			"dtype": "float32",
-			"data": 42.0,
-			"n_elements": 1
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.shape.length, 0);
-		assert.strictEqual(arr.dtype, "float32");
-		assert.strictEqual(arr.data[0], 42.0);
-	});
-
-	it('handles int64 scalar', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:zero_dim",
-			"shape": [],
-			"dtype": "int64",
-			"data": 12345,
-			"n_elements": 1
-		};
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.data[0], 12345n);
-	});
-});
-
-describe('NDArray.fromJSON() - list', () => {
-
-	it('deserializes plain arrays', () => {
-		const obj = [1, 2, 3, 4, 5];
-		const arr = NDArray.fromJSON(obj);
-		assert.strictEqual(arr.shape[0], 5);
-		assert.strictEqual(arr.dtype, 'float64');
-		assertArrayEqual(Array.from(arr.data), [1, 2, 3, 4, 5]);
-	});
-});
-
-describe('NDArray.fromJSON() - error handling', () => {
-
-	it('throws error for unrecognized format', () => {
-		const obj = { foo: 'bar' };
-		assert.throws(() => NDArray.fromJSON(obj), /Cannot infer array format/);
-	});
-
-	it('throws error for missing metadata', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_list_meta",
-			// Missing shape and dtype
-			"data": [[1, 2]]
-		};
-		assert.throws(() => NDArray.fromJSON(obj), /Missing shape or dtype/);
-	});
-
-	it('throws error for unsupported dtype', () => {
-		const obj = {
-			"__muutils_format__": "numpy.ndarray:array_list_meta",
-			"shape": [2],
-			"dtype": "complex128", // Unsupported
-			"data": [1, 2]
-		};
-		assert.throws(() => NDArray.fromJSON(obj), /Unsupported dtype/);
-	});
-});
-
-describe('NDArray dtypes', () => {
-
-	const dtypeTests = [
-		{ name: 'uint8', value: 255, constructor: Uint8Array },
-		{ name: 'uint16', value: 65535, constructor: Uint16Array },
-		{ name: 'uint32', value: 4294967295, constructor: Uint32Array },
-		{ name: 'int8', value: -128, constructor: Int8Array },
-		{ name: 'int16', value: -32768, constructor: Int16Array },
-		{ name: 'int32', value: -2147483648, constructor: Int32Array },
-		{ name: 'float32', value: 3.14, constructor: Float32Array },
-		{ name: 'float64', value: 3.14159265359, constructor: Float64Array }
-	];
-
-	for (const { name, value, constructor } of dtypeTests) {
-		it(`handles ${name} dtype`, () => {
-			const data = new constructor([value]);
-			const arr = new NDArray(data, [1], name);
-			assert.strictEqual(arr.dtype, name);
-			assert.ok(arr.data instanceof constructor);
-		});
-	}
-
-	it('handles uint64 with BigUint64Array', () => {
-		const data = new BigUint64Array([18446744073709551615n]);
-		const arr = new NDArray(data, [1], 'uint64');
-		assert.strictEqual(arr.dtype, 'uint64');
-		assert.ok(arr.data instanceof BigUint64Array);
-	});
-
-	it('handles int64 with BigInt64Array', () => {
-		const data = new BigInt64Array([-9223372036854775808n]);
-		const arr = new NDArray(data, [1], 'int64');
-		assert.strictEqual(arr.dtype, 'int64');
-		assert.ok(arr.data instanceof BigInt64Array);
-	});
-});
-
-describe('NDArray edge cases', () => {
-
-	it('handles empty array', () => {
-		const data = new Float32Array([]);
-		const arr = new NDArray(data, [0], 'float32');
-		assert.strictEqual(arr._size, 0);
-		assert.strictEqual(arr.data.length, 0);
-	});
-
-	it('handles single element', () => {
-		const data = new Float32Array([42]);
-		const arr = new NDArray(data, [1], 'float32');
-		assert.strictEqual(arr._size, 1);
-		assert.strictEqual(arr.get(0), 42);
-	});
-
-	it('handles 3D arrays', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [2, 2, 2], 'float32');
-		assert.strictEqual(arr.ndim, 3);
-		assert.strictEqual(arr._size, 8);
-	});
-
-	it('handles high-dimensional arrays', () => {
-		const data = new Float32Array(new Array(16).fill(1));
-		const arr = new NDArray(data, [2, 2, 2, 2], 'float32');
-		assert.strictEqual(arr.ndim, 4);
-		assert.strictEqual(arr._size, 16);
-	});
-});
-
-describe('NDArray.size getter', () => {
-
-	it('returns size for 1D array', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		assert.strictEqual(arr.size, 3);
-	});
-
-	it('returns size for 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		assert.strictEqual(arr.size, 6);
-	});
-
-	it('returns size for 3D array', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [2, 2, 2], 'float32');
-		assert.strictEqual(arr.size, 8);
-	});
-});
-
-describe('NDArray.flatten()', () => {
-
-	it('flattens 2D array to 1D', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const flat = arr.flatten();
-		assert.strictEqual(flat.ndim, 1);
-		assert.deepStrictEqual(flat.shape, [6]);
-		assertArrayEqual(Array.from(flat.data), [1, 2, 3, 4, 5, 6]);
-	});
-
-	it('flattens 3D array to 1D', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [2, 2, 2], 'float32');
-		const flat = arr.flatten();
-		assert.strictEqual(flat.ndim, 1);
-		assert.deepStrictEqual(flat.shape, [8]);
-		assertArrayEqual(Array.from(flat.data), [1, 2, 3, 4, 5, 6, 7, 8]);
-	});
-
-	it('1D array remains 1D', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		const flat = arr.flatten();
-		assert.strictEqual(flat.ndim, 1);
-		assert.deepStrictEqual(flat.shape, [3]);
-	});
-});
-
-describe('NDArray.sum()', () => {
-
-	it('sums all elements (no axis)', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		assert.strictEqual(arr.sum(), 21);
-	});
-
-	it('sums along axis 0 for 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.sum(0);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [3]);
-		assertArrayEqual(Array.from(result.data), [5, 7, 9]);
-	});
-
-	it('sums along axis 1 for 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.sum(1);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [2]);
-		assertArrayEqual(Array.from(result.data), [6, 15]);
-	});
-
-	it('sums along negative axis', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.sum(-1);
-		assert.deepStrictEqual(result.shape, [2]);
-		assertArrayEqual(Array.from(result.data), [6, 15]);
-	});
-
-	it('handles single element', () => {
-		const data = new Float32Array([42]);
-		const arr = new NDArray(data, [1], 'float32');
-		assert.strictEqual(arr.sum(), 42);
-	});
-
-	it('sums 3D array along axis 0', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [2, 2, 2], 'float32');
-		const result = arr.sum(0);
-		assert.deepStrictEqual(result.shape, [2, 2]);
-		assertArrayEqual(Array.from(result.data), [6, 8, 10, 12]);
-	});
-
-	it('throws error for out of bounds axis', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.throws(() => arr.sum(5), /out of bounds/);
-	});
-});
-
-describe('NDArray.mean()', () => {
-
-	it('computes mean of all elements (no axis)', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		assert.strictEqual(arr.mean(), 3.5);
-	});
-
-	it('computes mean along axis 0 for 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.mean(0);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [3]);
-		assertArrayEqual(Array.from(result.data), [2.5, 3.5, 4.5]);
-	});
-
-	it('computes mean along axis 1 for 2D array', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.mean(1);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [2]);
-		assertArrayEqual(Array.from(result.data), [2, 5]);
-	});
-
-	it('returns NaN for empty array', () => {
-		const data = new Float32Array([]);
-		const arr = new NDArray(data, [0], 'float32');
-		assert.ok(isNaN(arr.mean()));
-	});
-
-	it('handles single element', () => {
-		const data = new Float32Array([42]);
-		const arr = new NDArray(data, [1], 'float32');
-		assert.strictEqual(arr.mean(), 42);
-	});
-});
-
-describe('NDArray.range()', () => {
-
-	it('computes range of all elements (no axis)', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.range();
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [2]);
-		assert.strictEqual(result.data[0], 1); // min
-		assert.strictEqual(result.data[1], 9); // max
-	});
-
-	it('computes range along axis 0 for 2D array', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.range(0);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [3, 2]);
-		// For each column: [min, max]
-		assertArrayEqual(Array.from(result.data), [1, 5, 2, 9, 3, 8]);
-	});
-
-	it('computes range along axis 1 for 2D array', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.range(1);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [2, 2]);
-		// For each row: [min, max]
-		assertArrayEqual(Array.from(result.data), [2, 8, 1, 9]);
-	});
-
-	it('handles single element', () => {
-		const data = new Float32Array([42]);
-		const arr = new NDArray(data, [1], 'float32');
-		const result = arr.range();
-		assert.deepStrictEqual(result.shape, [2]);
-		assert.strictEqual(result.data[0], 42); // min
-		assert.strictEqual(result.data[1], 42); // max
-	});
-});
-
-describe('NDArray.min()', () => {
-
-	it('finds minimum of all elements (no axis)', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		assert.strictEqual(arr.min(), 1);
-	});
-
-	it('finds minimum along axis 0 for 2D array', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.min(0);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [3]);
-		assertArrayEqual(Array.from(result.data), [1, 2, 3]);
-	});
-
-	it('finds minimum along axis 1 for 2D array', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.min(1);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [2]);
-		assertArrayEqual(Array.from(result.data), [2, 1]);
-	});
-
-	it('handles negative numbers', () => {
-		const data = new Float32Array([-5, -2, -8, -1]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.strictEqual(arr.min(), -8);
-	});
-
-	it('handles single element', () => {
-		const data = new Float32Array([42]);
-		const arr = new NDArray(data, [1], 'float32');
-		assert.strictEqual(arr.min(), 42);
-	});
-});
-
-describe('NDArray.max()', () => {
-
-	it('finds maximum of all elements (no axis)', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		assert.strictEqual(arr.max(), 9);
-	});
-
-	it('finds maximum along axis 0 for 2D array', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.max(0);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [3]);
-		assertArrayEqual(Array.from(result.data), [5, 9, 8]);
-	});
-
-	it('finds maximum along axis 1 for 2D array', () => {
-		const data = new Float32Array([5, 2, 8, 1, 9, 3]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const result = arr.max(1);
-		assert.ok(result instanceof NDArray);
-		assert.deepStrictEqual(result.shape, [2]);
-		assertArrayEqual(Array.from(result.data), [8, 9]);
-	});
-
-	it('handles negative numbers', () => {
-		const data = new Float32Array([-5, -2, -8, -1]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.strictEqual(arr.max(), -1);
-	});
-
-	it('handles single element', () => {
-		const data = new Float32Array([42]);
-		const arr = new NDArray(data, [1], 'float32');
-		assert.strictEqual(arr.max(), 42);
-	});
-});
-
-describe('NDArray.reshape()', () => {
-
-	it('reshapes 1D to 2D', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [6], 'float32');
-		const reshaped = arr.reshape([2, 3]);
-		assert.deepStrictEqual(reshaped.shape, [2, 3]);
-		assert.strictEqual(reshaped.size, 6);
-		assertArrayEqual(Array.from(reshaped.data), [1, 2, 3, 4, 5, 6]);
-	});
-
-	it('reshapes 2D to different 2D', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const reshaped = arr.reshape([3, 2]);
-		assert.deepStrictEqual(reshaped.shape, [3, 2]);
-		assert.strictEqual(reshaped.size, 6);
-	});
-
-	it('reshapes 2D to 1D', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const reshaped = arr.reshape([6]);
-		assert.deepStrictEqual(reshaped.shape, [6]);
-		assert.strictEqual(reshaped.size, 6);
-	});
-
-	it('handles -1 for auto-calculation', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [6], 'float32');
-		const reshaped = arr.reshape([2, -1]);
-		assert.deepStrictEqual(reshaped.shape, [2, 3]);
-	});
-
-	it('handles -1 in different position', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [8], 'float32');
-		const reshaped = arr.reshape([-1, 2, 2]);
-		assert.deepStrictEqual(reshaped.shape, [2, 2, 2]);
-	});
-
-	it('throws error for multiple -1s', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [4], 'float32');
-		assert.throws(() => arr.reshape([-1, -1]), /only specify one unknown dimension/);
-	});
-
-	it('throws error for incompatible size', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5]);
-		const arr = new NDArray(data, [5], 'float32');
-		assert.throws(() => arr.reshape([2, 2]), /cannot reshape/);
-	});
-
-	it('throws error for incompatible -1 dimension', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5]);
-		const arr = new NDArray(data, [5], 'float32');
-		assert.throws(() => arr.reshape([2, -1]), /cannot reshape/);
-	});
-});
-
-describe('NDArray.transpose()', () => {
-
-	it('transposes 2D array (default)', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		// [[1, 2, 3],
-		//  [4, 5, 6]]
-		const transposed = arr.transpose();
-		assert.deepStrictEqual(transposed.shape, [3, 2]);
-		// [[1, 4],
-		//  [2, 5],
-		//  [3, 6]]
-		assertArrayEqual(Array.from(transposed.data), [1, 4, 2, 5, 3, 6]);
-	});
-
-	it('transposes 1D array', () => {
-		const data = new Float32Array([1, 2, 3]);
-		const arr = new NDArray(data, [3], 'float32');
-		const transposed = arr.transpose();
-		assert.deepStrictEqual(transposed.shape, [3]);
-		assertArrayEqual(Array.from(transposed.data), [1, 2, 3]);
-	});
-
-	it('transposes 3D array (default)', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [2, 2, 2], 'float32');
-		const transposed = arr.transpose();
-		assert.deepStrictEqual(transposed.shape, [2, 2, 2]);
-		// Default transpose reverses all axes: [2,2,2] -> [2,2,2] with axes [2,1,0]
-	});
-
-	it('transposes with custom axes', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
-		const arr = new NDArray(data, [2, 2, 2], 'float32');
-		const transposed = arr.transpose([1, 0, 2]);
-		assert.deepStrictEqual(transposed.shape, [2, 2, 2]);
-	});
-
-	it('throws error for invalid axes length', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.throws(() => arr.transpose([0]), /axes must be array of length/);
-	});
-
-	it('throws error for invalid axes (out of bounds)', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.throws(() => arr.transpose([0, 5]), /out of bounds/);
-	});
-
-	it('throws error for duplicate axes', () => {
-		const data = new Float32Array([1, 2, 3, 4]);
-		const arr = new NDArray(data, [2, 2], 'float32');
-		assert.throws(() => arr.transpose([0, 0]), /must be a permutation/);
-	});
-
-	it('double transpose returns to original', () => {
-		const data = new Float32Array([1, 2, 3, 4, 5, 6]);
-		const arr = new NDArray(data, [2, 3], 'float32');
-		const transposed = arr.transpose();
-		const doubleTransposed = transposed.transpose();
-		assert.deepStrictEqual(doubleTransposed.shape, arr.shape);
-		assertArrayEqual(Array.from(doubleTransposed.data), Array.from(arr.data));
-	});
-});
-
-describe('float16ToFloat32()', () => {
-
-	it('converts float16 zero to float32', () => {
-		const result = float16ToFloat32(0x0000);
-		assert.strictEqual(result, 0);
-	});
-
-	it('converts float16 one to float32', () => {
-		const result = float16ToFloat32(0x3c00);
-		assert.strictEqual(result, 1.0);
-	});
-
-	it('converts float16 negative one to float32', () => {
-		const result = float16ToFloat32(0xbc00);
-		assert.strictEqual(result, -1.0);
-	});
-
-	it('converts float16 positive infinity', () => {
-		const result = float16ToFloat32(0x7c00);
-		assert.strictEqual(result, Infinity);
-	});
-
-	it('converts float16 negative infinity', () => {
-		const result = float16ToFloat32(0xfc00);
-		assert.strictEqual(result, -Infinity);
-	});
-
-	it('converts float16 NaN', () => {
-		const result = float16ToFloat32(0x7e00);
-		assert.ok(isNaN(result));
-	});
-
-	it('converts float16 negative zero', () => {
-		const result = float16ToFloat32(0x8000);
-		assert.strictEqual(result, -0);
-		assert.strictEqual(1 / result, -Infinity); // Verify it's -0, not +0
-	});
-});
-
-describe('float16ToFloat32Array()', () => {
-
-	it('converts array of float16 values', () => {
-		const float16Array = new Uint16Array([0x0000, 0x3c00, 0xbc00]);
-		const result = float16ToFloat32Array(float16Array);
-		assert.ok(result instanceof Float32Array);
-		assert.strictEqual(result.length, 3);
-		assert.strictEqual(result[0], 0);
-		assert.strictEqual(result[1], 1.0);
-		assert.strictEqual(result[2], -1.0);
-	});
-
-	it('handles empty array', () => {
-		const float16Array = new Uint16Array([]);
-		const result = float16ToFloat32Array(float16Array);
-		assert.strictEqual(result.length, 0);
-	});
-});
-	</script>
-</body>
+	<head>
+		<meta charset="utf-8" />
+		<title>NDArray Tests</title>
+	</head>
+	<body>
+		<h1>NDArray Tests</h1>
+		<p>Check console for results...</p>
+
+		<!-- Load test framework -->
+		<script src="test-framework.js"></script>
+
+		<!-- Load source file -->
+		<script src="../src/array.js"></script>
+
+		<!-- Tests -->
+		<script>
+			describe("NDArray constructor", () => {
+				it("creates 1D array", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					assert.strictEqual(arr.ndim, 1);
+					assert.deepStrictEqual(arr.shape, [3]);
+					assert.strictEqual(arr.dtype, "float32");
+				});
+
+				it("creates 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.strictEqual(arr.ndim, 2);
+					assert.deepStrictEqual(arr.shape, [2, 2]);
+				});
+
+				it("validates data length matches shape", () => {
+					const data = new Float32Array([1, 2, 3]);
+					assert.throws(
+						() => new NDArray(data, [2, 2], "float32"),
+						/doesn't match shape/,
+					);
+				});
+
+				it("calculates size from shape", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					assert.strictEqual(arr._size, 6);
+				});
+			});
+
+			describe("NDArray.get()", () => {
+				it("gets single element from 1D array", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					assert.strictEqual(arr.get(0), 1);
+					assert.strictEqual(arr.get(1), 2);
+					assert.strictEqual(arr.get(2), 3);
+				});
+
+				it("gets single element from 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.strictEqual(arr.get(0, 0), 1);
+					assert.strictEqual(arr.get(0, 1), 2);
+					assert.strictEqual(arr.get(1, 0), 3);
+					assert.strictEqual(arr.get(1, 1), 4);
+				});
+
+				it("handles negative indices", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					assert.strictEqual(arr.get(-1), 3);
+					assert.strictEqual(arr.get(-2), 2);
+				});
+
+				it("throws error for out of bounds index", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					assert.throws(() => arr.get(5), /out of bounds/);
+				});
+
+				it("gets slice with null index", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					const slice = arr.get(0, null);
+					assert.ok(slice instanceof NDArray);
+					assert.strictEqual(slice.shape.length, 1);
+					assert.strictEqual(slice.shape[0], 2);
+					assertArrayEqual(Array.from(slice.data), [1, 2]);
+				});
+			});
+
+			describe("NDArray.set()", () => {
+				it("sets single element in 1D array", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					arr.set(1, 99);
+					assert.strictEqual(arr.get(1), 99);
+				});
+
+				it("sets single element in 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					arr.set(0, 1, 99);
+					assert.strictEqual(arr.get(0, 1), 99);
+				});
+
+				it("sets multiple elements with null index", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					arr.set(0, null, 99);
+					assert.strictEqual(arr.get(0, 0), 99);
+					assert.strictEqual(arr.get(0, 1), 99);
+				});
+
+				it("sets multiple elements with array", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					arr.set(0, null, [10, 20]);
+					assert.strictEqual(arr.get(0, 0), 10);
+					assert.strictEqual(arr.get(0, 1), 20);
+				});
+			});
+
+			describe("NDArray.toString()", () => {
+				it("formats 1D array", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					const str = arr.toString();
+					assert.ok(str.includes("1"));
+					assert.ok(str.includes("2"));
+					assert.ok(str.includes("3"));
+				});
+
+				it("formats higher dimensional arrays", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					const str = arr.toString();
+					assert.ok(str.includes("2X2"));
+					assert.ok(str.includes("float32"));
+				});
+			});
+
+			describe("NDArray.inferFormat()", () => {
+				it("infers array_list_meta", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_list_meta",
+						data: [
+							[1, 2],
+							[3, 4],
+						],
+					};
+					assert.strictEqual(
+						NDArray.inferFormat(obj),
+						"array_list_meta",
+					);
+				});
+
+				it("infers array_b64_meta", () => {
+					const obj = {
+						__muutils_format__: "torch.Tensor:array_b64_meta",
+						data: "ABC=",
+					};
+					assert.strictEqual(
+						NDArray.inferFormat(obj),
+						"array_b64_meta",
+					);
+				});
+
+				it("infers array_hex_meta", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_hex_meta",
+						data: "deadbeef",
+					};
+					assert.strictEqual(
+						NDArray.inferFormat(obj),
+						"array_hex_meta",
+					);
+				});
+
+				it("infers zero_dim", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:zero_dim",
+						data: 3.14,
+					};
+					assert.strictEqual(NDArray.inferFormat(obj), "zero_dim");
+				});
+
+				it("infers list for plain arrays", () => {
+					assert.strictEqual(NDArray.inferFormat([1, 2, 3]), "list");
+				});
+
+				it("returns null for plain objects", () => {
+					assert.strictEqual(NDArray.inferFormat({}), null);
+					assert.strictEqual(
+						NDArray.inferFormat({ foo: "bar" }),
+						null,
+					);
+				});
+
+				it("returns null for primitives", () => {
+					assert.strictEqual(NDArray.inferFormat(null), null);
+					assert.strictEqual(NDArray.inferFormat(42), null);
+					assert.strictEqual(NDArray.inferFormat("string"), null);
+				});
+			});
+
+			describe("NDArray.fromJSON() - array_list_meta", () => {
+				it("deserializes array_list_meta format", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_list_meta",
+						shape: [2, 3],
+						dtype: "float32",
+						data: [
+							[1.0, 2.0, 3.0],
+							[4.0, 5.0, 6.0],
+						],
+						n_elements: 6,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.shape[0], 2);
+					assert.strictEqual(arr.shape[1], 3);
+					assert.strictEqual(arr.dtype, "float32");
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3, 4, 5, 6]);
+				});
+
+				it("handles int64 with BigInt", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_list_meta",
+						shape: [2],
+						dtype: "int64",
+						data: [100, 200],
+						n_elements: 2,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.dtype, "int64");
+					assert.strictEqual(arr.data[0], 100n);
+					assert.strictEqual(arr.data[1], 200n);
+				});
+			});
+
+			describe("NDArray.fromJSON() - array_b64_meta", () => {
+				it("deserializes array_b64_meta format", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_b64_meta",
+						shape: [3],
+						dtype: "float32",
+						data: "AACAPwAAAEAAAEBA", // [1.0, 2.0, 3.0]
+						n_elements: 3,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.shape[0], 3);
+					assert.strictEqual(arr.dtype, "float32");
+					assertArrayEqual(Array.from(arr.data), [1.0, 2.0, 3.0]);
+				});
+
+				it("handles different dtypes", () => {
+					// uint8: [1, 2, 3]
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_b64_meta",
+						shape: [3],
+						dtype: "uint8",
+						data: "AQID",
+						n_elements: 3,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.dtype, "uint8");
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
+				});
+			});
+
+			describe("NDArray.fromJSON() - array_hex_meta", () => {
+				it("deserializes array_hex_meta format", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_hex_meta",
+						shape: [3],
+						dtype: "uint8",
+						data: "010203",
+						n_elements: 3,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.shape[0], 3);
+					assert.strictEqual(arr.dtype, "uint8");
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
+				});
+			});
+
+			describe("NDArray.fromJSON() - zero_dim", () => {
+				it("deserializes zero_dim format", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:zero_dim",
+						shape: [],
+						dtype: "float32",
+						data: 42.0,
+						n_elements: 1,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.shape.length, 0);
+					assert.strictEqual(arr.dtype, "float32");
+					assert.strictEqual(arr.data[0], 42.0);
+				});
+
+				it("handles int64 scalar", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:zero_dim",
+						shape: [],
+						dtype: "int64",
+						data: 12345,
+						n_elements: 1,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.data[0], 12345n);
+				});
+			});
+
+			describe("NDArray.fromJSON() - list", () => {
+				it("deserializes plain arrays", () => {
+					const obj = [1, 2, 3, 4, 5];
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.shape[0], 5);
+					assert.strictEqual(arr.dtype, "float64");
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3, 4, 5]);
+				});
+			});
+
+			describe("NDArray.fromJSON() - error handling", () => {
+				it("throws error for unrecognized format", () => {
+					const obj = { foo: "bar" };
+					assert.throws(
+						() => NDArray.fromJSON(obj),
+						/Cannot infer array format/,
+					);
+				});
+
+				it("throws error for missing metadata", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_list_meta",
+						// Missing shape and dtype
+						data: [[1, 2]],
+					};
+					assert.throws(
+						() => NDArray.fromJSON(obj),
+						/Missing shape or dtype/,
+					);
+				});
+
+				it("throws error for unsupported dtype", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_list_meta",
+						shape: [2],
+						dtype: "complex128", // Unsupported
+						data: [1, 2],
+					};
+					assert.throws(
+						() => NDArray.fromJSON(obj),
+						/Unsupported dtype/,
+					);
+				});
+			});
+
+			describe("NDArray dtypes", () => {
+				const dtypeTests = [
+					{ name: "uint8", value: 255, constructor: Uint8Array },
+					{ name: "uint16", value: 65535, constructor: Uint16Array },
+					{
+						name: "uint32",
+						value: 4294967295,
+						constructor: Uint32Array,
+					},
+					{ name: "int8", value: -128, constructor: Int8Array },
+					{ name: "int16", value: -32768, constructor: Int16Array },
+					{
+						name: "int32",
+						value: -2147483648,
+						constructor: Int32Array,
+					},
+					{ name: "float32", value: 3.14, constructor: Float32Array },
+					{
+						name: "float64",
+						value: 3.14159265359,
+						constructor: Float64Array,
+					},
+				];
+
+				for (const { name, value, constructor } of dtypeTests) {
+					it(`handles ${name} dtype`, () => {
+						const data = new constructor([value]);
+						const arr = new NDArray(data, [1], name);
+						assert.strictEqual(arr.dtype, name);
+						assert.ok(arr.data instanceof constructor);
+					});
+				}
+
+				it("handles uint64 with BigUint64Array", () => {
+					const data = new BigUint64Array([18446744073709551615n]);
+					const arr = new NDArray(data, [1], "uint64");
+					assert.strictEqual(arr.dtype, "uint64");
+					assert.ok(arr.data instanceof BigUint64Array);
+				});
+
+				it("handles int64 with BigInt64Array", () => {
+					const data = new BigInt64Array([-9223372036854775808n]);
+					const arr = new NDArray(data, [1], "int64");
+					assert.strictEqual(arr.dtype, "int64");
+					assert.ok(arr.data instanceof BigInt64Array);
+				});
+			});
+
+			describe("NDArray edge cases", () => {
+				it("handles empty array", () => {
+					const data = new Float32Array([]);
+					const arr = new NDArray(data, [0], "float32");
+					assert.strictEqual(arr._size, 0);
+					assert.strictEqual(arr.data.length, 0);
+				});
+
+				it("handles single element", () => {
+					const data = new Float32Array([42]);
+					const arr = new NDArray(data, [1], "float32");
+					assert.strictEqual(arr._size, 1);
+					assert.strictEqual(arr.get(0), 42);
+				});
+
+				it("handles 3D arrays", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [2, 2, 2], "float32");
+					assert.strictEqual(arr.ndim, 3);
+					assert.strictEqual(arr._size, 8);
+				});
+
+				it("handles high-dimensional arrays", () => {
+					const data = new Float32Array(new Array(16).fill(1));
+					const arr = new NDArray(data, [2, 2, 2, 2], "float32");
+					assert.strictEqual(arr.ndim, 4);
+					assert.strictEqual(arr._size, 16);
+				});
+			});
+
+			describe("NDArray.size getter", () => {
+				it("returns size for 1D array", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					assert.strictEqual(arr.size, 3);
+				});
+
+				it("returns size for 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					assert.strictEqual(arr.size, 6);
+				});
+
+				it("returns size for 3D array", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [2, 2, 2], "float32");
+					assert.strictEqual(arr.size, 8);
+				});
+			});
+
+			describe("NDArray.flatten()", () => {
+				it("flattens 2D array to 1D", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const flat = arr.flatten();
+					assert.strictEqual(flat.ndim, 1);
+					assert.deepStrictEqual(flat.shape, [6]);
+					assertArrayEqual(Array.from(flat.data), [1, 2, 3, 4, 5, 6]);
+				});
+
+				it("flattens 3D array to 1D", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [2, 2, 2], "float32");
+					const flat = arr.flatten();
+					assert.strictEqual(flat.ndim, 1);
+					assert.deepStrictEqual(flat.shape, [8]);
+					assertArrayEqual(
+						Array.from(flat.data),
+						[1, 2, 3, 4, 5, 6, 7, 8],
+					);
+				});
+
+				it("1D array remains 1D", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					const flat = arr.flatten();
+					assert.strictEqual(flat.ndim, 1);
+					assert.deepStrictEqual(flat.shape, [3]);
+				});
+			});
+
+			describe("NDArray.sum()", () => {
+				it("sums all elements (no axis)", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					assert.strictEqual(arr.sum(), 21);
+				});
+
+				it("sums along axis 0 for 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.sum(0);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [3]);
+					assertArrayEqual(Array.from(result.data), [5, 7, 9]);
+				});
+
+				it("sums along axis 1 for 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.sum(1);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [2]);
+					assertArrayEqual(Array.from(result.data), [6, 15]);
+				});
+
+				it("sums along negative axis", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.sum(-1);
+					assert.deepStrictEqual(result.shape, [2]);
+					assertArrayEqual(Array.from(result.data), [6, 15]);
+				});
+
+				it("handles single element", () => {
+					const data = new Float32Array([42]);
+					const arr = new NDArray(data, [1], "float32");
+					assert.strictEqual(arr.sum(), 42);
+				});
+
+				it("sums 3D array along axis 0", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [2, 2, 2], "float32");
+					const result = arr.sum(0);
+					assert.deepStrictEqual(result.shape, [2, 2]);
+					assertArrayEqual(Array.from(result.data), [6, 8, 10, 12]);
+				});
+
+				it("throws error for out of bounds axis", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.throws(() => arr.sum(5), /out of bounds/);
+				});
+			});
+
+			describe("NDArray.mean()", () => {
+				it("computes mean of all elements (no axis)", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					assert.strictEqual(arr.mean(), 3.5);
+				});
+
+				it("computes mean along axis 0 for 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.mean(0);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [3]);
+					assertArrayEqual(Array.from(result.data), [2.5, 3.5, 4.5]);
+				});
+
+				it("computes mean along axis 1 for 2D array", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.mean(1);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [2]);
+					assertArrayEqual(Array.from(result.data), [2, 5]);
+				});
+
+				it("returns NaN for empty array", () => {
+					const data = new Float32Array([]);
+					const arr = new NDArray(data, [0], "float32");
+					assert.ok(isNaN(arr.mean()));
+				});
+
+				it("handles single element", () => {
+					const data = new Float32Array([42]);
+					const arr = new NDArray(data, [1], "float32");
+					assert.strictEqual(arr.mean(), 42);
+				});
+			});
+
+			describe("NDArray.range()", () => {
+				it("computes range of all elements (no axis)", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.range();
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 1); // min
+					assert.strictEqual(result.data[1], 9); // max
+				});
+
+				it("computes range along axis 0 for 2D array", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.range(0);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [3, 2]);
+					// For each column: [min, max]
+					assertArrayEqual(
+						Array.from(result.data),
+						[1, 5, 2, 9, 3, 8],
+					);
+				});
+
+				it("computes range along axis 1 for 2D array", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.range(1);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [2, 2]);
+					// For each row: [min, max]
+					assertArrayEqual(Array.from(result.data), [2, 8, 1, 9]);
+				});
+
+				it("handles single element", () => {
+					const data = new Float32Array([42]);
+					const arr = new NDArray(data, [1], "float32");
+					const result = arr.range();
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 42); // min
+					assert.strictEqual(result.data[1], 42); // max
+				});
+			});
+
+			describe("NDArray.min()", () => {
+				it("finds minimum of all elements (no axis)", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					assert.strictEqual(arr.min(), 1);
+				});
+
+				it("finds minimum along axis 0 for 2D array", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.min(0);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [3]);
+					assertArrayEqual(Array.from(result.data), [1, 2, 3]);
+				});
+
+				it("finds minimum along axis 1 for 2D array", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.min(1);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [2]);
+					assertArrayEqual(Array.from(result.data), [2, 1]);
+				});
+
+				it("handles negative numbers", () => {
+					const data = new Float32Array([-5, -2, -8, -1]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.strictEqual(arr.min(), -8);
+				});
+
+				it("handles single element", () => {
+					const data = new Float32Array([42]);
+					const arr = new NDArray(data, [1], "float32");
+					assert.strictEqual(arr.min(), 42);
+				});
+			});
+
+			describe("NDArray.max()", () => {
+				it("finds maximum of all elements (no axis)", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					assert.strictEqual(arr.max(), 9);
+				});
+
+				it("finds maximum along axis 0 for 2D array", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.max(0);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [3]);
+					assertArrayEqual(Array.from(result.data), [5, 9, 8]);
+				});
+
+				it("finds maximum along axis 1 for 2D array", () => {
+					const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const result = arr.max(1);
+					assert.ok(result instanceof NDArray);
+					assert.deepStrictEqual(result.shape, [2]);
+					assertArrayEqual(Array.from(result.data), [8, 9]);
+				});
+
+				it("handles negative numbers", () => {
+					const data = new Float32Array([-5, -2, -8, -1]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.strictEqual(arr.max(), -1);
+				});
+
+				it("handles single element", () => {
+					const data = new Float32Array([42]);
+					const arr = new NDArray(data, [1], "float32");
+					assert.strictEqual(arr.max(), 42);
+				});
+			});
+
+			describe("NDArray.reshape()", () => {
+				it("reshapes 1D to 2D", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [6], "float32");
+					const reshaped = arr.reshape([2, 3]);
+					assert.deepStrictEqual(reshaped.shape, [2, 3]);
+					assert.strictEqual(reshaped.size, 6);
+					assertArrayEqual(
+						Array.from(reshaped.data),
+						[1, 2, 3, 4, 5, 6],
+					);
+				});
+
+				it("reshapes 2D to different 2D", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const reshaped = arr.reshape([3, 2]);
+					assert.deepStrictEqual(reshaped.shape, [3, 2]);
+					assert.strictEqual(reshaped.size, 6);
+				});
+
+				it("reshapes 2D to 1D", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const reshaped = arr.reshape([6]);
+					assert.deepStrictEqual(reshaped.shape, [6]);
+					assert.strictEqual(reshaped.size, 6);
+				});
+
+				it("handles -1 for auto-calculation", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [6], "float32");
+					const reshaped = arr.reshape([2, -1]);
+					assert.deepStrictEqual(reshaped.shape, [2, 3]);
+				});
+
+				it("handles -1 in different position", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [8], "float32");
+					const reshaped = arr.reshape([-1, 2, 2]);
+					assert.deepStrictEqual(reshaped.shape, [2, 2, 2]);
+				});
+
+				it("throws error for multiple -1s", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [4], "float32");
+					assert.throws(
+						() => arr.reshape([-1, -1]),
+						/only specify one unknown dimension/,
+					);
+				});
+
+				it("throws error for incompatible size", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5]);
+					const arr = new NDArray(data, [5], "float32");
+					assert.throws(() => arr.reshape([2, 2]), /cannot reshape/);
+				});
+
+				it("throws error for incompatible -1 dimension", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5]);
+					const arr = new NDArray(data, [5], "float32");
+					assert.throws(() => arr.reshape([2, -1]), /cannot reshape/);
+				});
+			});
+
+			describe("NDArray.transpose()", () => {
+				it("transposes 2D array (default)", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					// [[1, 2, 3],
+					//  [4, 5, 6]]
+					const transposed = arr.transpose();
+					assert.deepStrictEqual(transposed.shape, [3, 2]);
+					// [[1, 4],
+					//  [2, 5],
+					//  [3, 6]]
+					assertArrayEqual(
+						Array.from(transposed.data),
+						[1, 4, 2, 5, 3, 6],
+					);
+				});
+
+				it("transposes 1D array", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					const transposed = arr.transpose();
+					assert.deepStrictEqual(transposed.shape, [3]);
+					assertArrayEqual(Array.from(transposed.data), [1, 2, 3]);
+				});
+
+				it("transposes 3D array (default)", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [2, 2, 2], "float32");
+					const transposed = arr.transpose();
+					assert.deepStrictEqual(transposed.shape, [2, 2, 2]);
+					// Default transpose reverses all axes: [2,2,2] -> [2,2,2] with axes [2,1,0]
+				});
+
+				it("transposes with custom axes", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
+					const arr = new NDArray(data, [2, 2, 2], "float32");
+					const transposed = arr.transpose([1, 0, 2]);
+					assert.deepStrictEqual(transposed.shape, [2, 2, 2]);
+				});
+
+				it("throws error for invalid axes length", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.throws(
+						() => arr.transpose([0]),
+						/axes must be array of length/,
+					);
+				});
+
+				it("throws error for invalid axes (out of bounds)", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.throws(() => arr.transpose([0, 5]), /out of bounds/);
+				});
+
+				it("throws error for duplicate axes", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.throws(
+						() => arr.transpose([0, 0]),
+						/must be a permutation/,
+					);
+				});
+
+				it("double transpose returns to original", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const transposed = arr.transpose();
+					const doubleTransposed = transposed.transpose();
+					assert.deepStrictEqual(doubleTransposed.shape, arr.shape);
+					assertArrayEqual(
+						Array.from(doubleTransposed.data),
+						Array.from(arr.data),
+					);
+				});
+			});
+
+			describe("float16ToFloat32()", () => {
+				it("converts float16 zero to float32", () => {
+					const result = float16ToFloat32(0x0000);
+					assert.strictEqual(result, 0);
+				});
+
+				it("converts float16 one to float32", () => {
+					const result = float16ToFloat32(0x3c00);
+					assert.strictEqual(result, 1.0);
+				});
+
+				it("converts float16 negative one to float32", () => {
+					const result = float16ToFloat32(0xbc00);
+					assert.strictEqual(result, -1.0);
+				});
+
+				it("converts float16 positive infinity", () => {
+					const result = float16ToFloat32(0x7c00);
+					assert.strictEqual(result, Infinity);
+				});
+
+				it("converts float16 negative infinity", () => {
+					const result = float16ToFloat32(0xfc00);
+					assert.strictEqual(result, -Infinity);
+				});
+
+				it("converts float16 NaN", () => {
+					const result = float16ToFloat32(0x7e00);
+					assert.ok(isNaN(result));
+				});
+
+				it("converts float16 negative zero", () => {
+					const result = float16ToFloat32(0x8000);
+					assert.strictEqual(result, -0);
+					assert.strictEqual(1 / result, -Infinity); // Verify it's -0, not +0
+				});
+			});
+
+			describe("float16ToFloat32Array()", () => {
+				it("converts array of float16 values", () => {
+					const float16Array = new Uint16Array([
+						0x0000, 0x3c00, 0xbc00,
+					]);
+					const result = float16ToFloat32Array(float16Array);
+					assert.ok(result instanceof Float32Array);
+					assert.strictEqual(result.length, 3);
+					assert.strictEqual(result[0], 0);
+					assert.strictEqual(result[1], 1.0);
+					assert.strictEqual(result[2], -1.0);
+				});
+
+				it("handles empty array", () => {
+					const float16Array = new Uint16Array([]);
+					const result = float16ToFloat32Array(float16Array);
+					assert.strictEqual(result.length, 0);
+				});
+			});
+		</script>
+	</body>
 </html>

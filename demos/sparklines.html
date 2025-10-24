@@ -1,602 +1,682 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sparklines Demo</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: #f8f9fa;
-        }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Sparklines Demo</title>
+		<style>
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					sans-serif;
+				margin: 0;
+				padding: 20px;
+				background: #f8f9fa;
+			}
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+			.container {
+				max-width: 1200px;
+				margin: 0 auto;
+			}
 
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 40px;
-        }
+			h1 {
+				text-align: center;
+				color: #2c3e50;
+				margin-bottom: 40px;
+			}
 
-        .section {
-            background: white;
-            border-radius: 8px;
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
+			.section {
+				background: white;
+				border-radius: 8px;
+				padding: 25px;
+				margin-bottom: 30px;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+			}
 
-        .section h2 {
-            color: #34495e;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-            margin-bottom: 20px;
-        }
+			.section h2 {
+				color: #34495e;
+				border-bottom: 2px solid #3498db;
+				padding-bottom: 10px;
+				margin-bottom: 20px;
+			}
 
-        /* Gallery Table */
-        .gallery-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+			/* Gallery Table */
+			.gallery-table {
+				width: 100%;
+				border-collapse: collapse;
+			}
 
-        .gallery-table th {
-            background: #f1f3f4;
-            padding: 12px;
-            text-align: left;
-            font-weight: 600;
-            color: #2c3e50;
-            border: 1px solid #e1e8ed;
-        }
+			.gallery-table th {
+				background: #f1f3f4;
+				padding: 12px;
+				text-align: left;
+				font-weight: 600;
+				color: #2c3e50;
+				border: 1px solid #e1e8ed;
+			}
 
-        .gallery-table td {
-            padding: 12px;
-            border: 1px solid #e1e8ed;
-            vertical-align: middle;
-        }
+			.gallery-table td {
+				padding: 12px;
+				border: 1px solid #e1e8ed;
+				vertical-align: middle;
+			}
 
-        .gallery-table tr:nth-child(even) {
-            background: #fafbfc;
-        }
+			.gallery-table tr:nth-child(even) {
+				background: #fafbfc;
+			}
 
-        .description {
-            font-size: 14px;
-            color: #5a6c7d;
-        }
+			.description {
+				font-size: 14px;
+				color: #5a6c7d;
+			}
 
-        .code {
-            font-family: monospace;
-            background: #f1f3f4;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 12px;
-        }
+			.code {
+				font-family: monospace;
+				background: #f1f3f4;
+				padding: 2px 6px;
+				border-radius: 3px;
+				font-size: 12px;
+			}
 
-        /* Interactive Section */
-        .interactive {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
+			/* Interactive Section */
+			.interactive {
+				background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+				color: white;
+			}
 
-        .interactive h2 {
-            color: white;
-            border-bottom-color: rgba(255, 255, 255, 0.3);
-        }
+			.interactive h2 {
+				color: white;
+				border-bottom-color: rgba(255, 255, 255, 0.3);
+			}
 
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
+			.controls {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 15px;
+				margin-bottom: 20px;
+			}
 
-        .control-group {
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 6px;
-        }
+			.control-group {
+				background: rgba(255, 255, 255, 0.1);
+				padding: 15px;
+				border-radius: 6px;
+			}
 
-        .control-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 14px;
-            font-weight: 500;
-        }
+			.control-group label {
+				display: block;
+				margin-bottom: 5px;
+				font-size: 14px;
+				font-weight: 500;
+			}
 
-        input, select {
-            width: 100%;
-            padding: 6px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
+			input,
+			select {
+				width: 100%;
+				padding: 6px;
+				border: none;
+				border-radius: 4px;
+				font-size: 14px;
+				box-sizing: border-box;
+			}
 
-        button {
-            background: #e74c3c;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            margin: 5px;
-        }
+			button {
+				background: #e74c3c;
+				color: white;
+				border: none;
+				padding: 10px 20px;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 14px;
+				margin: 5px;
+			}
 
-        button:hover {
-            background: #c0392b;
-        }
+			button:hover {
+				background: #c0392b;
+			}
 
-        #interactive-chart {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 6px;
-            text-align: center;
-            margin: 20px 0;
-        }
+			#interactive-chart {
+				background: rgba(255, 255, 255, 0.9);
+				padding: 20px;
+				border-radius: 6px;
+				text-align: center;
+				margin: 20px 0;
+			}
 
-        .code-output {
-            background: #2d3748;
-            color: #e2e8f0;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 13px;
-            white-space: pre;
-            overflow-x: auto;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>✨ Sparklines Library Demo</h1>
+			.code-output {
+				background: #2d3748;
+				color: #e2e8f0;
+				padding: 15px;
+				border-radius: 4px;
+				font-family: monospace;
+				font-size: 13px;
+				white-space: pre;
+				overflow-x: auto;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>✨ Sparklines Library Demo</h1>
 
-        <!-- Gallery Section -->
-        <div class="section">
-            <h2>📊 Feature Gallery</h2>
-            <table class="gallery-table">
-                <thead>
-                    <tr>
-                        <th>Description</th>
-                        <th>Chart</th>
-                        <th>Code</th>
-                    </tr>
-                </thead>
-                <tbody id="gallery-table">
-                    <!-- Generated from JavaScript -->
-                </tbody>
-            </table>
-        </div>
+			<!-- Gallery Section -->
+			<div class="section">
+				<h2>📊 Feature Gallery</h2>
+				<table class="gallery-table">
+					<thead>
+						<tr>
+							<th>Description</th>
+							<th>Chart</th>
+							<th>Code</th>
+						</tr>
+					</thead>
+					<tbody id="gallery-table">
+						<!-- Generated from JavaScript -->
+					</tbody>
+				</table>
+			</div>
 
-        <!-- Interactive Builder -->
-        <div class="section interactive">
-            <h2>🎮 Interactive Builder</h2>
+			<!-- Interactive Builder -->
+			<div class="section interactive">
+				<h2>🎮 Interactive Builder</h2>
 
-            <div class="controls">
-                <div class="control-group">
-                    <label>Chart Type:</label>
-                    <select id="chartType">
-                        <option value="line">Sparkline (Line)</option>
-                        <option value="bar">Sparkbars (Bar)</option>
-                    </select>
-                </div>
+				<div class="controls">
+					<div class="control-group">
+						<label>Chart Type:</label>
+						<select id="chartType">
+							<option value="line">Sparkline (Line)</option>
+							<option value="bar">Sparkbars (Bar)</option>
+						</select>
+					</div>
 
-                <div class="control-group">
-                    <label>Width: <span id="width-value">150</span></label>
-                    <input type="range" id="width" min="80" max="300" value="150">
-                </div>
+					<div class="control-group">
+						<label>Width: <span id="width-value">150</span></label>
+						<input
+							type="range"
+							id="width"
+							min="80"
+							max="300"
+							value="150"
+						/>
+					</div>
 
-                <div class="control-group">
-                    <label>Height: <span id="height-value">50</span></label>
-                    <input type="range" id="height" min="20" max="100" value="50">
-                </div>
+					<div class="control-group">
+						<label>Height: <span id="height-value">50</span></label>
+						<input
+							type="range"
+							id="height"
+							min="20"
+							max="100"
+							value="50"
+						/>
+					</div>
 
-                <div class="control-group">
-                    <label>Color:</label>
-                    <select id="color">
-                        <option value="#3498db">Blue</option>
-                        <option value="#e74c3c">Red</option>
-                        <option value="#2ecc71">Green</option>
-                        <option value="#9b59b6">Purple</option>
-                        <option value="#f39c12">Orange</option>
-                    </select>
-                </div>
+					<div class="control-group">
+						<label>Color:</label>
+						<select id="color">
+							<option value="#3498db">Blue</option>
+							<option value="#e74c3c">Red</option>
+							<option value="#2ecc71">Green</option>
+							<option value="#9b59b6">Purple</option>
+							<option value="#f39c12">Orange</option>
+						</select>
+					</div>
 
-                <div class="control-group">
-                    <label>Line Width: <span id="lineWidth-value">2</span></label>
-                    <input type="range" id="lineWidth" min="0.5" max="5" step="0.5" value="2">
-                </div>
+					<div class="control-group">
+						<label
+							>Line Width:
+							<span id="lineWidth-value">2</span></label
+						>
+						<input
+							type="range"
+							id="lineWidth"
+							min="0.5"
+							max="5"
+							step="0.5"
+							value="2"
+						/>
+					</div>
 
-                <div class="control-group">
-                    <label>Bar Width: <span id="barWidthRatio-value">1</span></label>
-                    <input type="range" id="barWidthRatio" min="0.3" max="1" step="0.1" value="1">
-                </div>
+					<div class="control-group">
+						<label
+							>Bar Width:
+							<span id="barWidthRatio-value">1</span></label
+						>
+						<input
+							type="range"
+							id="barWidthRatio"
+							min="0.3"
+							max="1"
+							step="0.1"
+							value="1"
+						/>
+					</div>
 
-                <div class="control-group">
-                    <label>Markers:</label>
-                    <select id="markers">
-                        <option value="">None</option>
-                        <option value=".">Small Dots</option>
-                        <option value="o">Large Dots</option>
-                    </select>
-                </div>
+					<div class="control-group">
+						<label>Markers:</label>
+						<select id="markers">
+							<option value="">None</option>
+							<option value=".">Small Dots</option>
+							<option value="o">Large Dots</option>
+						</select>
+					</div>
 
-                <div class="control-group">
-                    <label>Fill:</label>
-                    <select id="shading">
-                        <option value="false">None</option>
-                        <option value="true">Solid</option>
-                        <option value="0.3">Light Gradient</option>
-                        <option value="0.6">Heavy Gradient</option>
-                    </select>
-                </div>
+					<div class="control-group">
+						<label>Fill:</label>
+						<select id="shading">
+							<option value="false">None</option>
+							<option value="true">Solid</option>
+							<option value="0.3">Light Gradient</option>
+							<option value="0.6">Heavy Gradient</option>
+						</select>
+					</div>
 
-                <div class="control-group">
-                    <label>Axes:</label>
-                    <label><input type="checkbox" id="xAxis"> X-Axis</label>
-                    <label><input type="checkbox" id="yAxis"> Y-Axis</label>
-                </div>
-            </div>
+					<div class="control-group">
+						<label>Axes:</label>
+						<label
+							><input type="checkbox" id="xAxis" /> X-Axis</label
+						>
+						<label
+							><input type="checkbox" id="yAxis" /> Y-Axis</label
+						>
+					</div>
+				</div>
 
-            <div id="interactive-chart"></div>
+				<div id="interactive-chart"></div>
 
-            <div>
-                <button onclick="generateNewData()">🎲 New Data</button>
-                <button onclick="copyCode()">📋 Copy Code</button>
-            </div>
+				<div>
+					<button onclick="generateNewData()">🎲 New Data</button>
+					<button onclick="copyCode()">📋 Copy Code</button>
+				</div>
 
-            <div class="code-output" id="generated-code"></div>
-        </div>
-    </div>
+				<div class="code-output" id="generated-code"></div>
+			</div>
+		</div>
 
-    <script src="../src/sparklines.js"></script>
-    <script>
-        // Gallery examples configuration
-        const examples = [
-            {
-                data: [1, 3, 2, 5, 4, 7, 6],
-                func: "sparkline",
-                options: { },
-                description: "Simple line chart with default settings"
-            },
-            {
-                data: [
-                    [0, 2, 5, 7, 10, 12, 15],
-                    [50, 80, 30, 90, 60, 75, 40],
-                ],
-                func: "sparkbars",
-                options: {
-                    color: '#e67e22',
-                    xAxis: { line: true, ticks: true },
-                    yAxis: { line: true, ticks: true },
-                },
-                description: "test"
-            },
-            {
-                data: [100, 250, 150, 100, 200, 123, 456],
-                func: "sparkbars",
-                options: {
-                    color: '#8e44ad',
-                    xAxis: { line: true, ticks: true },
-                    yAxis: { line: true, ticks: true },
+		<script src="../src/sparklines.js"></script>
+		<script>
+			// Gallery examples configuration
+			const examples = [
+				{
+					data: [1, 3, 2, 5, 4, 7, 6],
+					func: "sparkline",
+					options: {},
+					description: "Simple line chart with default settings",
+				},
+				{
+					data: [
+						[0, 2, 5, 7, 10, 12, 15],
+						[50, 80, 30, 90, 60, 75, 40],
+					],
+					func: "sparkbars",
+					options: {
+						color: "#e67e22",
+						xAxis: { line: true, ticks: true },
+						yAxis: { line: true, ticks: true },
+					},
+					description: "test",
+				},
+				{
+					data: [100, 250, 150, 100, 200, 123, 456],
+					func: "sparkbars",
+					options: {
+						color: "#8e44ad",
+						xAxis: { line: true, ticks: true },
+						yAxis: { line: true, ticks: true },
 
-                    ylims: [0, 350]
-                },
-                description: "Full axis reference frame"
-            },
-            {
-                data: [5, 8, 3, 12, 7, 9, 4],
-                func: "sparkbars",
-                options: { },
-                description: "Simple bar chart for discrete data"
-            },
-            {
-                data: [10, 12, 15, 18, 22, 25, 28],
-                func: "sparkline",
-                options: { color: '#2ecc71', shading: 0.3, },
-                description: "Growth trend with gradient fill"
-            },
-            {
-                data: [100, 95, 110, 85, 120, 75, 130],
-                func: "sparkline",
-                options: { color: '#e74c3c', markers: '.', },
-                description: "High volatility with data points"
-            },
-            {
-                data: [2, 6, 3, 8, 4, 7, 5],
-                func: "sparkbars",
-                options: { color: '#9b59b6', },
-                description: "Purple bar chart"
-            },
-            {
-                data: [10, 25, 15, 35, 20, 30],
-                func: "sparkline",
-                options: {
+						ylims: [0, 350],
+					},
+					description: "Full axis reference frame",
+				},
+				{
+					data: [5, 8, 3, 12, 7, 9, 4],
+					func: "sparkbars",
+					options: {},
+					description: "Simple bar chart for discrete data",
+				},
+				{
+					data: [10, 12, 15, 18, 22, 25, 28],
+					func: "sparkline",
+					options: { color: "#2ecc71", shading: 0.3 },
+					description: "Growth trend with gradient fill",
+				},
+				{
+					data: [100, 95, 110, 85, 120, 75, 130],
+					func: "sparkline",
+					options: { color: "#e74c3c", markers: "." },
+					description: "High volatility with data points",
+				},
+				{
+					data: [2, 6, 3, 8, 4, 7, 5],
+					func: "sparkbars",
+					options: { color: "#9b59b6" },
+					description: "Purple bar chart",
+				},
+				{
+					data: [10, 25, 15, 35, 20, 30],
+					func: "sparkline",
+					options: {
+						xAxis: { line: true, ticks: true },
+						yAxis: { line: true, ticks: true },
+						color: "#f39c12",
+					},
+					description: "Reference lines and tick labels",
+				},
+				{
+					data: [
+						[1, 3, 6, 10, 12],
+						[100, 120, 95, 150, 180],
+					],
+					func: "sparkline",
+					options: { color: "#1abc9c" },
+					description: "Irregular time intervals",
+				},
+				{
+					data: [20, 25, 22, 28, 24],
+					func: "sparkline",
+					options: {
+						ylims: [0, 50],
+						yAxis: { ticks: true },
+						color: "#34495e",
+					},
+					description: "Custom Y-axis limits for comparison",
+				},
+				{
+					data: [2, 5, 8, 12, 15, 18, 14, 9, 5, 2],
+					func: "sparkbars",
+					options: { color: "#16a085" },
+					description: "Distribution visualization",
+				},
+				{
+					data: [100, 250, 150],
+					func: "sparkbars",
+					options: {
+						color: "#8e44ad",
+						xAxis: { line: true, ticks: true },
+						yAxis: { line: true, ticks: true },
 
-                    xAxis: { line: true, ticks: true },
-                    yAxis: { line: true, ticks: true },
-                    color: '#f39c12'
-                },
-                description: "Reference lines and tick labels"
-            },
-            {
-                data: [[1, 3, 6, 10, 12], [100, 120, 95, 150, 180]],
-                func: "sparkline",
-                options: { color: '#1abc9c', },
-                description: "Irregular time intervals"
-            },
-            {
-                data: [20, 25, 22, 28, 24],
-                func: "sparkline",
-                options: { ylims: [0, 50], yAxis: { ticks: true }, color: '#34495e', },
-                description: "Custom Y-axis limits for comparison"
-            },
-            {
-                data: [2, 5, 8, 12, 15, 18, 14, 9, 5, 2],
-                func: "sparkbars",
-                options: { color: '#16a085', },
-                description: "Distribution visualization"
-            },
-            {
-                data: [100, 250, 150],
-                func: "sparkbars",
-                options: {
-                    color: '#8e44ad',
-                    xAxis: { line: true, ticks: true },
-                    yAxis: { line: true, ticks: true },
+						ylims: [0, 350],
+					},
+					description: "Full axis reference frame",
+				},
+				{
+					data: [45, 30, 60, 25, 55, 40, 35],
+					func: "sparkbars",
+					options: {
+						color: "#2c3e50",
+						yAxis: { line: true, ticks: true },
+					},
+					description: "Bar chart with Y-axis labels",
+				},
+				{
+					data: [8, 12, 6, 15, 10, 14, 7],
+					func: "sparkbars",
+					options: {
+						color: "#c0392b",
+						xAxis: { line: true, ticks: true },
+					},
+					description: "Bar chart with X-axis labels",
+				},
+				{
+					data: [20, 35, 15, 40, 25, 30, 22],
+					func: "sparkbars",
+					options: {
+						color: "#d35400",
+						ylims: [0, 50],
+						yAxis: { line: true, ticks: true },
+					},
+					description: "Custom Y-axis range (0-50)",
+				},
+				{
+					data: [-5, 3, -2, 7, -4, 6, -1, 8],
+					func: "sparkbars",
+					options: {
+						color: "#16a085",
+						xAxis: { line: true },
+						yAxis: { line: true, ticks: true },
+					},
+					description: "Mixed positive/negative values",
+				},
+				{
+					data: [
+						[0, 2, 5, 7, 10, 12, 15],
+						[50, 80, 30, 90, 60, 75, 40],
+					],
+					func: "sparkbars",
+					options: {
+						color: "#e67e22",
+						xAxis: { line: true, ticks: true },
+						yAxis: { line: true, ticks: true },
+					},
+					description: "Irregular X intervals with axes",
+				},
+				{
+					data: [4, 7, 3, 8, 5, 9, 6],
+					func: "sparkbars",
+					options: {
+						color: "#3498db",
+					},
+					description: "Bars touch each other (ratio=1.0)",
+				},
+				{
+					data: [4, 7, 3, 8, 5, 9, 6],
+					func: "sparkbars",
+					options: {
+						color: "#e74c3c",
+						barWidthRatio: 0.8,
+					},
+					description: "Small gaps between bars (ratio=0.8)",
+				},
+				{
+					data: [4, 7, 3, 8, 5, 9, 6],
+					func: "sparkbars",
+					options: {
+						color: "#2ecc71",
+						barWidthRatio: 0.5,
+					},
+					description: "Wide gaps between bars (ratio=0.5)",
+				},
+				{
+					data: [4, 7, 3, 8, 5, 9, 6],
+					func: "sparkbars",
+					options: {
+						color: "#9b59b6",
+						barWidthRatio: 0.3,
+					},
+					description: "Needle-like bars (ratio=0.3)",
+				},
+				{
+					data: [5, 2, 8, 3, 7, 4, 9],
+					func: "sparkline",
+					options: { markers: "o", lineWidth: 3, color: "#e67e22" },
+					description: "Prominent data points with thick line",
+				},
+				{
+					data: [3, 7, 4, 9, 5, 8, 6],
+					func: "sparkline",
+					options: { shading: true, color: "#8e44ad" },
+					description: "Complete area fill under curve",
+				},
+				{
+					data: [18500, 19200, 20100, 22000, 21500, 23800, 24586],
+					func: "sparkline",
+					options: { color: "#27ae60", shading: 0.2 },
+					description: "Compact chart for dashboards",
+				},
+			];
 
-                    ylims: [0, 350]
-                },
-                description: "Full axis reference frame"
-            },
-            {
-                data: [45, 30, 60, 25, 55, 40, 35],
-                func: "sparkbars",
-                options: {
-                    color: '#2c3e50',
-                    yAxis: { line: true, ticks: true },
+			// Interactive demo data
+			let interactiveData = [3, 7, 2, 9, 4, 8, 5, 10, 6, 8];
 
-                },
-                description: "Bar chart with Y-axis labels"
-            },
-            {
-                data: [8, 12, 6, 15, 10, 14, 7],
-                func: "sparkbars",
-                options: {
-                    color: '#c0392b',
-                    xAxis: { line: true, ticks: true },
+			// Generate gallery table
+			function generateGallery() {
+				const tbody = document.getElementById("gallery-table");
 
-                },
-                description: "Bar chart with X-axis labels"
-            },
-            {
-                data: [20, 35, 15, 40, 25, 30, 22],
-                func: "sparkbars",
-                options: {
-                    color: '#d35400',
-                    ylims: [0, 50],
-                    yAxis: { line: true, ticks: true },
+				examples.forEach((example) => {
+					const row = tbody.insertRow();
 
-                },
-                description: "Custom Y-axis range (0-50)"
-            },
-            {
-                data: [-5, 3, -2, 7, -4, 6, -1, 8],
-                func: "sparkbars",
-                options: {
-                    color: '#16a085',
-                    xAxis: { line: true },
-                    yAxis: { line: true, ticks: true },
-                },
-                description: "Mixed positive/negative values"
-            },
-            {
-                data: [[0, 2, 5, 7, 10, 12, 15], [50, 80, 30, 90, 60, 75, 40]],
-                func: "sparkbars",
-                options: {
-                    color: '#e67e22',
-                    xAxis: { line: true, ticks: true },
-                    yAxis: { line: true, ticks: true },
-                },
-                description: "Irregular X intervals with axes"
-            },
-            {
-                data: [4, 7, 3, 8, 5, 9, 6],
-                func: "sparkbars",
-                options: {
-                    color: '#3498db',
-                   
-                },
-                description: "Bars touch each other (ratio=1.0)"
-            },
-            {
-                data: [4, 7, 3, 8, 5, 9, 6],
-                func: "sparkbars",
-                options: {
-                    color: '#e74c3c',
-                    barWidthRatio: 0.8,
-                   
-                },
-                description: "Small gaps between bars (ratio=0.8)"
-            },
-            {
-                data: [4, 7, 3, 8, 5, 9, 6],
-                func: "sparkbars",
-                options: {
-                    color: '#2ecc71',
-                    barWidthRatio: 0.5,
-                   
-                },
-                description: "Wide gaps between bars (ratio=0.5)"
-            },
-            {
-                data: [4, 7, 3, 8, 5, 9, 6],
-                func: "sparkbars",
-                options: {
-                    color: '#9b59b6',
-                    barWidthRatio: 0.3,
-                   
-                },
-                description: "Needle-like bars (ratio=0.3)"
-            },
-            {
-                data: [5, 2, 8, 3, 7, 4, 9],
-                func: "sparkline",
-                options: { markers: 'o', lineWidth: 3, color: '#e67e22', },
-                description: "Prominent data points with thick line"
-            },
-            {
-                data: [3, 7, 4, 9, 5, 8, 6],
-                func: "sparkline",
-                options: { shading: true, color: '#8e44ad' },
-                description: "Complete area fill under curve"
-            },
-            {
-                data: [18500, 19200, 20100, 22000, 21500, 23800, 24586],
-                func: "sparkline",
-                options: { color: '#27ae60', shading: 0.2 },
-                description: "Compact chart for dashboards"
-            }
-        ];
+					// Description
+					const descCell = row.insertCell();
+					descCell.innerHTML = `<div class="description">${example.description}</div>`;
 
-        // Interactive demo data
-        let interactiveData = [3, 7, 2, 9, 4, 8, 5, 10, 6, 8];
+					// Chart
+					const chartCell = row.insertCell();
+					let chart;
+					if (Array.isArray(example.data[0])) {
+						// Custom X values
+						chart = window[example.func](
+							example.data[0],
+							example.data[1],
+							example.options,
+						);
+					} else {
+						// Regular data
+						chart = window[example.func](
+							example.data,
+							null,
+							example.options,
+						);
+					}
+					chartCell.innerHTML = chart;
 
-        // Generate gallery table
-        function generateGallery() {
-            const tbody = document.getElementById('gallery-table');
+					// Code
+					const codeCell = row.insertCell();
+					let codeStr;
+					if (Array.isArray(example.data[0])) {
+						codeStr = `${example.func}([${example.data[0].join(", ")}], [${example.data[1].join(", ")}]`;
+					} else {
+						codeStr = `${example.func}([${example.data.join(", ")}]`;
+					}
 
-            examples.forEach(example => {
-                const row = tbody.insertRow();
+					if (Object.keys(example.options).length > 0) {
+						codeStr += `, ${JSON.stringify(example.options)})`;
+					} else {
+						codeStr += ")";
+					}
+					codeCell.innerHTML = `<div class="code">${codeStr}</div>`;
+				});
+			}
 
-                // Description
-                const descCell = row.insertCell();
-                descCell.innerHTML = `<div class="description">${example.description}</div>`;
+			// Interactive demo functions
+			function updateInteractiveChart() {
+				const chartType = document.getElementById("chartType").value;
+				const width = parseInt(document.getElementById("width").value);
+				const height = parseInt(
+					document.getElementById("height").value,
+				);
+				const color = document.getElementById("color").value;
+				const lineWidth = parseFloat(
+					document.getElementById("lineWidth").value,
+				);
+				const barWidthRatio = parseFloat(
+					document.getElementById("barWidthRatio").value,
+				);
+				const markers = document.getElementById("markers").value;
+				const shading =
+					document.getElementById("shading").value === "false"
+						? false
+						: document.getElementById("shading").value === "true"
+							? true
+							: parseFloat(
+									document.getElementById("shading").value,
+								);
+				const xAxis = document.getElementById("xAxis").checked;
+				const yAxis = document.getElementById("yAxis").checked;
 
-                // Chart
-                const chartCell = row.insertCell();
-                let chart;
-                if (Array.isArray(example.data[0])) {
-                    // Custom X values
-                    chart = window[example.func](example.data[0], example.data[1], example.options);
-                } else {
-                    // Regular data
-                    chart = window[example.func](example.data, null, example.options);
-                }
-                chartCell.innerHTML = chart;
+				const options = {
+					width,
+					height,
+					color,
+					lineWidth,
+					barWidthRatio,
+					markers,
+					shading,
+				};
 
-                // Code
-                const codeCell = row.insertCell();
-                let codeStr;
-                if (Array.isArray(example.data[0])) {
-                    codeStr = `${example.func}([${example.data[0].join(', ')}], [${example.data[1].join(', ')}]`;
-                } else {
-                    codeStr = `${example.func}([${example.data.join(', ')}]`;
-                }
+				if (xAxis) options.xAxis = { line: true, ticks: true };
+				if (yAxis) options.yAxis = { line: true, ticks: true };
 
-                if (Object.keys(example.options).length > 0) {
-                    codeStr += `, ${JSON.stringify(example.options)})`;
-                } else {
-                    codeStr += ')';
-                }
-                codeCell.innerHTML = `<div class="code">${codeStr}</div>`;
-            });
-        }
+				// Generate chart
+				const chartFunction =
+					chartType === "bar" ? sparkbars : sparkline;
+				document.getElementById("interactive-chart").innerHTML =
+					chartFunction(interactiveData, null, options);
 
-        // Interactive demo functions
-        function updateInteractiveChart() {
-            const chartType = document.getElementById('chartType').value;
-            const width = parseInt(document.getElementById('width').value);
-            const height = parseInt(document.getElementById('height').value);
-            const color = document.getElementById('color').value;
-            const lineWidth = parseFloat(document.getElementById('lineWidth').value);
-            const barWidthRatio = parseFloat(document.getElementById('barWidthRatio').value);
-            const markers = document.getElementById('markers').value;
-            const shading = document.getElementById('shading').value === 'false' ? false :
-                          document.getElementById('shading').value === 'true' ? true :
-                          parseFloat(document.getElementById('shading').value);
-            const xAxis = document.getElementById('xAxis').checked;
-            const yAxis = document.getElementById('yAxis').checked;
+				// Update value displays
+				document.getElementById("width-value").textContent = width;
+				document.getElementById("height-value").textContent = height;
+				document.getElementById("lineWidth-value").textContent =
+					lineWidth;
+				document.getElementById("barWidthRatio-value").textContent =
+					barWidthRatio;
 
-            const options = {
-                width,
-                height,
-                color,
-                lineWidth,
-                barWidthRatio,
-                markers,
-                shading
-            };
+				// Generate code
+				updateCode(chartType, options);
+			}
 
-            if (xAxis) options.xAxis = { line: true, ticks: true };
-            if (yAxis) options.yAxis = { line: true, ticks: true };
+			function updateCode(chartType, options) {
+				const functionName =
+					chartType === "bar" ? "sparkbars" : "sparkline";
+				let code = `${functionName}([${interactiveData.join(", ")}], null`;
 
-            // Generate chart
-            const chartFunction = chartType === 'bar' ? sparkbars : sparkline;
-            document.getElementById('interactive-chart').innerHTML = chartFunction(interactiveData, null, options);
+				if (Object.keys(options).length > 0) {
+					code += `, ${JSON.stringify(options, null, 2)}`;
+				}
+				code += ");";
 
-            // Update value displays
-            document.getElementById('width-value').textContent = width;
-            document.getElementById('height-value').textContent = height;
-            document.getElementById('lineWidth-value').textContent = lineWidth;
-            document.getElementById('barWidthRatio-value').textContent = barWidthRatio;
+				document.getElementById("generated-code").textContent = code;
+			}
 
-            // Generate code
-            updateCode(chartType, options);
-        }
+			function generateNewData() {
+				interactiveData = Array.from(
+					{ length: 10 },
+					() => Math.floor(Math.random() * 10) + 1,
+				);
+				updateInteractiveChart();
+			}
 
-        function updateCode(chartType, options) {
-            const functionName = chartType === 'bar' ? 'sparkbars' : 'sparkline';
-            let code = `${functionName}([${interactiveData.join(', ')}], null`;
+			function copyCode() {
+				const code =
+					document.getElementById("generated-code").textContent;
+				navigator.clipboard.writeText(code).then(() => {
+					alert("Code copied to clipboard!");
+				});
+			}
 
-            if (Object.keys(options).length > 0) {
-                code += `, ${JSON.stringify(options, null, 2)}`;
-            }
-            code += ');';
+			// Event listeners
+			function setupControls() {
+				const controls = [
+					"width",
+					"height",
+					"lineWidth",
+					"barWidthRatio",
+				];
+				controls.forEach((id) => {
+					document
+						.getElementById(id)
+						.addEventListener("input", updateInteractiveChart);
+				});
 
-            document.getElementById('generated-code').textContent = code;
-        }
+				const selects = ["chartType", "color", "markers", "shading"];
+				selects.forEach((id) => {
+					document
+						.getElementById(id)
+						.addEventListener("change", updateInteractiveChart);
+				});
 
-        function generateNewData() {
-            interactiveData = Array.from({ length: 10 }, () => Math.floor(Math.random() * 10) + 1);
-            updateInteractiveChart();
-        }
+				const checkboxes = ["xAxis", "yAxis"];
+				checkboxes.forEach((id) => {
+					document
+						.getElementById(id)
+						.addEventListener("change", updateInteractiveChart);
+				});
+			}
 
-        function copyCode() {
-            const code = document.getElementById('generated-code').textContent;
-            navigator.clipboard.writeText(code).then(() => {
-                alert('Code copied to clipboard!');
-            });
-        }
-
-        // Event listeners
-        function setupControls() {
-            const controls = ['width', 'height', 'lineWidth', 'barWidthRatio'];
-            controls.forEach(id => {
-                document.getElementById(id).addEventListener('input', updateInteractiveChart);
-            });
-
-            const selects = ['chartType', 'color', 'markers', 'shading'];
-            selects.forEach(id => {
-                document.getElementById(id).addEventListener('change', updateInteractiveChart);
-            });
-
-            const checkboxes = ['xAxis', 'yAxis'];
-            checkboxes.forEach(id => {
-                document.getElementById(id).addEventListener('change', updateInteractiveChart);
-            });
-        }
-
-        // Initialize
-        window.addEventListener('DOMContentLoaded', () => {
-            generateGallery();
-            setupControls();
-            updateInteractiveChart();
-        });
-    </script>
-</body>
+			// Initialize
+			window.addEventListener("DOMContentLoaded", () => {
+				generateGallery();
+				setupControls();
+				updateInteractiveChart();
+			});
+		</script>
+	</body>
 </html>

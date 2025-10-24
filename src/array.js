@@ -34,7 +34,9 @@ function float16ToFloat32(float16) {
 		return NaN;
 	}
 
-	return (sign ? -1 : 1) * Math.pow(2, exponent - 15) * (1 + fraction / 0x400);
+	return (
+		(sign ? -1 : 1) * Math.pow(2, exponent - 15) * (1 + fraction / 0x400)
+	);
 }
 
 function float16ToFloat32Array(float16Array) {
@@ -48,17 +50,83 @@ function float16ToFloat32Array(float16Array) {
 
 // Canonical dtype list - single source of truth
 const _DTYPES = [
-	{ descriptors: ["<u1", "|u1"], name: "uint8", size: 8, arrayConstructor: Uint8Array, converter: null },
-	{ descriptors: ["<u2"], name: "uint16", size: 16, arrayConstructor: Uint16Array, converter: null },
-	{ descriptors: ["<u4"], name: "uint32", size: 32, arrayConstructor: Uint32Array, converter: null },
-	{ descriptors: ["<u8"], name: "uint64", size: 64, arrayConstructor: BigUint64Array, converter: null },
-	{ descriptors: ["|i1"], name: "int8", size: 8, arrayConstructor: Int8Array, converter: null },
-	{ descriptors: ["<i2"], name: "int16", size: 16, arrayConstructor: Int16Array, converter: null },
-	{ descriptors: ["<i4"], name: "int32", size: 32, arrayConstructor: Int32Array, converter: null },
-	{ descriptors: ["<i8"], name: "int64", size: 64, arrayConstructor: BigInt64Array, converter: null },
-	{ descriptors: ["<f4"], name: "float32", size: 32, arrayConstructor: Float32Array, converter: null },
-	{ descriptors: ["<f8"], name: "float64", size: 64, arrayConstructor: Float64Array, converter: null },
-	{ descriptors: ["<f2"], name: "float16", size: 16, arrayConstructor: Uint16Array, converter: float16ToFloat32Array },
+	{
+		descriptors: ["<u1", "|u1"],
+		name: "uint8",
+		size: 8,
+		arrayConstructor: Uint8Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<u2"],
+		name: "uint16",
+		size: 16,
+		arrayConstructor: Uint16Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<u4"],
+		name: "uint32",
+		size: 32,
+		arrayConstructor: Uint32Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<u8"],
+		name: "uint64",
+		size: 64,
+		arrayConstructor: BigUint64Array,
+		converter: null,
+	},
+	{
+		descriptors: ["|i1"],
+		name: "int8",
+		size: 8,
+		arrayConstructor: Int8Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<i2"],
+		name: "int16",
+		size: 16,
+		arrayConstructor: Int16Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<i4"],
+		name: "int32",
+		size: 32,
+		arrayConstructor: Int32Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<i8"],
+		name: "int64",
+		size: 64,
+		arrayConstructor: BigInt64Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<f4"],
+		name: "float32",
+		size: 32,
+		arrayConstructor: Float32Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<f8"],
+		name: "float64",
+		size: 64,
+		arrayConstructor: Float64Array,
+		converter: null,
+	},
+	{
+		descriptors: ["<f2"],
+		name: "float16",
+		size: 16,
+		arrayConstructor: Uint16Array,
+		converter: float16ToFloat32Array,
+	},
 ];
 
 // Generate map: numpy descriptor -> dtype info (for NPY parsing)
@@ -76,7 +144,6 @@ for (const dtype of _DTYPES) {
 }
 
 class npyjs {
-
 	constructor(opts) {
 		this.convertFloat16 = opts?.convertFloat16 ?? true;
 		this.dtypes = {};
@@ -88,27 +155,30 @@ class npyjs {
 				name: dtype.name,
 				size: dtype.size,
 				arrayConstructor: dtype.arrayConstructor,
-				converter: (dtype.converter && this.convertFloat16)
-					? dtype.converter
-					: undefined
+				converter:
+					dtype.converter && this.convertFloat16
+						? dtype.converter
+						: undefined,
 			};
 		}
 	}
 
 	parse(arrayBufferContents) {
 		// const version = arrayBufferContents.slice(6, 8); // Uint8-encoded
-		const headerLength = new DataView(arrayBufferContents.slice(8, 10)).getUint8(0);
+		const headerLength = new DataView(
+			arrayBufferContents.slice(8, 10),
+		).getUint8(0);
 		const offsetBytes = 10 + headerLength;
 
 		const hcontents = new TextDecoder("utf-8").decode(
-			new Uint8Array(arrayBufferContents.slice(10, 10 + headerLength))
+			new Uint8Array(arrayBufferContents.slice(10, 10 + headerLength)),
 		);
 		const header = JSON.parse(
 			hcontents
 				.toLowerCase() // True -> true
 				.replace(/'/g, '"')
 				.replace("(", "[")
-				.replace(/,*\),*/g, "]")
+				.replace(/,*\),*/g, "]"),
 		);
 		const shape = header.shape;
 		const dtype = this.dtypes[header.descr];
@@ -120,7 +190,7 @@ class npyjs {
 
 		const nums = new dtype.arrayConstructor(
 			arrayBufferContents,
-			offsetBytes
+			offsetBytes,
 		);
 
 		// Convert float16 to float32 if converter exists
@@ -130,7 +200,7 @@ class npyjs {
 			dtype: dtype.name,
 			data: data,
 			shape,
-			fortranOrder: header.fortran_order
+			fortranOrder: header.fortran_order,
 		};
 	}
 
@@ -174,10 +244,10 @@ class npyjs {
 			if (file.dir) continue;
 
 			// Get decompressed ArrayBuffer
-			const decompressedData = await file.async('arraybuffer');
+			const decompressedData = await file.async("arraybuffer");
 
 			// Parse NPY data
-			const arrayName = filename.replace('.npy', '');
+			const arrayName = filename.replace(".npy", "");
 			arrays[arrayName] = this.parse(decompressedData);
 		}
 
@@ -185,11 +255,10 @@ class npyjs {
 	}
 }
 
-
 class NDArray {
 	/**
 	 * Creates a multidimensional array similar to NumPy arrays
-	 * 
+	 *
 	 * @param {any} data - The array data
 	 * @param {Array<number>} shape - The shape of the array
 	 * @param {string} dtype - The data type of the array
@@ -205,7 +274,9 @@ class NDArray {
 
 		// Validate data length matches shape
 		if (data.length !== this._size) {
-			throw new Error(`Data length ${data.length} doesn't match shape ${shape} (expected ${this._size})`);
+			throw new Error(
+				`Data length ${data.length} doesn't match shape ${shape} (expected ${this._size})`,
+			);
 		}
 	}
 
@@ -234,7 +305,9 @@ class NDArray {
 		}
 
 		if (axis < 0 || axis >= this.ndim) {
-			throw new Error(`axis ${axis} is out of bounds for array with ${this.ndim} dimensions`);
+			throw new Error(
+				`axis ${axis} is out of bounds for array with ${this.ndim} dimensions`,
+			);
 		}
 
 		return axis;
@@ -329,7 +402,9 @@ class NDArray {
 		const divisor = this.shape[axis];
 
 		// Divide all elements by the count
-		const resultData = new sumResult.data.constructor(sumResult.data.length);
+		const resultData = new sumResult.data.constructor(
+			sumResult.data.length,
+		);
 		for (let i = 0; i < sumResult.data.length; i++) {
 			resultData[i] = sumResult.data[i] / divisor;
 		}
@@ -379,7 +454,7 @@ class NDArray {
 
 		// Initialize with infinity/-infinity for comparison
 		for (let i = 0; i < baseSize; i++) {
-			resultData[i * 2] = Infinity;      // min
+			resultData[i * 2] = Infinity; // min
 			resultData[i * 2 + 1] = -Infinity; // max
 		}
 
@@ -435,7 +510,9 @@ class NDArray {
 			minData[i] = rangeResult.data[i * 2];
 		}
 
-		const newShape = this.shape.filter((_, i) => i !== this._validateAxis(axis));
+		const newShape = this.shape.filter(
+			(_, i) => i !== this._validateAxis(axis),
+		);
 		return new NDArray(minData, newShape, this.dtype);
 	}
 
@@ -459,7 +536,9 @@ class NDArray {
 			maxData[i] = rangeResult.data[i * 2 + 1];
 		}
 
-		const newShape = this.shape.filter((_, i) => i !== this._validateAxis(axis));
+		const newShape = this.shape.filter(
+			(_, i) => i !== this._validateAxis(axis),
+		);
 		return new NDArray(maxData, newShape, this.dtype);
 	}
 
@@ -470,7 +549,7 @@ class NDArray {
 	 */
 	reshape(newShape) {
 		if (!Array.isArray(newShape)) {
-			throw new Error('newShape must be an array');
+			throw new Error("newShape must be an array");
 		}
 
 		// Handle -1 for auto-calculation
@@ -480,13 +559,18 @@ class NDArray {
 		if (autoIdx !== -1) {
 			// Check for multiple -1s
 			if (newShape.indexOf(-1, autoIdx + 1) !== -1) {
-				throw new Error('can only specify one unknown dimension (-1)');
+				throw new Error("can only specify one unknown dimension (-1)");
 			}
 
 			// Calculate the auto dimension
-			const knownSize = newShape.reduce((acc, dim) => dim === -1 ? acc : acc * dim, 1);
+			const knownSize = newShape.reduce(
+				(acc, dim) => (dim === -1 ? acc : acc * dim),
+				1,
+			);
 			if (this._size % knownSize !== 0) {
-				throw new Error(`cannot reshape array of size ${this._size} into shape ${newShape}`);
+				throw new Error(
+					`cannot reshape array of size ${this._size} into shape ${newShape}`,
+				);
 			}
 			finalShape[autoIdx] = this._size / knownSize;
 		}
@@ -494,7 +578,9 @@ class NDArray {
 		// Validate new shape has same total size
 		const newSize = finalShape.reduce((acc, dim) => acc * dim, 1);
 		if (newSize !== this._size) {
-			throw new Error(`cannot reshape array of size ${this._size} into shape ${finalShape} (size ${newSize})`);
+			throw new Error(
+				`cannot reshape array of size ${this._size} into shape ${finalShape} (size ${newSize})`,
+			);
 		}
 
 		// Create new array with same data but different shape
@@ -509,7 +595,10 @@ class NDArray {
 	transpose(axes = null) {
 		// Default: reverse all axes
 		if (axes === null) {
-			axes = Array.from({ length: this.ndim }, (_, i) => this.ndim - 1 - i);
+			axes = Array.from(
+				{ length: this.ndim },
+				(_, i) => this.ndim - 1 - i,
+			);
 		}
 
 		// Validate axes
@@ -520,16 +609,18 @@ class NDArray {
 		// Check for valid permutation (all unique, in range)
 		const axesSet = new Set(axes);
 		if (axesSet.size !== this.ndim) {
-			throw new Error('axes must be a permutation of dimensions');
+			throw new Error("axes must be a permutation of dimensions");
 		}
 		for (const axis of axes) {
 			if (axis < 0 || axis >= this.ndim) {
-				throw new Error(`axis ${axis} is out of bounds for array with ${this.ndim} dimensions`);
+				throw new Error(
+					`axis ${axis} is out of bounds for array with ${this.ndim} dimensions`,
+				);
 			}
 		}
 
 		// Calculate new shape
-		const newShape = axes.map(ax => this.shape[ax]);
+		const newShape = axes.map((ax) => this.shape[ax]);
 
 		// Calculate old strides
 		const oldStrides = new Array(this.ndim);
@@ -578,7 +669,7 @@ class NDArray {
 
 	/**
 	 * Converts multidimensional indices to flat index
-	 * 
+	 *
 	 * @param {Array<number|null>} indices - Array of indices, can contain null for slicing
 	 * @returns {number|Array<number>} - Flat index or array of indices for slicing
 	 * @private
@@ -590,8 +681,10 @@ class NDArray {
 		}
 
 		// Check that we don't have too many indices
-		if (indices.filter(idx => idx !== null).length > this.shape.length) {
-			throw new Error(`Too many indices for array with shape ${this.shape}`);
+		if (indices.filter((idx) => idx !== null).length > this.shape.length) {
+			throw new Error(
+				`Too many indices for array with shape ${this.shape}`,
+			);
 		}
 
 		// If we have exact indices (no nulls), calculate flat index
@@ -603,7 +696,9 @@ class NDArray {
 				}
 
 				if (indices[i] < 0 || indices[i] >= this.shape[i]) {
-					throw new Error(`Index ${indices[i]} is out of bounds for axis ${i} with size ${this.shape[i]}`);
+					throw new Error(
+						`Index ${indices[i]} is out of bounds for axis ${i} with size ${this.shape[i]}`,
+					);
 				}
 			}
 
@@ -666,7 +761,7 @@ class NDArray {
 
 	/**
 	 * Gets values at specified indices
-	 * 
+	 *
 	 * @param {...(number|null)} args - Indices for each dimension, null for full dimension
 	 * @returns {any} - Value or subarray at the specified location
 	 */
@@ -680,7 +775,7 @@ class NDArray {
 		const flatIndices = this._getIndices(indices);
 
 		// If we got a single index, return the single value
-		if (typeof flatIndices === 'number') {
+		if (typeof flatIndices === "number") {
 			return this.data[flatIndices];
 		}
 
@@ -709,7 +804,7 @@ class NDArray {
 
 	/**
 	 * Sets values at specified indices
-	 * 
+	 *
 	 * @param {...*} args - Indices followed by value to set
 	 */
 	set(...args) {
@@ -726,17 +821,19 @@ class NDArray {
 		const flatIndices = this._getIndices(indices);
 
 		// If we got a single index, set the single value
-		if (typeof flatIndices === 'number') {
+		if (typeof flatIndices === "number") {
 			this.data[flatIndices] = value;
 			return;
 		}
 
 		// Otherwise, set all indices to the value
 		// If value is an array, distribute its values
-		if (Array.isArray(value) || (value instanceof NDArray)) {
+		if (Array.isArray(value) || value instanceof NDArray) {
 			const valueArray = value instanceof NDArray ? value.data : value;
 			if (valueArray.length !== flatIndices.length) {
-				throw new Error(`Cannot broadcast ${valueArray.length} values to ${flatIndices.length} indices`);
+				throw new Error(
+					`Cannot broadcast ${valueArray.length} values to ${flatIndices.length} indices`,
+				);
 			}
 
 			for (let i = 0; i < flatIndices.length; i++) {
@@ -752,24 +849,24 @@ class NDArray {
 
 	/**
 	 * Returns a string representation of the array
-	 * 
+	 *
 	 * @returns {string} String representation of the array
 	 */
 	toString() {
 		// Simple representation for 1D arrays
 		if (this.shape.length === 1) {
-			return `[${Array.from(this.data).join(', ')}]`;
+			return `[${Array.from(this.data).join(", ")}]`;
 		}
 
 		// For higher dimensions, we'll just show shape and type
-		return `NDArray(${this.shape.join('X')}, ${this.dtype})`;
+		return `NDArray(${this.shape.join("X")}, ${this.dtype})`;
 	}
 
 	static parse(arrayBufferContents) {
 		const npy = new npyjs();
 		const npyData = npy.parse(arrayBufferContents);
 		if (!npyData) {
-			throw new Error('Failed to parse NPY data');
+			throw new Error("Failed to parse NPY data");
 		}
 		// Convert data to NDArray
 		return new NDArray(npyData.data, npyData.shape, npyData.dtype);
@@ -778,21 +875,21 @@ class NDArray {
 	static async load(filename, callback, fetchArgs) {
 		const npy = new npyjs({ convertFloat16: true });
 
-		if (filename.endsWith('.npz')) {
+		if (filename.endsWith(".npz")) {
 			// Load NPZ (ZIP archive with NPY files)
 			const arrays = await npy.loadNPZ(filename, fetchArgs);
 			// Return the first array as NDArray
 			const arrayName = Object.keys(arrays)[0];
 			const npyData = arrays[arrayName];
 			if (!npyData) {
-				throw new Error('Failed to load NPZ data');
+				throw new Error("Failed to load NPZ data");
 			}
 			return new NDArray(npyData.data, npyData.shape, npyData.dtype);
 		} else {
 			// Load regular NPY
 			const npyData = await npy.load(filename, null, fetchArgs);
 			if (!npyData) {
-				throw new Error('Failed to load NPY data');
+				throw new Error("Failed to load NPY data");
 			}
 			return new NDArray(npyData.data, npyData.shape, npyData.dtype);
 		}
@@ -804,18 +901,25 @@ class NDArray {
 	 * @returns {string|null} - Format name or null if not an array format
 	 */
 	static inferFormat(obj) {
-		if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
-			if (Array.isArray(obj)) return 'list';
+		if (!obj || typeof obj !== "object" || Array.isArray(obj)) {
+			if (Array.isArray(obj)) return "list";
 			return null;
 		}
 
 		const fmt = obj[_FORMAT_KEY];
-		if (!fmt || typeof fmt !== 'string') return null;
+		if (!fmt || typeof fmt !== "string") return null;
 
 		// Format is like "numpy.ndarray:array_b64_meta" or "torch.Tensor:array_list_meta"
-		if (fmt.includes(':')) {
-			const suffix = fmt.split(':')[1];
-			if (['array_list_meta', 'array_hex_meta', 'array_b64_meta', 'zero_dim'].includes(suffix)) {
+		if (fmt.includes(":")) {
+			const suffix = fmt.split(":")[1];
+			if (
+				[
+					"array_list_meta",
+					"array_hex_meta",
+					"array_b64_meta",
+					"zero_dim",
+				].includes(suffix)
+			) {
 				return suffix;
 			}
 		}
@@ -834,21 +938,21 @@ class NDArray {
 		if (!format) {
 			format = NDArray.inferFormat(obj);
 			if (!format) {
-				throw new Error('Cannot infer array format from object');
+				throw new Error("Cannot infer array format from object");
 			}
 		}
 
 		// Handle plain list
-		if (format === 'list') {
+		if (format === "list") {
 			if (!Array.isArray(obj)) {
-				throw new Error('Expected array for list format');
+				throw new Error("Expected array for list format");
 			}
 			// Convert nested list to flat TypedArray
 			const flatList = obj.flat(Infinity);
 			const data = new Float64Array(flatList);
 			// Try to infer shape (simple 1D for now)
 			const shape = [obj.length];
-			return new NDArray(data, shape, 'float64');
+			return new NDArray(data, shape, "float64");
 		}
 
 		// All other formats have metadata
@@ -865,10 +969,10 @@ class NDArray {
 		}
 
 		// Handle zero-dimensional arrays
-		if (format === 'zero_dim') {
+		if (format === "zero_dim") {
 			let dataValue = obj.data;
 			// Convert to BigInt for 64-bit integer types
-			if (dtypeName === 'int64' || dtypeName === 'uint64') {
+			if (dtypeName === "int64" || dtypeName === "uint64") {
 				dataValue = BigInt(dataValue);
 			}
 			const data = new dtypeInfo.arrayConstructor([dataValue]);
@@ -876,12 +980,13 @@ class NDArray {
 		}
 
 		// Handle array_list_meta
-		if (format === 'array_list_meta') {
+		if (format === "array_list_meta") {
 			const flatList = obj.data.flat(Infinity);
 			// Convert to BigInt for 64-bit integer types
-			const processedList = (dtypeName === 'int64' || dtypeName === 'uint64')
-				? flatList.map(v => BigInt(v))
-				: flatList;
+			const processedList =
+				dtypeName === "int64" || dtypeName === "uint64"
+					? flatList.map((v) => BigInt(v))
+					: flatList;
 			const data = new dtypeInfo.arrayConstructor(processedList);
 			if (dtypeInfo.converter) {
 				const converted = dtypeInfo.converter(data);
@@ -891,9 +996,11 @@ class NDArray {
 		}
 
 		// Handle array_hex_meta
-		if (format === 'array_hex_meta') {
+		if (format === "array_hex_meta") {
 			const hexString = obj.data;
-			const bytes = new Uint8Array(hexString.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+			const bytes = new Uint8Array(
+				hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)),
+			);
 			const data = new dtypeInfo.arrayConstructor(bytes.buffer);
 			if (dtypeInfo.converter) {
 				const converted = dtypeInfo.converter(data);
@@ -903,7 +1010,7 @@ class NDArray {
 		}
 
 		// Handle array_b64_meta
-		if (format === 'array_b64_meta') {
+		if (format === "array_b64_meta") {
 			const b64String = obj.data;
 			const binaryString = atob(b64String);
 			const bytes = new Uint8Array(binaryString.length);

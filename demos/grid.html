@@ -1,242 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>DataTable Demo</title>
+		<style>
+			.datatable {
+				border-collapse: collapse;
+				width: 100%;
+			}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataTable Demo</title>
-    <style>
-        .datatable {
-            border-collapse: collapse;
-            width: 100%;
-        }
+			.datatable th,
+			.datatable td {
+				border: 1px solid #ccc;
+				padding: 8px;
+			}
 
-        .datatable th,
-        .datatable td {
-            border: 1px solid #ccc;
-            padding: 8px;
-        }
+			.datatable th {
+				background: #f0f0f0;
+				cursor: pointer;
+			}
 
-        .datatable th {
-            background: #f0f0f0;
-            cursor: pointer;
-        }
+			.datatable-filter-input {
+				width: 100%;
+				border: none;
+				padding: 4px;
+			}
+		</style>
+	</head>
 
-        .datatable-filter-input {
-            width: 100%;
-            border: none;
-            padding: 4px;
-        }
-    </style>
-</head>
+	<body>
+		<div class="container">
+			<h1>DataTable Demo</h1>
+			<div id="table-container"></div>
+		</div>
+		<script src="../src/DataFrame.js"></script>
+		<script src="../src/table.js"></script>
+		<script>
+			let table = null;
 
-<body>
-    <div class="container">
-        <h1>DataTable Demo</h1>
-        <div id="table-container"></div>
-    </div>
-    <script src="../src/DataFrame.js"></script>
-    <script src="../src/table.js"></script>
-    <script>
-        let table = null;
+			// Sample data generator
+			function generateSampleData(count = 100) {
+				const first_names = [
+					"Alice",
+					"Bob",
+					"Carol",
+					"David",
+					"Eve",
+					"Frank",
+					"Grace",
+					"Henry",
+					"Iris",
+					"Jack",
+					"Karen",
+					"Leo",
+					"Mia",
+					"Noah",
+					"Olivia",
+				];
+				const last_names = [
+					"Johnson",
+					"Smith",
+					"Williams",
+					"Brown",
+					"Davis",
+					"Miller",
+					"Wilson",
+					"Moore",
+					"Taylor",
+					"Anderson",
+					"White",
+					"Garcia",
+					"Rodriguez",
+					"Thompson",
+					"Martinez",
+				];
+				const names = [];
+				for (let i = 0; i < first_names.length; i++) {
+					for (let j = 0; j < last_names.length; j++) {
+						names.push(first_names[i] + " " + last_names[j]);
+					}
+				}
+				const departments = [
+					"Engineering",
+					"Marketing",
+					"Sales",
+					"HR",
+					"Finance",
+				];
 
-        // Sample data generator
-        function generateSampleData(count = 100) {
-            const first_names = ['Alice', 'Bob', 'Carol', 'David', 'Eve', 'Frank', 'Grace', 'Henry', 'Iris', 'Jack', 'Karen', 'Leo', 'Mia', 'Noah', 'Olivia'];
-            const last_names = ['Johnson', 'Smith', 'Williams', 'Brown', 'Davis', 'Miller', 'Wilson', 'Moore', 'Taylor', 'Anderson', 'White', 'Garcia', 'Rodriguez', 'Thompson', 'Martinez'];
-            const names = [];
-            for (let i = 0; i < first_names.length; i++) {
-                for (let j = 0; j < last_names.length; j++) {
-                    names.push(first_names[i] + ' ' + last_names[j]);
-                }
-            }
-            const departments = ['Engineering', 'Marketing', 'Sales', 'HR', 'Finance'];
+				const data = [];
+				for (let i = 0; i < count; i++) {
+					data.push({
+						id: 1000 + i,
+						name: names[Math.floor(Math.random() * names.length)],
+						age: Math.floor(Math.random() * 40) + 22,
+						salary:
+							Math.round((Math.random() * 50000 + 45000) * 100) /
+							100,
+						department:
+							departments[
+								Math.floor(Math.random() * departments.length)
+							],
+						score: Math.round((Math.random() * 40 + 60) * 10) / 10,
+						startDate: new Date(
+							2020 + Math.floor(Math.random() * 4),
+							Math.floor(Math.random() * 12),
+							Math.floor(Math.random() * 28) + 1,
+						),
+					});
+				}
+				return data;
+			}
 
-            const data = [];
-            for (let i = 0; i < count; i++) {
-                data.push({
-                    id: 1000 + i,
-                    name: names[Math.floor(Math.random() * names.length)],
-                    age: Math.floor(Math.random() * 40) + 22,
-                    salary: Math.round((Math.random() * 50000 + 45000) * 100) / 100,
-                    department: departments[Math.floor(Math.random() * departments.length)],
-                    score: Math.round((Math.random() * 40 + 60) * 10) / 10,
-                    startDate: new Date(2020 + Math.floor(Math.random() * 4),
-                        Math.floor(Math.random() * 12),
-                        Math.floor(Math.random() * 28) + 1)
-                });
-            }
-            return data;
-        }
+			// Custom renderers - simple without CSS classes
+			const scoreRenderer = (value, row, col) => {
+				const color =
+					value >= 85 ? "green" : value >= 70 ? "orange" : "red";
+				return `<span style="color: ${color}; font-weight: bold;">${value.toFixed(1)}</span>`;
+			};
 
-        // Custom renderers - simple without CSS classes
-        const scoreRenderer = (value, row, col) => {
-            const color = value >= 85 ? 'green' : value >= 70 ? 'orange' : 'red';
-            return `<span style="color: ${color}; font-weight: bold;">${value.toFixed(1)}</span>`;
-        };
+			const departmentRenderer = (value, row, col) => {
+				const colors = {
+					Engineering: "blue",
+					Marketing: "purple",
+					Sales: "green",
+					HR: "brown",
+					Finance: "navy",
+				};
+				const color = colors[value] || "black";
+				return `<span style="color: ${color};">${value}</span>`;
+			};
 
-        const departmentRenderer = (value, row, col) => {
-            const colors = {
-                'Engineering': 'blue',
-                'Marketing': 'purple',
-                'Sales': 'green',
-                'HR': 'brown',
-                'Finance': 'navy'
-            };
-            const color = colors[value] || 'black';
-            return `<span style="color: ${color};">${value}</span>`;
-        };
+			const salaryRenderer = (value, row, col) => {
+				return (
+					"$" +
+					value.toLocaleString("en-US", {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2,
+					})
+				);
+			};
 
-        const salaryRenderer = (value, row, col) => {
-            return '$' + value.toLocaleString('en-US', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2
-            });
-        };
+			const dateRenderer = (value, row, col) => {
+				return value.toLocaleDateString("en-US");
+			};
 
-        const dateRenderer = (value, row, col) => {
-            return value.toLocaleDateString('en-US');
-        };
+			// Initialize with sample data
+			function loadSampleData() {
+				const data = generateSampleData(150);
+				const columns = [
+					{
+						key: "id",
+						label: "ID",
+						type: "number",
+						width: "80px",
+						align: "right",
+						filterable: false,
+						infoFunction: () => "",
+					}, // Disable filtering and info for ID
+					{
+						key: "name",
+						label: "Name",
+						type: "string",
+						width: "1px",
+						filterTooltip:
+							'Filter names (prefix with ^ for "starts with")',
+						filterFunction: (input) => {
+							// Custom filter: case-insensitive with "starts with" support
+							const searchTerm = input.toLowerCase().trim();
+							if (!searchTerm) return () => true;
 
-        // Initialize with sample data
-        function loadSampleData() {
-            const data = generateSampleData(150);
-            const columns = [
-                { key: 'id', label: 'ID', type: 'number', width: '80px', align: 'right', filterable: false, infoFunction: () => '' }, // Disable filtering and info for ID
-                {
-                    key: 'name',
-                    label: 'Name',
-                    type: 'string',
-                    width: '1px',
-                    filterTooltip: 'Filter names (prefix with ^ for "starts with")',
-                    filterFunction: (input) => {
-                        // Custom filter: case-insensitive with "starts with" support
-                        const searchTerm = input.toLowerCase().trim();
-                        if (!searchTerm) return () => true;
+							// Support "starts with" using ^ prefix
+							if (searchTerm.startsWith("^")) {
+								const term = searchTerm.substring(1);
+								return (value) =>
+									String(value)
+										.toLowerCase()
+										.startsWith(term);
+							}
 
-                        // Support "starts with" using ^ prefix
-                        if (searchTerm.startsWith('^')) {
-                            const term = searchTerm.substring(1);
-                            return (value) => String(value).toLowerCase().startsWith(term);
-                        }
+							// Default: case-insensitive contains
+							return (value) =>
+								String(value)
+									.toLowerCase()
+									.includes(searchTerm);
+						},
+					},
+					{
+						key: "age",
+						label: "Age",
+						type: "number",
+						width: "20px",
+						align: "center",
+						filterTooltip:
+							"Filter by age: use >, <, >=, <=, ==, != (e.g., >30, <=45)",
+					},
+					{
+						key: "salary",
+						label: "Salary",
+						type: "number",
+						width: "120px",
+						align: "right",
+						renderer: salaryRenderer,
+						filterTooltip:
+							"Filter by salary: use operators (e.g., >50000, <=75000)",
+					},
+					{
+						key: "department",
+						label: "Department",
+						type: "string",
+						width: "120px",
+						align: "center",
+						renderer: departmentRenderer,
+						filterTooltip:
+							"Filter by department (try abbreviations: eng, mkt, fin)",
+						filterFunction: (input) => {
+							// Custom filter: match department abbreviations
+							const searchTerm = input.toLowerCase().trim();
+							if (!searchTerm) return () => true;
 
-                        // Default: case-insensitive contains
-                        return (value) => String(value).toLowerCase().includes(searchTerm);
-                    }
-                },
-                {
-                    key: 'age',
-                    label: 'Age',
-                    type: 'number',
-                    width: '20px',
-                    align: 'center',
-                    filterTooltip: 'Filter by age: use >, <, >=, <=, ==, != (e.g., >30, <=45)'
-                },
-                {
-                    key: 'salary',
-                    label: 'Salary',
-                    type: 'number',
-                    width: '120px',
-                    align: 'right',
-                    renderer: salaryRenderer,
-                    filterTooltip: 'Filter by salary: use operators (e.g., >50000, <=75000)'
-                },
-                {
-                    key: 'department',
-                    label: 'Department',
-                    type: 'string',
-                    width: '120px',
-                    align: 'center',
-                    renderer: departmentRenderer,
-                    filterTooltip: 'Filter by department (try abbreviations: eng, mkt, fin)',
-                    filterFunction: (input) => {
-                        // Custom filter: match department abbreviations
-                        const searchTerm = input.toLowerCase().trim();
-                        if (!searchTerm) return () => true;
+							// Map common abbreviations to full names
+							const abbrevMap = {
+								eng: "engineering",
+								mkt: "marketing",
+								fin: "finance",
+							};
 
-                        // Map common abbreviations to full names
-                        const abbrevMap = {
-                            'eng': 'engineering',
-                            'mkt': 'marketing',
-                            'fin': 'finance'
-                        };
+							const normalizedSearch =
+								abbrevMap[searchTerm] || searchTerm;
 
-                        const normalizedSearch = abbrevMap[searchTerm] || searchTerm;
+							return (value) => {
+								const dept = String(value).toLowerCase();
+								return dept.includes(normalizedSearch);
+							};
+						},
+						infoFunction: (columnData, col) => {
+							// Custom info function for departments: show distribution
+							const deptCounts = {};
+							columnData.forEach((dept) => {
+								deptCounts[dept] = (deptCounts[dept] || 0) + 1;
+							});
+							const sorted = Object.entries(deptCounts).sort(
+								(a, b) => b[1] - a[1],
+							);
+							return sorted
+								.map(([dept, count]) => `${dept}: ${count}`)
+								.join(", ");
+						},
+					},
+					{
+						key: "score",
+						label: "Score",
+						type: "number",
+						width: "80px",
+						align: "center",
+						renderer: scoreRenderer,
+						filterTooltip:
+							"Filter scores: use operators or letter grades (A, B, C, D, F)",
+						filterFunction: (input) => {
+							// Custom filter: support letter grades
+							const trimmed = input.trim().toUpperCase();
 
-                        return (value) => {
-                            const dept = String(value).toLowerCase();
-                            return dept.includes(normalizedSearch);
-                        };
-                    },
-                    infoFunction: (columnData, col) => {
-                        // Custom info function for departments: show distribution
-                        const deptCounts = {};
-                        columnData.forEach(dept => {
-                            deptCounts[dept] = (deptCounts[dept] || 0) + 1;
-                        });
-                        const sorted = Object.entries(deptCounts).sort((a, b) => b[1] - a[1]);
-                        return sorted.map(([dept, count]) => `${dept}: ${count}`).join(', ');
-                    }
-                },
-                {
-                    key: 'score',
-                    label: 'Score',
-                    type: 'number',
-                    width: '80px',
-                    align: 'center',
-                    renderer: scoreRenderer,
-                    filterTooltip: 'Filter scores: use operators or letter grades (A, B, C, D, F)',
-                    filterFunction: (input) => {
-                        // Custom filter: support letter grades
-                        const trimmed = input.trim().toUpperCase();
+							// Support letter grades
+							const gradeRanges = {
+								A: [90, 100],
+								B: [80, 89.9],
+								C: [70, 79.9],
+								D: [60, 69.9],
+								F: [0, 59.9],
+							};
 
-                        // Support letter grades
-                        const gradeRanges = {
-                            'A': [90, 100],
-                            'B': [80, 89.9],
-                            'C': [70, 79.9],
-                            'D': [60, 69.9],
-                            'F': [0, 59.9]
-                        };
+							if (gradeRanges[trimmed]) {
+								const [min, max] = gradeRanges[trimmed];
+								return (value) => value >= min && value <= max;
+							}
 
-                        if (gradeRanges[trimmed]) {
-                            const [min, max] = gradeRanges[trimmed];
-                            return (value) => value >= min && value <= max;
-                        }
+							// Fall back to default number filtering
+							return null; // Let the default number filter handle it
+						},
+						infoFunction: (columnData, col) => {
+							// Custom info function for scores: show grade distribution
+							const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
+							columnData.forEach((score) => {
+								if (score >= 90) grades.A++;
+								else if (score >= 80) grades.B++;
+								else if (score >= 70) grades.C++;
+								else if (score >= 60) grades.D++;
+								else grades.F++;
+							});
+							return `A:${grades.A} B:${grades.B} C:${grades.C} D:${grades.D} F:${grades.F}`;
+						},
+					},
+					{
+						key: "startDate",
+						label: "Start Date",
+						type: "date",
+						width: "120px",
+						align: "center",
+						renderer: dateRenderer,
+						filterable: false,
+					},
+				];
 
-                        // Fall back to default number filtering
-                        return null; // Let the default number filter handle it
-                    },
-                    infoFunction: (columnData, col) => {
-                        // Custom info function for scores: show grade distribution
-                        const grades = { A: 0, B: 0, C: 0, D: 0, F: 0 };
-                        columnData.forEach(score => {
-                            if (score >= 90) grades.A++;
-                            else if (score >= 80) grades.B++;
-                            else if (score >= 70) grades.C++;
-                            else if (score >= 60) grades.D++;
-                            else grades.F++;
-                        });
-                        return `A:${grades.A} B:${grades.B} C:${grades.C} D:${grades.D} F:${grades.F}`;
-                    }
-                },
-                { key: 'startDate', label: 'Start Date', type: 'date', width: '120px', align: 'center', renderer: dateRenderer, filterable: false }
-            ];
+				table = new DataTable("#table-container", {
+					data: data,
+					columns: columns,
+					pageSize: 15,
+					pageSizeOptions: [5, 15, 30, 50],
+					showFilters: true, // Enable filter row (default is true)
+					showInfo: true, // Enable info row (default is false)
+				});
+			}
 
-            table = new DataTable('#table-container', {
-                data: data,
-                columns: columns,
-                pageSize: 15,
-                pageSizeOptions: [5, 15, 30, 50],
-                showFilters: true, // Enable filter row (default is true)
-                showInfo: true // Enable info row (default is false)
-            });
-        }
-
-
-        // Load sample data on page load
-        loadSampleData();
-    </script>
-</body>
-
+			// Load sample data on page load
+			loadSampleData();
+		</script>
+	</body>
 </html>

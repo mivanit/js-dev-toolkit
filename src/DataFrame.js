@@ -5,7 +5,7 @@
 class DataFrame {
 	/**
 	 * Creates a DataFrame from a list of row objects
-	 * 
+	 *
 	 * @param {Array<Object>} data - Array of row objects
 	 * @param {Array<string>} [columns] - Optional column names (will be inferred from data if not provided)
 	 */
@@ -22,16 +22,18 @@ class DataFrame {
 
 	/**
 	 * Returns the values for a specific column
-	 * 
+	 *
 	 * @param {string} name - Column name
 	 * @returns {Array} - Values in the column
 	 */
 	col(name) {
 		if (!this.columns.includes(name)) {
-			throw new Error(`Column '${name}' not found in columns: ${this.columns.join(', ')}`);
+			throw new Error(
+				`Column '${name}' not found in columns: ${this.columns.join(", ")}`,
+			);
 		}
 
-		return this.data.map(row => row[name]);
+		return this.data.map((row) => row[name]);
 	}
 
 	/**
@@ -43,11 +45,15 @@ class DataFrame {
 	 */
 	get(row_idx, col_name) {
 		if (row_idx < 0 || row_idx >= this.data.length) {
-			throw new Error(`Row index ${row_idx} out of bounds (0 to ${this.data.length - 1})`);
+			throw new Error(
+				`Row index ${row_idx} out of bounds (0 to ${this.data.length - 1})`,
+			);
 		}
 
 		if (!this.columns.includes(col_name)) {
-			throw new Error(`Column '${col_name}' not found in columns: ${this.columns.join(', ')}`);
+			throw new Error(
+				`Column '${col_name}' not found in columns: ${this.columns.join(", ")}`,
+			);
 		}
 
 		return this.data[row_idx][col_name];
@@ -55,13 +61,15 @@ class DataFrame {
 
 	/**
 	 * Returns a specific row as an object
-	 * 
+	 *
 	 * @param {number} rowIdx - Row index
 	 * @returns {Object} - Row as an object
 	 */
 	row(rowIdx) {
 		if (rowIdx < 0 || rowIdx >= this.data.length) {
-			throw new Error(`Row index ${rowIdx} out of bounds (0 to ${this.data.length - 1})`);
+			throw new Error(
+				`Row index ${rowIdx} out of bounds (0 to ${this.data.length - 1})`,
+			);
 		}
 
 		return this.data[rowIdx];
@@ -83,7 +91,9 @@ class DataFrame {
 	 */
 	col_apply(name, fn) {
 		if (!this.columns.includes(name)) {
-			throw new Error(`Column '${name}' not found in columns: ${this.columns.join(', ')}`);
+			throw new Error(
+				`Column '${name}' not found in columns: ${this.columns.join(", ")}`,
+			);
 		}
 
 		for (let i = 0; i < this.data.length; i++) {
@@ -93,25 +103,25 @@ class DataFrame {
 
 	/**
 	 * Parses a CSV string into a DataFrame
-	 * 
+	 *
 	 * @param {string} text - CSV text content
 	 * @returns {DataFrame} - New DataFrame instance
 	 */
 	static from_csv(text) {
 		// Split text into lines and filter out empty lines
-		const lines = text.split('\n').filter(line => line.trim().length > 0);
+		const lines = text.split("\n").filter((line) => line.trim().length > 0);
 
 		if (lines.length === 0) {
 			return new DataFrame();
 		}
 
 		// First line is the header
-		const header = lines[0].split(',').map(col => col.trim());
+		const header = lines[0].split(",").map((col) => col.trim());
 
 		// Parse each line into a row object
 		const data = [];
 		for (let i = 1; i < lines.length; i++) {
-			const values = lines[i].split(',').map(val => val.trim());
+			const values = lines[i].split(",").map((val) => val.trim());
 
 			// Create row object mapping column names to values
 			const row = {};
@@ -125,7 +135,7 @@ class DataFrame {
 					row[header[j]] = value.slice(1, -1);
 				}
 				// Handle null values
-				else if (value === '' || value.toLowerCase() === 'null') {
+				else if (value === "" || value.toLowerCase() === "null") {
 					row[header[j]] = null;
 				}
 				// Try converting to number
@@ -146,25 +156,28 @@ class DataFrame {
 
 	/**
 	 * Converts DataFrame to CSV string
-	 * 
+	 *
 	 * @returns {string} - CSV representation of the DataFrame
 	 */
 	to_csv() {
 		if (this.data.length === 0) {
-			return this.columns.join(',');
+			return this.columns.join(",");
 		}
 
 		// Start with the header
-		const lines = [this.columns.join(',')];
+		const lines = [this.columns.join(",")];
 
 		// Add each row
 		for (const row of this.data) {
-			const values = this.columns.map(col => {
+			const values = this.columns.map((col) => {
 				const val = row[col];
 
 				if (val === null || val === undefined) {
-					return '';
-				} else if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
+					return "";
+				} else if (
+					typeof val === "string" &&
+					(val.includes(",") || val.includes('"'))
+				) {
 					// Escape quotes and wrap in quotes
 					return `"${val.replace(/"/g, '""')}"`;
 				} else {
@@ -172,26 +185,29 @@ class DataFrame {
 				}
 			});
 
-			lines.push(values.join(','));
+			lines.push(values.join(","));
 		}
 
-		return lines.join('\n');
+		return lines.join("\n");
 	}
 
 	/**
 	 * Parses a JSONL string into a DataFrame
-	 * 
+	 *
 	 * @param {string} text - JSONL text content
 	 * @returns {DataFrame} - New DataFrame instance
 	 */
 	static from_jsonl(text) {
 		// Parse each line as JSON
-		const data = text.trim().split('\n').map(line => JSON.parse(line));
+		const data = text
+			.trim()
+			.split("\n")
+			.map((line) => JSON.parse(line));
 
 		// Extract all unique column names from all rows
 		const allColumns = new Set();
 		for (const row of data) {
-			Object.keys(row).forEach(key => allColumns.add(key));
+			Object.keys(row).forEach((key) => allColumns.add(key));
 		}
 
 		return new DataFrame(data, Array.from(allColumns));
@@ -199,16 +215,16 @@ class DataFrame {
 
 	/**
 	 * Converts DataFrame to JSONL string
-	 * 
+	 *
 	 * @returns {string} - JSONL representation of the DataFrame
 	 */
 	to_jsonl() {
-		return this.data.map(row => JSON.stringify(row)).join('\n');
+		return this.data.map((row) => JSON.stringify(row)).join("\n");
 	}
 
 	/**
 	 * Returns the number of rows in the DataFrame
-	 * 
+	 *
 	 * @returns {number} - Number of rows
 	 */
 	get length() {
@@ -222,10 +238,10 @@ class DataFrame {
 	 */
 	toString() {
 		if (this.data.length === 0) {
-			return 'Empty DataFrame';
+			return "Empty DataFrame";
 		}
 
-		return `DataFrame with ${this.data.length} rows and ${this.columns.length} columns: ${this.columns.join(', ')}`;
+		return `DataFrame with ${this.data.length} rows and ${this.columns.length} columns: ${this.columns.join(", ")}`;
 	}
 
 	/**
@@ -235,7 +251,7 @@ class DataFrame {
 	 */
 	clone() {
 		// Deep copy the data array and each row object
-		const clonedData = this.data.map(row => ({ ...row }));
+		const clonedData = this.data.map((row) => ({ ...row }));
 		// Copy the columns array
 		const clonedColumns = [...this.columns];
 		return new DataFrame(clonedData, clonedColumns);
@@ -269,17 +285,23 @@ class DataFrame {
 	 */
 	filterBy(column, valueOrPredicate) {
 		if (!this.columns.includes(column)) {
-			throw new Error(`Column '${column}' not found in columns: ${this.columns.join(', ')}`);
+			throw new Error(
+				`Column '${column}' not found in columns: ${this.columns.join(", ")}`,
+			);
 		}
 
 		// If valueOrPredicate is a function, use it as a predicate on the column value
-		if (typeof valueOrPredicate === 'function') {
-			const filteredData = this.data.filter(row => valueOrPredicate(row[column]));
+		if (typeof valueOrPredicate === "function") {
+			const filteredData = this.data.filter((row) =>
+				valueOrPredicate(row[column]),
+			);
 			return new DataFrame(filteredData, [...this.columns]);
 		}
 		// Otherwise, filter by exact value match
 		else {
-			const filteredData = this.data.filter(row => row[column] === valueOrPredicate);
+			const filteredData = this.data.filter(
+				(row) => row[column] === valueOrPredicate,
+			);
 			return new DataFrame(filteredData, [...this.columns]);
 		}
 	}
@@ -299,7 +321,9 @@ class DataFrame {
 	 */
 	sort(column, ascending = true) {
 		if (!this.columns.includes(column)) {
-			throw new Error(`Column '${column}' not found in columns: ${this.columns.join(', ')}`);
+			throw new Error(
+				`Column '${column}' not found in columns: ${this.columns.join(", ")}`,
+			);
 		}
 
 		// Create a copy of the data array
@@ -320,7 +344,7 @@ class DataFrame {
 
 			// Compare values
 			let comparison;
-			if (typeof aVal === 'string' && typeof bVal === 'string') {
+			if (typeof aVal === "string" && typeof bVal === "string") {
 				comparison = aVal.localeCompare(bVal);
 			} else {
 				comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
@@ -360,33 +384,34 @@ class DataFrame {
 	 */
 	display_simple() {
 		if (this.data.length === 0) {
-			throw new Error('Cannot display empty DataFrame');
+			throw new Error("Cannot display empty DataFrame");
 		}
 
-		let html = '<table>\n';
+		let html = "<table>\n";
 
-		html += '  <thead>\n    <tr>\n';
+		html += "  <thead>\n    <tr>\n";
 		for (const column of this.columns) {
 			html += `      <th>${column}</th>\n`;
 		}
-		html += '    </tr>\n  </thead>\n';
+		html += "    </tr>\n  </thead>\n";
 
-		html += '  <tbody>\n';
+		html += "  <tbody>\n";
 		for (let i = 0; i < this.data.length; i++) {
 			const row = this.data[i];
-			html += '    <tr>\n';
+			html += "    <tr>\n";
 
 			for (const column of this.columns) {
 				const value = row[column];
-				const displayValue = value === null || value === undefined ? '' : String(value);
+				const displayValue =
+					value === null || value === undefined ? "" : String(value);
 				html += `      <td>${displayValue}</td>\n`;
 			}
 
-			html += '    </tr>\n';
+			html += "    </tr>\n";
 		}
-		html += '  </tbody>\n';
+		html += "  </tbody>\n";
 
-		html += '</table>';
+		html += "</table>";
 
 		return html;
 	}
