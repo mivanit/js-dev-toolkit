@@ -141,7 +141,7 @@ function parseURLParams(params = null) {
   }
 
   for (const [key, value] of params) {
-    setNestedConfigValue(CONFIG, key, parseConfigValue(value));
+    setNestedConfigValue(CONFIG, key, decodeFromURL(value));
   }
 }
 
