@@ -3,6 +3,11 @@ test:
 	@echo "Run browser-based tests"
 	uv run --with pytest --with playwright pytest -vvv tests/run_tests.py
 
+.PHONY: test-verbose
+test-verbose:
+	@echo "Run browser-based tests with verbose output"
+	uv run --with pytest --with playwright pytest -vvv tests/run_tests.py -o log_cli=true --log-cli-level=INFO -rA
+
 .PHONY: install-playwright
 install-playwright:
 	@echo "Install Playwright browsers"
