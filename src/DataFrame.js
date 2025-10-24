@@ -229,6 +229,130 @@ class DataFrame {
 	}
 
 	/**
+	 * Creates a deep copy of the DataFrame
+	 *
+	 * @returns {DataFrame} - New DataFrame with copied data
+	 */
+	clone() {
+		// Deep copy the data array and each row object
+		const clonedData = this.data.map(row => ({ ...row }));
+		// Copy the columns array
+		const clonedColumns = [...this.columns];
+		return new DataFrame(clonedData, clonedColumns);
+	}
+
+	/**
+	 * Filters rows based on a predicate function
+	 *
+	 * @param {Function} predicate - Function that receives a row and returns boolean
+	 * @returns {DataFrame} - New DataFrame with filtered rows
+	 * @example
+	 * df.filter(row => row.age > 18)
+	 */
+	filter(predicate) {
+		const filteredData = this.data.filter(predicate);
+		return new DataFrame(filteredData, [...this.columns]);
+	}
+
+	/**
+	 * Filters rows by a column value or predicate
+	 *
+	 * @param {string} column - Column name to filter by
+	 * @param {any|Function} valueOrPredicate - Value to match, or predicate function for column value
+	 * @returns {DataFrame} - New DataFrame with filtered rows
+	 * @example
+	 * // Filter by exact value
+	 * df.filterBy('status', 'active')
+	 *
+	 * // Filter by predicate
+	 * df.filterBy('age', age => age > 18)
+	 */
+	filterBy(column, valueOrPredicate) {
+		if (!this.columns.includes(column)) {
+			throw new Error(`Column '${column}' not found in columns: ${this.columns.join(', ')}`);
+		}
+
+		// If valueOrPredicate is a function, use it as a predicate on the column value
+		if (typeof valueOrPredicate === 'function') {
+			const filteredData = this.data.filter(row => valueOrPredicate(row[column]));
+			return new DataFrame(filteredData, [...this.columns]);
+		}
+		// Otherwise, filter by exact value match
+		else {
+			const filteredData = this.data.filter(row => row[column] === valueOrPredicate);
+			return new DataFrame(filteredData, [...this.columns]);
+		}
+	}
+
+	/**
+	 * Sorts DataFrame by a column
+	 *
+	 * @param {string} column - Column name to sort by
+	 * @param {boolean} [ascending=true] - Sort in ascending order (default true)
+	 * @returns {DataFrame} - New DataFrame with sorted rows
+	 * @example
+	 * // Sort by age ascending
+	 * df.sort('age')
+	 *
+	 * // Sort by age descending
+	 * df.sort('age', false)
+	 */
+	sort(column, ascending = true) {
+		if (!this.columns.includes(column)) {
+			throw new Error(`Column '${column}' not found in columns: ${this.columns.join(', ')}`);
+		}
+
+		// Create a copy of the data array
+		const sortedData = [...this.data];
+
+		// Sort with null handling (nulls at the end)
+		sortedData.sort((a, b) => {
+			const aVal = a[column];
+			const bVal = b[column];
+
+			// Handle null/undefined values - place at end
+			if (aVal === null || aVal === undefined) {
+				return 1;
+			}
+			if (bVal === null || bVal === undefined) {
+				return -1;
+			}
+
+			// Compare values
+			let comparison;
+			if (typeof aVal === 'string' && typeof bVal === 'string') {
+				comparison = aVal.localeCompare(bVal);
+			} else {
+				comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+			}
+
+			// Apply ascending/descending
+			return ascending ? comparison : -comparison;
+		});
+
+		return new DataFrame(sortedData, [...this.columns]);
+	}
+
+	/**
+	 * Sorts DataFrame using a custom comparison function
+	 *
+	 * @param {Function} compareFn - Comparison function (a, b) => number
+	 * @returns {DataFrame} - New DataFrame with sorted rows
+	 * @example
+	 * // Sort by multiple columns
+	 * df.sortBy((a, b) => {
+	 *   if (a.city !== b.city) return a.city.localeCompare(b.city);
+	 *   return a.age - b.age;
+	 * })
+	 */
+	sortBy(compareFn) {
+		// Create a copy of the data array
+		const sortedData = [...this.data];
+		sortedData.sort(compareFn);
+		return new DataFrame(sortedData, [...this.columns]);
+	}
+
+	/**
 	 * Returns HTML code for displaying the DataFrame as a simple table
 	 *
 	 * @returns {string} - HTML table representation
