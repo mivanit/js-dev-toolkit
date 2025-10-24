@@ -30,11 +30,19 @@ const URL_UPDATE_DEBOUNCE_DELAY = 500; // ms
 const FLOAT_COMPARISON_EPSILON = 0.0001; // For float comparisons
 
 // paths that shouldn't be persisted in URLs, e.g. large data arrays
+// Examples of paths you might want to skip:
+//   "data.largeArray" - skip if you have large dataset arrays
+//   "cache.items" - skip cached data that shouldn't persist
+//   "ui.internalState" - skip internal UI state
 const URL_SKIP_PATHS = [
   // TODO[YOUR APP]
 ];
 
 // keys that change frequently but shouldn't trigger URL updates
+// Examples of keys you might want to skip:
+//   "timestamp" - skip if you track last update time
+//   "frameCount" - skip animation frame counters
+//   "mousePosition" - skip frequently changing interaction state
 const COMPARISON_SKIP_KEYS = [
   // TODO[YOUR APP]
 ];
@@ -56,6 +64,17 @@ let URL_UPDATE_TIMEOUT = null;
  */
 function getDefaultConfig() {
   // the actual default configuration should be defined here
+  // Example configuration structure:
+  //   {
+  //     theme: "light",
+  //     ui: {
+  //       showToolbar: true,
+  //       fontSize: 14
+  //     },
+  //     data: {
+  //       sources: ["data.json"]
+  //     }
+  //   }
   let default_cfg = {
     // TODO[YOUR APP]: Define your config structure and default configuration here
   };
@@ -179,16 +198,22 @@ function setNestedConfigValue(obj, path, value) {
  * TODO[YOUR APP]: Customize this function for your specific encoding needs
  * Example: encoding special characters, handling custom data types
  *
+ * Customize this function if you need to encode special characters or custom data types.
+ * Make sure to reverse the encoding in decodeFromURL() below.
+ *
+ * Example use cases:
+ *   - File paths with colons: "C:/path/file.txt" → "C~/path/file.txt"
+ *   - Special delimiters in strings that conflict with URL syntax
+ *   - Custom object serialization
+ *
  * @param {any} value - Value to encode
  * @returns {string} URL-friendly encoded value
  */
 function encodeForURL(value) {
   // TODO[YOUR APP]: Add custom encoding logic for your application
-  // Example: Replace special characters with URL-safe equivalents
-  // if (typeof value === "string") {
-  //   if (value.includes(":")) {
-  //     return value.replace(/:/g, "~");
-  //   }
+  // Example: Replace colons in file paths with tildes
+  // if (typeof value === "string" && value.includes(":")) {
+  //   return value.replace(/:/g, "~");
   // }
   return value;
 }
@@ -196,6 +221,15 @@ function encodeForURL(value) {
 /**
  * Parse a string value from URL params into appropriate type
  * Handles arrays (tilde-separated values), booleans, numbers, and strings
+ *
+ * TODO[YOUR APP]: add custom decoding logic that reverses encodeForURL
+ *
+ * Add custom decoding logic here that reverses any encoding done in encodeForURL().
+ * Example: Reverse the colon encoding from encodeForURL
+ *   if (typeof value === "string" && value.includes("~")) {
+ *     return value.replace(/~/g, ":");
+ *   }
+ *
  * @param {string} value - String value from URL parameter
  * @returns {any} Parsed value
 */
@@ -209,7 +243,7 @@ function decodeFromURL(value) {
     return parseFloat(value);
   }
 
-  // TODO[YOUR APP]: add custom decoding logic that reverses encodeForURL
+  // TODO[YOUR APP]
 
   // otherwise, return as-is
   return value;
@@ -416,7 +450,15 @@ function resetConfigToLoaded() {
  * TODO[YOUR APP]: Customize this function for your specific use case
  * Example: preserving user preferences while resetting other settings
  *
- * @param {string} [preserveKey] - Optional key to preserve during reset
+ * Example use cases:
+ *   - Reset visualization settings while keeping the current data source:
+ *     resetConfigPreserveKey("data.source")
+ *   - Reset all settings except user theme preference:
+ *     resetConfigPreserveKey("theme")
+ *   - Reset layout while keeping current file path:
+ *     resetConfigPreserveKey("ui.currentFile")
+ *
+ * @param {string} [preserveKey] - Optional key to preserve during reset (supports dot notation)
  */
 function resetConfigPreserveKey(preserveKey = null) {
   if (!CONFIG) {
