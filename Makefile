@@ -17,3 +17,8 @@ install-playwright:
 clean:
 	@echo "Clean up temporary files"
 	rm -f tests/.temp
+
+.PHONY: format
+format:
+	@echo "Formatting code in src/"
+	npx -y prettier --write "src/**/*.js" "*.html" "src/**/*.css"
