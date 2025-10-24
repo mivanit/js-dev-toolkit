@@ -49,12 +49,3 @@ function toYAML(obj, indent = 0) {
 
     return lines.join('\n');
 }
-
-/**
- * Create YAML frontmatter block
- * @param {object} obj - Object to convert to YAML
- * @returns {string} YAML frontmatter with delimiters
- */
-function createYAMLFrontmatter(obj) {
-    return `---\n${toYAML(obj)}\n---`;
-}
