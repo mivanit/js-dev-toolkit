@@ -1,4 +1,6 @@
 // array.js - NumPy array parsing and utilities
+// version 0.1.0
+// append ".dev-{name}" if you edit this locally
 // origin: https://github.com/mivanit/js-dev-toolkit
 // license: GPLv3
 //
