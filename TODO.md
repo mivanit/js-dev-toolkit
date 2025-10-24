@@ -33,7 +33,10 @@
   - [x] table.js: addRow(), setPageSize(), clearAllFilters(), exportCSV()
   - [x] table.js: Numeric filters (>, <=, ==)
   - [x] table.js: Wildcard filters (foo*, *bar, *baz*)
-  - [ ] array.js: npyjs class (parse, load, loadNPZ, parseZIP) - needs mock ArrayBuffer/fetch
+  - [ ] array.js: npyjs class (parse, load, loadNPZ, parseZIP)
+    - Requires: mock ArrayBuffer for .npy parsing, JSZip for .npz parsing
+    - Complex: needs binary NPY/NPZ test files or mocked binary data
+  - [ ] array.js: NDArray.parse() static method (parses NPY format from ArrayBuffer)
   - [ ] DataFrame.js: CSV parsing with proper quote escaping (current impl is simple)
   - [ ] table.js: Custom column renderers, filter functions, sort functions
   - [ ] table.js: Column resizing behavior
@@ -71,12 +74,17 @@
 ## Documentation
 
 ### High Priority
-- [ ] Update README.md with:
+- [ ] Update README.md with (CRITICAL - currently only 4 lines):
+  - [ ] Module descriptions (notif, ColorUtil, array, DataFrame, table, sparklines, config, yaml)
   - [ ] Installation instructions
   - [ ] Usage examples for each module
+  - [ ] Quick start guide
   - [ ] API documentation
   - [ ] Browser compatibility info
   - [ ] License information
+  - [ ] Link to demos (index.html, demos/grid.html, demos/sparklines.html)
+  - [ ] Document that notif.css must be included for notification styling
+  - [ ] Document JSZip requirement for NPZ file support (optional dependency)
 
 - [ ] Add JSDoc comments to all public functions
   - [ ] DataFrame.js - add param/return types
@@ -89,12 +97,16 @@
   - [ ] config.js - document configuration system flow
 
 ### Medium Priority
-- [ ] Create usage examples
-  - [ ] DataFrame data manipulation examples
-  - [ ] DataTable interactive demos
-  - [ ] Sparkline visualization examples
-  - [ ] Notification system patterns
-  - [ ] Configuration management patterns
+- [~] Create usage examples (demos exist but not documented)
+  - [x] index.html - comprehensive functionality test (exists)
+  - [x] demos/grid.html - DataTable grid demo (exists)
+  - [x] demos/sparklines.html - sparklines gallery (exists)
+  - [ ] Document existing demos in README
+  - [ ] Create standalone examples for:
+    - [ ] DataFrame data manipulation
+    - [ ] Notification system patterns
+    - [ ] Configuration management patterns
+    - [ ] ColorUtil color mapping
 
 - [ ] Add tutorials
   - [ ] Getting started guide
@@ -111,17 +123,17 @@
 - [ ] Fix cSpell warnings
   - [ ] Add technical terms to dictionary (ndim, dtypes, colormap, etc.)
 
-- [ ] Review TODOs in source files
-  - [ ] config.js: Define actual default configuration structure
-  - [ ] config.js: Customize encodeForURL for special characters
-  - [x] config.js: Implement decodeFromURL to reverse encoding (already exists)
-  - [ ] config.js: Define URL_SKIP_PATHS for large data arrays
-  - [ ] config.js: Define COMPARISON_SKIP_KEYS for volatile keys
-  - [ ] table.js: Verify all _TABLE_CONSTS are used correctly
-  - [ ] array.js: Implement NDArray operations (sum, mean, reshape, transpose)
+- [ ] Review and implement TODOs in source files (CRITICAL)
+  - [ ] config.js:175-182 - Customize encodeForURL for special characters
+  - [ ] config.js:208 - Add custom decoding logic that reverses encodeForURL
+  - [x] config.js:144 - Implement decodeFromURL to reverse encoding (already exists, was using wrong name)
+  - [ ] config.js:412 - Customize shouldSkipInURL function for specific use case
+  - [ ] table.js - Verify all _TABLE_CONSTS are used correctly
+  - [ ] array.js:212 - Implement NDArray operations (sum, mean, reshape, transpose)
 
 - [x] Bug fixes completed
-  - [x] Fixed parseConfigValue undefined reference in config.js (changed to decodeFromURL)
+  - [x] Fixed parseConfigValue undefined reference in config.js:144 (changed to decodeFromURL)
+  - [x] Removed debug console.error from sparklines.js:139-140
 
 ### Medium Priority
 - [ ] Add error handling improvements
@@ -130,9 +142,16 @@
   - [ ] Graceful degradation when features unavailable
 
 - [ ] Code organization
-  - [ ] Consider splitting large files (table.js is 1100+ lines)
+  - [ ] Consider splitting large files (table.js is 1100+ lines, index.html is 900+ lines)
   - [ ] Extract constants to separate files
   - [ ] Create a unified exports file
+  - [ ] Consider bundling notif.css with notif.js or documenting requirement clearly
+
+- [ ] CSS/Styling
+  - [ ] Document that notif.css is required for NotificationManager
+  - [ ] Consider inline styles or JS-based styling to avoid external CSS dependency
+  - [ ] Add CSS variables for theming notif.css
+  - [ ] DataTable styles are inline (good) but could be customizable
 
 ## Features
 
@@ -181,6 +200,15 @@
 ## Build & Distribution
 
 ### High Priority
+- [ ] Create package.json (CRITICAL - does not exist)
+  - [ ] Add metadata (name, version, description, author, license)
+  - [ ] Define entry points for each module
+  - [ ] Add npm scripts (test, lint, build)
+  - [ ] Define dependencies (none currently)
+  - [ ] Define peer/optional dependencies (JSZip for NPZ support)
+  - [ ] Add keywords for npm discoverability
+  - [ ] Add repository, bugs, homepage URLs
+
 - [ ] Set up build process
   - [ ] Bundle for browser use
   - [ ] Minify for production
@@ -188,8 +216,8 @@
 
 - [ ] Package for distribution
   - [ ] Prepare for npm publishing
-  - [ ] Add proper package.json metadata
   - [ ] Create CHANGELOG.md
+  - [ ] Add .npmignore file
 
 ### Medium Priority
 - [ ] Set up CI/CD
@@ -205,10 +233,16 @@
 
 ## Dependencies & Compatibility
 
-### Review & Document
+### Review & Document (CRITICAL)
 - [ ] Document external dependencies
-  - [ ] JSZip for NPZ file support (mentioned in array.js)
-  - [ ] Browser API requirements (fetch, clipboard, etc.)
+  - [ ] JSZip for NPZ file support (src/array.js:168 - `new JSZip()` but not included)
+  - [ ] JSZip is optional - only needed for .npz files, not .npy files
+  - [ ] Browser API requirements:
+    - [ ] fetch() for config.js and array.js file loading
+    - [ ] Blob and URL.createObjectURL() for config export
+    - [ ] navigator.clipboard for table.js CSV copy
+    - [ ] window.open() for config export to new tab
+  - [ ] No npm dependencies currently - all vanilla JS
 
 - [ ] Add polyfills if needed
   - [ ] Fetch polyfill for older browsers
