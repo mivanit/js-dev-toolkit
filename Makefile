@@ -21,4 +21,5 @@ clean:
 .PHONY: format
 format:
 	@echo "Formatting code in src/"
-	npx -y prettier --write "src/**/*.js" "*.html" "src/**/*.css"
+	npx -y prettier --write "**/*.js" "**/*.html" "**/*.css"
+	uv run --with ruff ruff format tests/
