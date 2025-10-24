@@ -1,32 +1,56 @@
 # TODO for js-dev-toolkit
 
+## Status Key
+- `[ ]` - Incomplete
+- `[x]` - Complete
+- `[?]` - Unsure of completion status
+- `[~]` - Partially complete
+- `[/]` - Maybe remove this TODO
+
 ## Testing
 
 ### High Priority
-- [ ] Run all tests and fix any failures
-  - [ ] Test DataFrame functionality
-  - [ ] Test ColorUtil color mapping
-  - [ ] Test NDArray JSON deserialization
-  - [ ] Test YAML serialization edge cases
-  - [ ] Test sparklines SVG generation
-  - [ ] Test DataTable DOM interactions
-  - [ ] Test notification system timing
-  - [ ] Test config URL parameter parsing
+- [x] Run all tests and fix any failures (8/8 test suites passing)
+  - [x] Test DataFrame functionality
+  - [x] Test ColorUtil color mapping
+  - [x] Test NDArray JSON deserialization
+  - [x] Test YAML serialization edge cases
+  - [x] Test sparklines SVG generation
+  - [x] Test DataTable DOM interactions
+  - [x] Test notification system timing
+  - [x] Test config URL parameter parsing
 
-- [ ] Fix any issues with mock DOM in tests
-  - [ ] Ensure DataTable tests work with mock environment
-  - [ ] Verify notification system tests handle timeouts correctly
-  - [ ] Test config system with mock window/fetch
+- [?] Fix any issues with mock DOM in tests (using real browser via Playwright, not mocks)
+  - [?] Ensure DataTable tests work with mock environment
+  - [?] Verify notification system tests handle timeouts correctly
+  - [?] Test config system with mock window/fetch
 
-- [ ] Add missing test coverage
+- [~] Add missing test coverage (added smoke tests for high-priority functions)
+  - [x] array.js: float16ToFloat32() and float16ToFloat32Array()
+  - [x] DataFrame.js: get(), col_apply(), from_jsonl(), to_jsonl()
+  - [x] ColorUtil.js: generateDistinctColors()
+  - [x] config.js: resetConfigPreserveKey(), exportConfigToNewTab()
+  - [x] table.js: addRow(), setPageSize(), clearAllFilters(), exportCSV()
+  - [x] table.js: Numeric filters (>, <=, ==)
+  - [x] table.js: Wildcard filters (foo*, *bar, *baz*)
+  - [ ] array.js: npyjs class (parse, load, loadNPZ, parseZIP) - needs mock ArrayBuffer/fetch
+  - [ ] DataFrame.js: CSV parsing with proper quote escaping (current impl is simple)
   - [ ] table.js: Custom column renderers, filter functions, sort functions
   - [ ] table.js: Column resizing behavior
   - [ ] table.js: Pagination edge cases (page validation)
   - [ ] notif.js: Animation and positioning logic
   - [ ] config.js: URL update debouncing
   - [ ] config.js: Full getConfig() async flow with fetch
+  - [ ] config.js: Array parameter parsing (tilde-separated values)
   - [ ] sparklines.js: More axis configurations
-  - [ ] array.js: NPY/NPZ file loading (needs mock fetch)
+
+### Testing Infrastructure
+- [x] Migrate from Node.js VM-based tests to browser-based tests with Playwright
+- [x] Create Python pytest test runner with parametrization
+- [x] Create test-framework.js for browser testing (describe/it/assert API)
+- [x] Set up make test command to run all browser tests
+- [ ] Add test coverage reporting
+- [ ] Add test performance benchmarking
 
 ### Medium Priority
 - [ ] Add integration tests
@@ -90,11 +114,14 @@
 - [ ] Review TODOs in source files
   - [ ] config.js: Define actual default configuration structure
   - [ ] config.js: Customize encodeForURL for special characters
-  - [ ] config.js: Implement decodeFromURL to reverse encoding
+  - [x] config.js: Implement decodeFromURL to reverse encoding (already exists)
   - [ ] config.js: Define URL_SKIP_PATHS for large data arrays
   - [ ] config.js: Define COMPARISON_SKIP_KEYS for volatile keys
   - [ ] table.js: Verify all _TABLE_CONSTS are used correctly
   - [ ] array.js: Implement NDArray operations (sum, mean, reshape, transpose)
+
+- [x] Bug fixes completed
+  - [x] Fixed parseConfigValue undefined reference in config.js (changed to decodeFromURL)
 
 ### Medium Priority
 - [ ] Add error handling improvements
@@ -214,7 +241,10 @@
 
 ## Notes
 
-- Tests are comprehensive but need to be run and verified
-- Some features have TODO comments in source code that need attention
-- Browser testing is essential before production use
-- Consider splitting into separate npm packages if modules are used independently
+- [x] Tests migrated to browser-based with Playwright (8/8 test suites passing)
+- [x] Added smoke tests for high-priority untested functions
+- [ ] Some features still have TODO comments in source code that need attention
+- [ ] Browser compatibility testing needed (Chrome, Firefox, Safari)
+- [ ] Consider splitting into separate npm packages if modules are used independently
+- Test runner uses Python pytest with Playwright for browser automation
+- All tests run in real browser environment (not Node.js VM or mocks)
