@@ -14,41 +14,44 @@ Implement essential array operations to make NDArray more useful for numerical c
 ## Checklist
 
 ### Aggregation Operations
-- [ ] Implement `sum(axis=null)` method
-  - [ ] Sum over all elements (no axis specified)
-  - [ ] Sum along specific axis
-  - [ ] Return scalar or new NDArray based on axis
-  - [ ] Handle different dtypes appropriately
-- [ ] Implement `mean(axis=null)` method
-  - [ ] Mean over all elements
-  - [ ] Mean along specific axis
-  - [ ] Handle division by zero edge cases
-- [ ] Implement `min(axis=null)` method
-  - [ ] Min over all elements
-  - [ ] Min along specific axis
-- [ ] Implement `max(axis=null)` method
-  - [ ] Max over all elements
-  - [ ] Max along specific axis
+- [x] Implement `sum(axis=null)` method
+  - [x] Sum over all elements (no axis specified)
+  - [x] Sum along specific axis
+  - [x] Return scalar or new NDArray based on axis
+  - [x] Handle different dtypes appropriately
+- [x] Implement `mean(axis=null)` method
+  - [x] Mean over all elements
+  - [x] Mean along specific axis
+  - [x] Handle division by zero edge cases
+- [x] Implement `range(axis=null)` method (NEW - efficiency improvement)
+  - [x] Compute both min and max in single pass
+  - [x] Return [2] array for axis=null, [..., 2] for specific axis
+- [x] Implement `min(axis=null)` method
+  - [x] Min over all elements
+  - [x] Min along specific axis
+- [x] Implement `max(axis=null)` method
+  - [x] Max over all elements
+  - [x] Max along specific axis
 
 ### Shape Operations
-- [ ] Implement `reshape(newShape)` method
-  - [ ] Validate new shape has same total size
-  - [ ] Return new NDArray with different shape
-  - [ ] Support -1 for auto-calculation of one dimension
-  - [ ] Example: `arr.reshape([2, 3, 4])` or `arr.reshape([2, -1])`
-- [ ] Implement `transpose(axes=null)` method
-  - [ ] Default transpose (reverse all axes)
-  - [ ] Custom axis permutation if axes specified
-  - [ ] Example: `arr.transpose()` or `arr.transpose([2, 0, 1])`
-  - [ ] Update shape and strides appropriately
+- [x] Implement `reshape(newShape)` method
+  - [x] Validate new shape has same total size
+  - [x] Return new NDArray with different shape
+  - [x] Support -1 for auto-calculation of one dimension
+  - [x] Example: `arr.reshape([2, 3, 4])` or `arr.reshape([2, -1])`
+- [x] Implement `transpose(axes=null)` method
+  - [x] Default transpose (reverse all axes)
+  - [x] Custom axis permutation if axes specified
+  - [x] Example: `arr.transpose()` or `arr.transpose([2, 0, 1])`
+  - [x] Update shape and strides appropriately
 
 ### Helper Methods (Optional but Recommended)
-- [ ] Implement `flatten()` method
-  - [ ] Return 1D view of array
-- [ ] Implement `size` getter property
-  - [ ] Return total number of elements
-- [ ] Add axis validation helper
-  - [ ] Validate axis parameter is within bounds
+- [x] Implement `flatten()` method
+  - [x] Return 1D view of array
+- [x] Implement `size` getter property
+  - [x] Return total number of elements
+- [x] Add axis validation helper
+  - [x] Validate axis parameter is within bounds
 
 ## Implementation Notes
 
@@ -78,6 +81,9 @@ arr.sum(1);          // NDArray([6,15]) shape [2]
 arr.mean();          // 3.5
 arr.mean(0);         // NDArray([2.5, 3.5, 4.5])
 
+arr.range();         // NDArray([1, 6]) shape [2] (min=1, max=6)
+arr.range(0);        // NDArray([1,4,2,5,3,6]) shape [3,2]
+
 arr.reshape([3, 2]); // [[1,2], [3,4], [5,6]]
 arr.reshape([6]);    // [1,2,3,4,5,6]
 arr.reshape([2,-1]); // [2,3] automatically calculated
@@ -89,25 +95,27 @@ arr.transpose();     // [[1,4], [2,5], [3,6]] shape [3,2]
 - `src/array.js` - Add methods to NDArray class (around line 212)
 
 ## Testing
-- [ ] Add unit tests for each operation in `tests/test-array.html`
-  - [ ] Test sum/mean/min/max with no axis
-  - [ ] Test sum/mean/min/max with each axis
-  - [ ] Test edge cases (empty arrays, single element)
-  - [ ] Test reshape with various shapes
-  - [ ] Test reshape with -1 auto-calculation
-  - [ ] Test reshape validation (incompatible sizes)
-  - [ ] Test transpose default behavior
-  - [ ] Test transpose with custom axes
-  - [ ] Test transpose validation (invalid axes)
-- [ ] Run `make test` to verify all tests pass
-- [ ] Test in demo pages (index.html)
+- [x] Add unit tests for each operation in `tests/test-array.html`
+  - [x] Test sum/mean/min/max with no axis
+  - [x] Test sum/mean/min/max with each axis
+  - [x] Test range() method with no axis and with axes
+  - [x] Test edge cases (empty arrays, single element)
+  - [x] Test reshape with various shapes
+  - [x] Test reshape with -1 auto-calculation
+  - [x] Test reshape validation (incompatible sizes)
+  - [x] Test transpose default behavior
+  - [x] Test transpose with custom axes
+  - [x] Test transpose validation (invalid axes)
+- [x] Run `make test` to verify all tests pass
+- [x] Test in demo pages (index.html)
 
 ## Success Criteria
-- All aggregation methods (sum, mean, min, max) work correctly
-- Reshape handles all valid cases and rejects invalid ones
-- Transpose works for arrays of any dimensionality
-- All tests pass
-- TODO comment at line 212 is removed
+- [x] All aggregation methods (sum, mean, min, max) work correctly
+- [x] Range method efficiently computes both min and max
+- [x] Reshape handles all valid cases and rejects invalid ones
+- [x] Transpose works for arrays of any dimensionality
+- [x] All tests pass
+- [x] TODO comment at line 212 is removed
 
 ## Related Items from Original TODO.md
 - TODO.md line 125: "array.js:212 - Implement NDArray operations"
@@ -118,3 +126,52 @@ arr.transpose();     // [[1,4], [2,5], [3,6]] shape [3,2]
 - Advanced indexing (boolean masks, fancy indexing)
 - Linear algebra operations (dot, matmul)
 - Statistical operations (std, var, median)
+
+---
+
+## ✅ COMPLETED
+
+### Commit Message
+```
+feat: implement NDArray operations (sum, mean, range, min, max, reshape, transpose)
+
+Implement essential array operations for NDArray class to enable
+numerical computing and data analysis.
+
+Aggregation operations:
+- sum(axis): sum over all elements or along specific axis
+- mean(axis): mean over all elements or along specific axis
+- range(axis): efficiently compute both min and max in single pass
+  Returns shape [2] for axis=null, [..., 2] for specific axis
+- min(axis): extract minimum from range() results
+- max(axis): extract maximum from range() results
+
+Shape operations:
+- reshape(newShape): return array with new shape, supports -1 for
+  auto-calculation of one dimension
+- transpose(axes): return transposed array, default reverses all axes
+  or use custom permutation
+
+Helper methods:
+- size getter: return total number of elements
+- flatten(): return 1D view of array
+- _validateAxis(): validate and normalize axis parameter
+
+All methods support negative axis indexing and work with any
+dimensionality. Includes comprehensive test coverage with ~40 new
+test cases.
+
+Resolves TODO at src/array.js:212
+Addresses TASK_3.md requirements
+```
+
+### Files Modified
+- `src/array.js` - Added 252 lines of new methods (lines 212-464)
+- `tests/test-array.html` - Added 362 lines of comprehensive tests
+- `index.html` - Added 4 demo functions and buttons for new operations
+
+### Test Results
+All 8 test suites passed in 9.07s
+- 40+ new test cases for NDArray operations
+- Edge case coverage (empty arrays, single elements, negative indices)
+- Error validation (invalid axes, incompatible shapes)

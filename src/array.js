@@ -209,7 +209,372 @@ class NDArray {
 		}
 	}
 
-	// TODO: sum, mean, reshape, transpose, etc
+	/**
+	 * Returns the total number of elements in the array
+	 * @returns {number} Total number of elements
+	 */
+	get size() {
+		return this._size;
+	}
+
+	/**
+	 * Validates axis parameter is within bounds
+	 * @param {number|null} axis - The axis to validate
+	 * @returns {number|null} The validated axis
+	 * @private
+	 */
+	_validateAxis(axis) {
+		if (axis === null || axis === undefined) {
+			return null;
+		}
+
+		// Handle negative axis
+		if (axis < 0) {
+			axis = this.ndim + axis;
+		}
+
+		if (axis < 0 || axis >= this.ndim) {
+			throw new Error(`axis ${axis} is out of bounds for array with ${this.ndim} dimensions`);
+		}
+
+		return axis;
+	}
+
+	/**
+	 * Returns a flattened 1D view of the array
+	 * @returns {NDArray} 1D NDArray
+	 */
+	flatten() {
+		return new NDArray(this.data, [this._size], this.dtype);
+	}
+
+	/**
+	 * Computes the sum of array elements over a given axis
+	 * @param {number|null} axis - Axis along which to sum. If null, sum over all elements
+	 * @returns {number|NDArray} Sum as scalar or NDArray depending on axis
+	 */
+	sum(axis = null) {
+		axis = this._validateAxis(axis);
+
+		// Sum over all elements
+		if (axis === null) {
+			let total = this.data[0];
+			for (let i = 1; i < this._size; i++) {
+				total += this.data[i];
+			}
+			return total;
+		}
+
+		// Sum along specific axis
+		const newShape = this.shape.filter((_, i) => i !== axis);
+		const newSize = newShape.reduce((acc, dim) => acc * dim, 1);
+		const resultData = new this.data.constructor(newSize);
+
+		// Initialize result array
+		for (let i = 0; i < newSize; i++) {
+			resultData[i] = 0;
+		}
+
+		// Calculate strides for indexing
+		const strides = new Array(this.ndim);
+		strides[this.ndim - 1] = 1;
+		for (let i = this.ndim - 2; i >= 0; i--) {
+			strides[i] = strides[i + 1] * this.shape[i + 1];
+		}
+
+		// Sum values along the specified axis
+		for (let i = 0; i < this._size; i++) {
+			// Convert flat index to multidimensional indices
+			let remaining = i;
+			const indices = new Array(this.ndim);
+			for (let j = 0; j < this.ndim; j++) {
+				indices[j] = Math.floor(remaining / strides[j]);
+				remaining %= strides[j];
+			}
+
+			// Calculate result index (excluding the axis dimension)
+			let resultIdx = 0;
+			let resultStride = 1;
+			for (let j = this.ndim - 1; j >= 0; j--) {
+				if (j !== axis) {
+					resultIdx += indices[j] * resultStride;
+					resultStride *= this.shape[j];
+				}
+			}
+
+			resultData[resultIdx] += this.data[i];
+		}
+
+		return new NDArray(resultData, newShape, this.dtype);
+	}
+
+	/**
+	 * Computes the mean of array elements over a given axis
+	 * @param {number|null} axis - Axis along which to compute mean. If null, compute mean over all elements
+	 * @returns {number|NDArray} Mean as scalar or NDArray depending on axis
+	 */
+	mean(axis = null) {
+		axis = this._validateAxis(axis);
+
+		// Mean over all elements
+		if (axis === null) {
+			if (this._size === 0) {
+				return NaN;
+			}
+			return this.sum(null) / this._size;
+		}
+
+		// Mean along specific axis
+		const sumResult = this.sum(axis);
+		const divisor = this.shape[axis];
+
+		// Divide all elements by the count
+		const resultData = new sumResult.data.constructor(sumResult.data.length);
+		for (let i = 0; i < sumResult.data.length; i++) {
+			resultData[i] = sumResult.data[i] / divisor;
+		}
+
+		return new NDArray(resultData, sumResult.shape, this.dtype);
+	}
+
+	/**
+	 * Computes both minimum and maximum of array elements over a given axis in a single pass
+	 * @param {number|null} axis - Axis along which to find range. If null, find range over all elements
+	 * @returns {NDArray} NDArray with shape [..., 2] where index 0 is min, index 1 is max
+	 */
+	range(axis = null) {
+		axis = this._validateAxis(axis);
+
+		// Range over all elements - return [2] array
+		if (axis === null) {
+			let minVal = this.data[0];
+			let maxVal = this.data[0];
+			for (let i = 1; i < this._size; i++) {
+				if (this.data[i] < minVal) {
+					minVal = this.data[i];
+				}
+				if (this.data[i] > maxVal) {
+					maxVal = this.data[i];
+				}
+			}
+			const resultData = new this.data.constructor(2);
+			resultData[0] = minVal;
+			resultData[1] = maxVal;
+			return new NDArray(resultData, [2], this.dtype);
+		}
+
+		// Range along specific axis - result shape is [..., 2]
+		const baseShape = this.shape.filter((_, i) => i !== axis);
+		const newShape = [...baseShape, 2];
+		const baseSize = baseShape.reduce((acc, dim) => acc * dim, 1);
+		const newSize = baseSize * 2;
+		const resultData = new this.data.constructor(newSize);
+
+		// Calculate strides for indexing
+		const strides = new Array(this.ndim);
+		strides[this.ndim - 1] = 1;
+		for (let i = this.ndim - 2; i >= 0; i--) {
+			strides[i] = strides[i + 1] * this.shape[i + 1];
+		}
+
+		// Initialize with infinity/-infinity for comparison
+		for (let i = 0; i < baseSize; i++) {
+			resultData[i * 2] = Infinity;      // min
+			resultData[i * 2 + 1] = -Infinity; // max
+		}
+
+		// Find min and max values along the specified axis
+		for (let i = 0; i < this._size; i++) {
+			// Convert flat index to multidimensional indices
+			let remaining = i;
+			const indices = new Array(this.ndim);
+			for (let j = 0; j < this.ndim; j++) {
+				indices[j] = Math.floor(remaining / strides[j]);
+				remaining %= strides[j];
+			}
+
+			// Calculate result index (excluding the axis dimension)
+			let resultIdx = 0;
+			let resultStride = 1;
+			for (let j = this.ndim - 1; j >= 0; j--) {
+				if (j !== axis) {
+					resultIdx += indices[j] * resultStride;
+					resultStride *= this.shape[j];
+				}
+			}
+
+			// Update min and max
+			if (this.data[i] < resultData[resultIdx * 2]) {
+				resultData[resultIdx * 2] = this.data[i];
+			}
+			if (this.data[i] > resultData[resultIdx * 2 + 1]) {
+				resultData[resultIdx * 2 + 1] = this.data[i];
+			}
+		}
+
+		return new NDArray(resultData, newShape, this.dtype);
+	}
+
+	/**
+	 * Computes the minimum of array elements over a given axis
+	 * @param {number|null} axis - Axis along which to find minimum. If null, find minimum over all elements
+	 * @returns {number|NDArray} Minimum as scalar or NDArray depending on axis
+	 */
+	min(axis = null) {
+		const rangeResult = this.range(axis);
+
+		// If axis is null, we get a [2] array, return the scalar min
+		if (axis === null) {
+			return rangeResult.data[0];
+		}
+
+		// Otherwise, extract the min values (every other element, starting at 0)
+		const baseSize = rangeResult.data.length / 2;
+		const minData = new this.data.constructor(baseSize);
+		for (let i = 0; i < baseSize; i++) {
+			minData[i] = rangeResult.data[i * 2];
+		}
+
+		const newShape = this.shape.filter((_, i) => i !== this._validateAxis(axis));
+		return new NDArray(minData, newShape, this.dtype);
+	}
+
+	/**
+	 * Computes the maximum of array elements over a given axis
+	 * @param {number|null} axis - Axis along which to find maximum. If null, find maximum over all elements
+	 * @returns {number|NDArray} Maximum as scalar or NDArray depending on axis
+	 */
+	max(axis = null) {
+		const rangeResult = this.range(axis);
+
+		// If axis is null, we get a [2] array, return the scalar max
+		if (axis === null) {
+			return rangeResult.data[1];
+		}
+
+		// Otherwise, extract the max values (every other element, starting at 1)
+		const baseSize = rangeResult.data.length / 2;
+		const maxData = new this.data.constructor(baseSize);
+		for (let i = 0; i < baseSize; i++) {
+			maxData[i] = rangeResult.data[i * 2 + 1];
+		}
+
+		const newShape = this.shape.filter((_, i) => i !== this._validateAxis(axis));
+		return new NDArray(maxData, newShape, this.dtype);
+	}
+
+	/**
+	 * Returns a new array with a new shape
+	 * @param {Array<number>} newShape - The new shape, can contain -1 for auto-calculation
+	 * @returns {NDArray} Reshaped array
+	 */
+	reshape(newShape) {
+		if (!Array.isArray(newShape)) {
+			throw new Error('newShape must be an array');
+		}
+
+		// Handle -1 for auto-calculation
+		const autoIdx = newShape.indexOf(-1);
+		let finalShape = [...newShape];
+
+		if (autoIdx !== -1) {
+			// Check for multiple -1s
+			if (newShape.indexOf(-1, autoIdx + 1) !== -1) {
+				throw new Error('can only specify one unknown dimension (-1)');
+			}
+
+			// Calculate the auto dimension
+			const knownSize = newShape.reduce((acc, dim) => dim === -1 ? acc : acc * dim, 1);
+			if (this._size % knownSize !== 0) {
+				throw new Error(`cannot reshape array of size ${this._size} into shape ${newShape}`);
+			}
+			finalShape[autoIdx] = this._size / knownSize;
+		}
+
+		// Validate new shape has same total size
+		const newSize = finalShape.reduce((acc, dim) => acc * dim, 1);
+		if (newSize !== this._size) {
+			throw new Error(`cannot reshape array of size ${this._size} into shape ${finalShape} (size ${newSize})`);
+		}
+
+		// Create new array with same data but different shape
+		return new NDArray(this.data, finalShape, this.dtype);
+	}
+
+	/**
+	 * Returns a transposed array
+	 * @param {Array<number>|null} axes - Permutation of axes. If null, reverses all axes
+	 * @returns {NDArray} Transposed array
+	 */
+	transpose(axes = null) {
+		// Default: reverse all axes
+		if (axes === null) {
+			axes = Array.from({ length: this.ndim }, (_, i) => this.ndim - 1 - i);
+		}
+
+		// Validate axes
+		if (!Array.isArray(axes) || axes.length !== this.ndim) {
+			throw new Error(`axes must be array of length ${this.ndim}`);
+		}
+
+		// Check for valid permutation (all unique, in range)
+		const axesSet = new Set(axes);
+		if (axesSet.size !== this.ndim) {
+			throw new Error('axes must be a permutation of dimensions');
+		}
+		for (const axis of axes) {
+			if (axis < 0 || axis >= this.ndim) {
+				throw new Error(`axis ${axis} is out of bounds for array with ${this.ndim} dimensions`);
+			}
+		}
+
+		// Calculate new shape
+		const newShape = axes.map(ax => this.shape[ax]);
+
+		// Calculate old strides
+		const oldStrides = new Array(this.ndim);
+		oldStrides[this.ndim - 1] = 1;
+		for (let i = this.ndim - 2; i >= 0; i--) {
+			oldStrides[i] = oldStrides[i + 1] * this.shape[i + 1];
+		}
+
+		// Create new data array
+		const newData = new this.data.constructor(this._size);
+
+		// Calculate new strides
+		const newStrides = new Array(this.ndim);
+		newStrides[this.ndim - 1] = 1;
+		for (let i = this.ndim - 2; i >= 0; i--) {
+			newStrides[i] = newStrides[i + 1] * newShape[i + 1];
+		}
+
+		// Copy data in transposed order
+		for (let i = 0; i < this._size; i++) {
+			// Convert flat index to old multidimensional indices
+			let remaining = i;
+			const oldIndices = new Array(this.ndim);
+			for (let j = 0; j < this.ndim; j++) {
+				oldIndices[j] = Math.floor(remaining / oldStrides[j]);
+				remaining %= oldStrides[j];
+			}
+
+			// Permute indices according to axes
+			const newIndices = new Array(this.ndim);
+			for (let j = 0; j < this.ndim; j++) {
+				newIndices[j] = oldIndices[axes[j]];
+			}
+
+			// Convert new multidimensional indices to flat index
+			let newFlatIdx = 0;
+			for (let j = 0; j < this.ndim; j++) {
+				newFlatIdx += newIndices[j] * newStrides[j];
+			}
+
+			newData[newFlatIdx] = this.data[i];
+		}
+
+		return new NDArray(newData, newShape, this.dtype);
+	}
 
 	/**
 	 * Converts multidimensional indices to flat index

@@ -287,6 +287,12 @@
                 <button onclick="testArraySlicing()">Test Array Slicing</button>
                 <button onclick="testArraySet()">Test Array Set</button>
             </div>
+            <div class="controls">
+                <button onclick="testArraySum()" class="secondary">Test Sum/Mean</button>
+                <button onclick="testArrayMinMax()" class="secondary">Test Min/Max</button>
+                <button onclick="testArrayReshape()" class="secondary">Test Reshape</button>
+                <button onclick="testArrayTranspose()" class="secondary">Test Transpose</button>
+            </div>
             <div class="file-input">
                 <label>Load NPY file (if available): </label>
                 <input type="file" id="npyFile" accept=".npy">
@@ -570,6 +576,86 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea>
             } catch (error) {
                 document.getElementById('array-output').textContent = `Error loading NPY file: ${error.message}`;
             }
+        }
+
+        function testArraySum() {
+            const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+            const arr = new NDArray(data, [2, 3], 'float32');
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Array shape: [${arr.shape}] = [[1,2,3], [4,5,6]]\n` +
+                `Size: ${arr.size}\n\n` +
+                `sum(): ${arr.sum()}\n` +
+                `sum(0): [${Array.from(arr.sum(0).data).join(', ')}] (sum along rows)\n` +
+                `sum(1): [${Array.from(arr.sum(1).data).join(', ')}] (sum along columns)\n\n` +
+                `mean(): ${arr.mean()}\n` +
+                `mean(0): [${Array.from(arr.mean(0).data).join(', ')}]\n` +
+                `mean(1): [${Array.from(arr.mean(1).data).join(', ')}]`;
+        }
+
+        function testArrayMinMax() {
+            const data = new Float32Array([5, 2, 8, 1, 9, 3]);
+            const arr = new NDArray(data, [2, 3], 'float32');
+
+            const rangeAll = arr.range();
+            const range0 = arr.range(0);
+            const range1 = arr.range(1);
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Array shape: [${arr.shape}] = [[5,2,8], [1,9,3]]\n\n` +
+                `range(): [${Array.from(rangeAll.data).join(', ')}] (shape: [${rangeAll.shape}])\n` +
+                `  min: ${rangeAll.data[0]}, max: ${rangeAll.data[1]}\n\n` +
+                `range(0): [${Array.from(range0.data).join(', ')}] (shape: [${range0.shape}])\n` +
+                `  Each pair is [min, max] for that column\n\n` +
+                `range(1): [${Array.from(range1.data).join(', ')}] (shape: [${range1.shape}])\n` +
+                `  Each pair is [min, max] for that row\n\n` +
+                `min(): ${arr.min()}\n` +
+                `min(0): [${Array.from(arr.min(0).data).join(', ')}] (min along rows)\n` +
+                `min(1): [${Array.from(arr.min(1).data).join(', ')}] (min along columns)\n\n` +
+                `max(): ${arr.max()}\n` +
+                `max(0): [${Array.from(arr.max(0).data).join(', ')}] (max along rows)\n` +
+                `max(1): [${Array.from(arr.max(1).data).join(', ')}] (max along columns)`;
+        }
+
+        function testArrayReshape() {
+            const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+            const arr = new NDArray(data, [12], 'float32');
+
+            const reshaped1 = arr.reshape([3, 4]);
+            const reshaped2 = arr.reshape([2, 6]);
+            const reshaped3 = arr.reshape([2, -1]); // Auto-calculate: [2, 6]
+            const flattened = reshaped1.flatten();
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Original: shape [${arr.shape}]\n` +
+                `Data: [${Array.from(arr.data).join(', ')}]\n\n` +
+                `reshape([3, 4]): shape [${reshaped1.shape}]\n` +
+                `reshape([2, 6]): shape [${reshaped2.shape}]\n` +
+                `reshape([2, -1]): shape [${reshaped3.shape}] (auto-calculated)\n` +
+                `flatten(): shape [${flattened.shape}]`;
+        }
+
+        function testArrayTranspose() {
+            const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+            const arr = new NDArray(data, [2, 3], 'float32');
+
+            const transposed = arr.transpose();
+
+            const output = document.getElementById('array-output');
+            output.textContent =
+                `Original array:\n` +
+                `Shape: [${arr.shape}]\n` +
+                `Data: [[1,2,3], [4,5,6]]\n\n` +
+                `Transposed:\n` +
+                `Shape: [${transposed.shape}]\n` +
+                `Data: [${Array.from(transposed.data).join(', ')}]\n` +
+                `Visualization: [[1,4], [2,5], [3,6]]\n\n` +
+                `Get element [0,0]: original=${arr.get(0,0)}, transposed=${transposed.get(0,0)}\n` +
+                `Get element [0,1]: original=${arr.get(0,1)}, transposed=${transposed.get(0,1)}\n` +
+                `Get element [1,0]: original=${arr.get(1,0)}, transposed=${transposed.get(1,0)}`;
         }
 
         // 4. DataFrame Tests
