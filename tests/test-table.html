@@ -11,7 +11,8 @@
 	<!-- Load test framework -->
 	<script src="test-framework.js"></script>
 
-	<!-- Load source file -->
+	<!-- Load source files -->
+	<script src="../src/DataFrame.js"></script>
 	<script src="../src/table.js"></script>
 
 	<!-- Tests -->
@@ -208,7 +209,12 @@ describe('DataTable.addRow()', () => {
 	it('adds row to table', () => {
 		const container = document.createElement('div');
 		document.body.appendChild(container);
-		const table = new DataTable(container, { data: [] });
+		// Must specify columns when starting with empty data
+		const columns = [
+			{ key: 'name', label: 'Name' },
+			{ key: 'age', label: 'Age', type: 'number' }
+		];
+		const table = new DataTable(container, { data: [], columns: columns });
 		table.addRow({ name: 'Alice', age: 30 });
 		assert.strictEqual(table.data.length, 1);
 		document.body.removeChild(container);

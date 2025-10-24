@@ -353,6 +353,53 @@ class DataFrame {
 	}
 
 	/**
+	 * Adds a row to the DataFrame
+	 *
+	 * @param {Object} row - Row object to add
+	 * @param {boolean} [inplace=false] - If true, modifies this DataFrame; if false, returns new DataFrame
+	 * @returns {DataFrame|null} - New DataFrame (if inplace=false) or null (if inplace=true)
+	 * @throws {Error} - If row keys don't match DataFrame columns
+	 * @example
+	 * // Returns new DataFrame with added row
+	 * const newDf = df.addRow({name: 'Alice', age: 30})
+	 *
+	 * // Modifies existing DataFrame in-place
+	 * df.addRow({name: 'Alice', age: 30}, true)
+	 */
+	addRow(row, inplace = false) {
+		// Cannot add row to empty DataFrame without columns
+		if (this.columns.length === 0) {
+			throw new Error('Cannot add row to DataFrame with no columns. DataFrame must have columns defined. Row: ' + JSON.stringify(row));
+		}
+
+		// Validate that row keys match the DataFrame columns
+		const rowKeys = new Set(Object.keys(row));
+		const dfColumns = new Set(this.columns);
+
+		// Check for missing columns in row
+		for (const col of this.columns) {
+			if (!rowKeys.has(col)) {
+				throw new Error('Row is missing column \'' + col + '\'. Expected columns: ' + this.columns.join(', ') + '. Row: ' + JSON.stringify(row));
+			}
+		}
+
+		// Check for extra columns in row
+		for (const key of rowKeys) {
+			if (!dfColumns.has(key)) {
+				throw new Error('Row has unexpected column \'' + key + '\'. Expected columns: ' + this.columns.join(', ') + '. Row: ' + JSON.stringify(row));
+			}
+		}
+
+		if (inplace) {
+			this.data.push(row);
+			return null;
+		} else {
+			const newData = [...this.data, row];
+			return new DataFrame(newData, [...this.columns]);
+		}
+	}
+
+	/**
 	 * Returns HTML code for displaying the DataFrame as a simple table
 	 *
 	 * @returns {string} - HTML table representation

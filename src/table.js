@@ -3,6 +3,9 @@
 // origin: https://github.com/mivanit/js-dev-toolkit
 // license: GPLv3
 
+// Import DataFrame for internal data management
+// Note: In a browser environment, ensure DataFrame.js is loaded before table.js
+
 // Global constants dictionary
 const _TABLE_CONSTS = {
     // CSS Class prefixes
@@ -82,8 +85,15 @@ class DataTable {
         if (!this.container) {
             throw new Error(`DataTable container not found: ${container}`);
         }
-        this.data = config.data || [];
+
+        // Process columns configuration
         this.columns = config.columns || [];
+
+        // Store data internally as DataFrame
+        const inputData = config.data || [];
+        // If columns are specified, extract column keys for DataFrame
+        const columnKeys = this.columns.length > 0 ? this.columns.map(c => c.key) : null;
+        this.df = new DataFrame(inputData, columnKeys);
         this.pageSizeOptions = config.pageSizeOptions || _TABLE_CONSTS.PAGINATION.DEFAULT_PAGE_SIZES;
         this.pageSize = config.pageSize || this.pageSizeOptions[0];
         this.showFilters = config.showFilters !== false; // Default to true
@@ -94,17 +104,24 @@ class DataTable {
         this.sortDirection = null;
         this.filters = {};
         this.filteredData = [];
+        this.displayDf = this.df; // DataFrame after filters/sorts applied
         this.paginationListeners = []; // Store listeners for cleanup
-        if (this.columns.length === 0 && this.data.length > 0) {
-            this.columns = Object.keys(this.data[0]).map(key => ({
+
+        if (this.columns.length === 0 && this.df.data.length > 0) {
+            this.columns = Object.keys(this.df.data[0]).map(key => ({
                 key: key,
                 label: key.charAt(0).toUpperCase() + key.slice(1),
-                type: this.inferType(this.data[0][key]),
+                type: this.inferType(this.df.data[0][key]),
                 filterable: true
             }));
         }
 
         this.init();
+    }
+
+    // Getter for backward compatibility - external code can still access this.data
+    get data() {
+        return this.df.data;
     }
 
     inferType(value) {
@@ -349,7 +366,7 @@ class DataTable {
                     clearBtn.title = _TABLE_CONSTS.MESSAGES.CLEAR_FILTER;
 
                     input.addEventListener('input', (e) => {
-                        this.handleFilter(col.key, e.target.value, col.type, input, col);
+                        this.handleFilter(col.key, e.target.value, col.type, input);
                     });
 
                     clearBtn.addEventListener('click', () => {
@@ -528,7 +545,7 @@ class DataTable {
         }
     }
 
-    handleFilter(columnKey, filterValue, type, inputElement, col) {
+    handleFilter(columnKey, filterValue, type, inputElement) {
         if (!filterValue) {
             delete this.filters[columnKey];
             inputElement.style.backgroundColor = '';
@@ -585,80 +602,111 @@ class DataTable {
         this.render();
     }
 
-    applyFiltersAndSort() {
-        // Start with all data
-        let filtered = [...this.data];
+    createFilterPredicate(filter, columnKey) {
+        // Convert DataTable filter format to DataFrame predicate function
+        return (row) => {
+            const cellValue = this.getNestedValue(row, columnKey);
 
-        filtered = filtered.filter(row => {
-            for (const [key, filter] of Object.entries(this.filters)) {
-                if (!filter.valid) continue;
-
-                const cellValue = row[key];
-
-                // Apply custom filter if available
-                if (filter.customFilter) {
-                    try {
-                        if (!filter.customFilter(cellValue)) {
-                            return false;
-                        }
-                    } catch (e) {
-                        // If custom filter fails, treat as no match
-                        return false;
-                    }
-                } else if (filter.type === 'number') {
-                    const numFilter = this.parseNumericFilter(filter.value);
-                    if (numFilter && !this.applyNumericFilter(cellValue, numFilter)) {
-                        return false;
-                    }
-                } else {
-                    if (cellValue === null || cellValue === undefined) return false;
-                    const strValue = String(cellValue).toLowerCase();
-                    const filterStr = filter.value.toLowerCase();
-
-                    if (filterStr.includes('*')) {
-                        const regex = new RegExp('^' + filterStr.replace(/\*/g, '.*') + '$');
-                        if (!regex.test(strValue)) return false;
-                    } else {
-                        if (!strValue.includes(filterStr)) return false;
-                    }
+            // Apply custom filter if available
+            if (filter.customFilter) {
+                try {
+                    return filter.customFilter(cellValue);
+                } catch (e) {
+                    return false;
                 }
             }
-            return true;
-        });
 
-        // Apply sorting
+            // Handle numeric filters
+            if (filter.type === 'number') {
+                const numFilter = this.parseNumericFilter(filter.value);
+                if (numFilter) {
+                    return this.applyNumericFilter(cellValue, numFilter);
+                }
+                return false;
+            }
+
+            // Handle string filters
+            if (cellValue === null || cellValue === undefined) return false;
+            const strValue = String(cellValue).toLowerCase();
+            const filterStr = filter.value.toLowerCase();
+
+            // Wildcard matching
+            if (filterStr.includes('*')) {
+                const regex = new RegExp('^' + filterStr.replace(/\*/g, '.*') + '$');
+                return regex.test(strValue);
+            }
+
+            // Substring matching
+            return strValue.includes(filterStr);
+        };
+    }
+
+    applyFiltersAndSort() {
+        // Start with original DataFrame
+        let result = this.df;
+
+        // Apply filters using DataFrame.filter() method
+        for (const [columnKey, filter] of Object.entries(this.filters)) {
+            if (!filter.valid) continue;
+            const predicate = this.createFilterPredicate(filter, columnKey);
+            result = result.filter(predicate);
+        }
+
+        // Apply sorting using DataFrame methods
         if (this.sortColumn) {
-            // Find the column config for custom sort function
             const columnConfig = this.columns.find(col => col.key === this.sortColumn);
             const sortFunction = columnConfig?.sortFunction;
 
-            filtered.sort((a, b) => {
-                // Get values using nested key support
-                let aVal = this.getNestedValue(a, this.sortColumn);
-                let bVal = this.getNestedValue(b, this.sortColumn);
+            if (sortFunction) {
+                // Custom sort function - use sortBy with comparator
+                result = result.sortBy((a, b) => {
+                    let aVal = this.getNestedValue(a, this.sortColumn);
+                    let bVal = this.getNestedValue(b, this.sortColumn);
 
-                // Apply custom sort function if provided
-                if (sortFunction) {
+                    // Apply custom sort transformation
                     aVal = sortFunction(aVal, a);
                     bVal = sortFunction(bVal, b);
-                }
 
-                // Handle nulls
-                if (aVal === null || aVal === undefined) return 1;
-                if (bVal === null || bVal === undefined) return -1;
+                    // Handle nulls
+                    if (aVal === null || aVal === undefined) return 1;
+                    if (bVal === null || bVal === undefined) return -1;
 
-                let comparison = 0;
-                if (typeof aVal === 'number' && typeof bVal === 'number') {
-                    comparison = aVal - bVal;
-                } else {
-                    comparison = String(aVal).localeCompare(String(bVal));
-                }
+                    let comparison = 0;
+                    if (typeof aVal === 'number' && typeof bVal === 'number') {
+                        comparison = aVal - bVal;
+                    } else {
+                        comparison = String(aVal).localeCompare(String(bVal));
+                    }
 
-                return this.sortDirection === 'desc' ? -comparison : comparison;
-            });
+                    return this.sortDirection === 'desc' ? -comparison : comparison;
+                });
+            } else {
+                // Simple column sort - use DataFrame.sort()
+                // Note: DataFrame.sort() doesn't support nested keys, so we use sortBy
+                const ascending = this.sortDirection === 'asc';
+                result = result.sortBy((a, b) => {
+                    const aVal = this.getNestedValue(a, this.sortColumn);
+                    const bVal = this.getNestedValue(b, this.sortColumn);
+
+                    // Handle nulls
+                    if (aVal === null || aVal === undefined) return 1;
+                    if (bVal === null || bVal === undefined) return -1;
+
+                    let comparison = 0;
+                    if (typeof aVal === 'number' && typeof bVal === 'number') {
+                        comparison = aVal - bVal;
+                    } else {
+                        comparison = String(aVal).localeCompare(String(bVal));
+                    }
+
+                    return ascending ? comparison : -comparison;
+                });
+            }
         }
 
-        this.filteredData = filtered;
+        // Store the filtered/sorted DataFrame and its data
+        this.displayDf = result;
+        this.filteredData = result.data;
     }
 
 
@@ -987,7 +1035,7 @@ class DataTable {
 
     // Public methods for data manipulation
     setData(data) {
-        this.data = data;
+        this.df = new DataFrame(data);
         this.currentPage = 1;
         this.applyFiltersAndSort();
         this.validateCurrentPage();
@@ -995,7 +1043,9 @@ class DataTable {
     }
 
     addRow(row) {
-        this.data.push(row);
+        // Add row using DataFrame's addRow method (inplace)
+        // This will throw an error if DataFrame has no columns defined
+        this.df.addRow(row, true);
         this.applyFiltersAndSort();
         this.validateCurrentPage();
         this.render();
