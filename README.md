@@ -1,6 +1,7 @@
 # js-dev-toolkit
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Coverage](coverage/coverage-badge.svg)](coverage/coverage.json)
 
 A collection of zero-dependency vanilla JavaScript utilities for frontend development, focused on data visualization and interactive UI components. Pure vanilla JavaScript, no build step (just include the files you need in your HTML), and very lightweight.
 

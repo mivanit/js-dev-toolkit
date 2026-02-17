@@ -13,8 +13,29 @@ install-playwright:
 	@echo "Install Playwright browsers"
 	uv run --with playwright playwright install chromium
 
+.PHONY: coverage
+coverage:
+	@echo "Running tests with coverage collection..."
+	uv run --with playwright python tests/run_coverage.py
+
+.PHONY: coverage-html
+coverage-html: coverage
+	@echo "Opening coverage report..."
+	@if command -v xdg-open > /dev/null; then \
+		xdg-open coverage/index.html; \
+	elif command -v open > /dev/null; then \
+		open coverage/index.html; \
+	else \
+		echo "Coverage report at coverage/index.html"; \
+	fi
+
+.PHONY: clean-coverage
+clean-coverage:
+	@echo "Cleaning coverage data..."
+	rm -rf coverage/
+
 .PHONY: clean
-clean:
+clean: clean-coverage
 	@echo "Clean up temporary files"
 	rm -f tests/.temp
 
@@ -29,3 +50,15 @@ format-check:
 	@echo "Checking code formatting"
 	npx -y prettier --check "**/*.js" "**/*.html" "**/*.css"
 	uv run --with ruff ruff format --check tests/
+
+.PHONY: docs
+docs:
+	@echo "Building docs for GitHub Pages"
+	mkdir -p docs/src
+	cp -r src/* docs/src/
+	@echo "Done! Serve with: python -m http.server -d docs"
+
+.PHONY: docs-clean
+docs-clean:
+	@echo "Cleaning docs/src directory"
+	rm -rf docs/src

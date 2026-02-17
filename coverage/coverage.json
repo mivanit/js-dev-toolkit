@@ -1,0 +1,68 @@
+{
+  "summary": {
+    "total_bytes": 135751,
+    "covered_bytes": 111419,
+    "total_lines": 4624,
+    "total_lines_covered": 3776,
+    "total_coverage": 82.0760068065797,
+    "files_count": 8
+  },
+  "files": {
+    "/home/miv/projects/tools/js-dev-toolkit/src/ColorUtil.js": {
+      "coverage_percent": 100.0,
+      "total_bytes": 3117,
+      "covered_bytes": 3117,
+      "lines_total": 113,
+      "lines_covered": 112
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/DataFrame.js": {
+      "coverage_percent": 99.62864216339746,
+      "total_bytes": 10502,
+      "covered_bytes": 10463,
+      "lines_total": 419,
+      "lines_covered": 417
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/array.js": {
+      "coverage_percent": 72.34369006520906,
+      "total_bytes": 33891,
+      "covered_bytes": 24518,
+      "lines_total": 1229,
+      "lines_covered": 898
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/config.js": {
+      "coverage_percent": 75.21145087833442,
+      "total_bytes": 16907,
+      "covered_bytes": 12716,
+      "lines_total": 572,
+      "lines_covered": 421
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/notif.js": {
+      "coverage_percent": 81.49455722271256,
+      "total_bytes": 6798,
+      "covered_bytes": 5540,
+      "lines_total": 274,
+      "lines_covered": 220
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/sparklines.js": {
+      "coverage_percent": 98.37456753051765,
+      "total_bytes": 15319,
+      "covered_bytes": 15070,
+      "lines_total": 415,
+      "lines_covered": 407
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/table.js": {
+      "coverage_percent": 80.72583876341704,
+      "total_bytes": 47421,
+      "covered_bytes": 38281,
+      "lines_total": 1543,
+      "lines_covered": 1246
+    },
+    "/home/miv/projects/tools/js-dev-toolkit/src/yaml.js": {
+      "coverage_percent": 95.43429844097996,
+      "total_bytes": 1796,
+      "covered_bytes": 1714,
+      "lines_total": 59,
+      "lines_covered": 55
+    }
+  }
+}

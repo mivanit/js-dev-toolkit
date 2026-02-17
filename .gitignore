@@ -38,7 +38,10 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Unit test / coverage reports (keep json and badge for README)
+coverage/*
+!coverage/coverage.json
+!coverage/coverage-badge.svg
 htmlcov/
 .tox/
 .nox/
