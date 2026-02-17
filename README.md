@@ -2,19 +2,12 @@
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-A collection of zero-dependency vanilla JavaScript utilities for frontend development, focused on data visualization and interactive UI components.
+A collection of zero-dependency vanilla JavaScript utilities for frontend development, focused on data visualization and interactive UI components. Pure vanilla JavaScript, no build step (just include the files you need in your HTML), and very lightweight.
 
-## Features
-
-- **Zero dependencies** - Pure vanilla JavaScript, works in any browser
-- **No build step** - Include files directly in your HTML
-- **Modular** - Use only what you need
-- **Lightweight** - ~120KB total across all modules
-
-### Modules
+## Modules
 
 | Module                          | Description                                                        |
-| ------------------------------- | ------------------------------------------------------------------ |
+| - |  |
 | [DataTable](#datatable)         | Interactive tables with sorting, filtering, pagination, CSV export |
 | [DataFrame](#dataframe)         | Tabular data manipulation with filtering, sorting, I/O             |
 | [Sparklines](#sparklines)       | SVG sparkline and sparkbar generation                              |
@@ -27,7 +20,7 @@ A collection of zero-dependency vanilla JavaScript utilities for frontend develo
 
 ## Quick Start
 
-Include the modules you need directly in your HTML:
+Include the modules you need directly in your HTML, and call the APIs from your js.
 
 ```html
 <!-- Include the modules you need -->
@@ -39,15 +32,22 @@ Include the modules you need directly in your HTML:
 <link rel="stylesheet" href="src/notif.css">
 ```
 
-No npm install, no bundling, no build step required.
+## Demos
+
+Open these HTML files in a browser to see the modules in action:
+
+- `index.html` - Comprehensive functionality test
+- `demos/grid.html` - DataTable demo
+- `demos/sparklines.html` - Sparklines gallery
+- `demos/token-display.html` - Token visualization
 
 ---
 
-## Module Documentation
+# Module Documentation
 
-### DataTable
+## DataTable
 
-Interactive data table component with sorting, filtering, pagination, and CSV export.
+Interactive data table ui with sorting, filtering, pagination, and CSV export. Similar API to [ag-grid](https://www.ag-grid.com/).
 
 ```javascript
 const table = new DataTable('#container', {
@@ -80,11 +80,11 @@ const table = new DataTable('#container', {
 - CSV export and clipboard copy
 - Nested key support (`stats.entropy`)
 
----
 
-### DataFrame
 
-Tabular data structure for manipulation and I/O.
+## DataFrame
+
+Tabular data structure for manipulation and I/O. Inspired by pandas/polars dataframes from python but extremely simplified for frontend use.
 
 ```javascript
 const df = new DataFrame([
@@ -121,11 +121,11 @@ const sorted = df.sort_by('age', true);  // descending
 - `DataFrame.from_jsonl(jsonlString)`
 - `df.to_csv()` / `df.to_json()` / `df.to_jsonl()`
 
----
 
-### Sparklines
 
-Generate SVG sparklines and bar charts.
+## Sparklines
+
+Generate SVG sparklines and bar charts. Meant to be a lightweight plotting util (just creates a csv) for when you need a lot of plots.
 
 ```javascript
 // Line sparkline
@@ -156,34 +156,11 @@ const bars = sparkbars([10, 25, 15, 30, 20], {
 - `xlims`, `ylims` - Custom axis limits `[min, max]`
 - `xAxis`, `yAxis` - Axis configuration `{ line, ticks, ... }`
 
----
 
-### ColorUtil
 
-Color mapping and generation utilities.
+## NDArray
 
-```javascript
-// Map values to colormap
-const colors = getColorsForValues([10, 20, 30, 40], 'viridis');
-// Returns: ['rgb(...)', 'rgb(...)', ...]
-
-// Single value with custom range
-const color = getColorForValue(75, [0, 100], 'plasma');
-
-// Generate distinct random colors
-const palette = generateDistinctColors(5);
-
-// HSL to hex conversion
-const hex = hslToHex(180, 50, 60);  // '#66b3b3'
-```
-
-**Colormaps:** `blues`, `reds`, `viridis`, `plasma`
-
----
-
-### NDArray
-
-Parse NumPy array files and perform array operations.
+Parse NumPy array files and perform array operations. Originally based on [github.com/aplbrain/npyjs](https://github.com/aplbrain/npyjs) but heavily modified.
 
 ```javascript
 // Load NPY file
@@ -210,9 +187,31 @@ const weights = npz['weights.npy'];
 
 **Supported dtypes:** uint8, uint16, uint32, uint64, int8, int16, int32, int64, float16, float32, float64, bool
 
----
 
-### Notifications
+## ColorUtil
+
+Color mapping and generation utilities.
+
+```javascript
+// Map values to colormap
+const colors = getColorsForValues([10, 20, 30, 40], 'viridis');
+// Returns: ['rgb(...)', 'rgb(...)', ...]
+
+// Single value with custom range
+const color = getColorForValue(75, [0, 100], 'plasma');
+
+// Generate distinct random colors
+const palette = generateDistinctColors(5);
+
+// HSL to hex conversion
+const hex = hslToHex(180, 50, 60);  // '#66b3b3'
+```
+
+**Colormaps:** `blues`, `reds`, `viridis`, `plasma`
+
+
+
+## Notifications
 
 Toast notification system with spinners and progress bars.
 
@@ -245,9 +244,9 @@ progress.set(1.0);   // 100%, auto-completes
 - `successTimeout` - Success message time (default: 2000ms)
 - `topOffset` - Distance from top (default: 20px)
 
----
 
-### Config
+
+## Config
 
 Configuration system with URL persistence and multiple override levels.
 
@@ -279,9 +278,9 @@ copyConfigToClipboard();
 
 **Customization:** Search for `TODO[YOUR APP]` comments in `config.js` to customize for your application.
 
----
 
-### Token Display
+
+## Token Display
 
 Visualize LLM tokens with color-coded activation values.
 
@@ -312,11 +311,11 @@ document.body.appendChild(viz);
 - `redColorScheme`, `blueColorScheme`, `greenColorScheme`
 - `createColorScheme([r, g, b])` - Custom RGB color
 
----
 
-### YAML
 
-Simple YAML serialization for objects.
+## YAML
+
+Simple YAML serialization for objects. Only serialization, parsing is much more complex and not implemented.
 
 ```javascript
 const obj = {
@@ -336,22 +335,14 @@ const yaml = toYAML(obj);
 // items: ["a", "b", "c"]
 ```
 
----
-
-## Demos
-
-Open these HTML files in a browser to see the modules in action:
-
-- `index.html` - Comprehensive functionality test
-- `demos/grid.html` - DataTable demo
-- `demos/sparklines.html` - Sparklines gallery
-- `demos/token-display.html` - Token visualization
 
 ---
 
-## Development
 
-### Running Tests
+
+# Development
+
+## Running Tests
 
 Tests use Python with Playwright for browser automation:
 
@@ -366,7 +357,7 @@ make test
 make test-verbose
 ```
 
-### Code Formatting
+## Code Formatting
 
 ```bash
 # Format all code
@@ -376,7 +367,7 @@ make format
 make format-check
 ```
 
-### Project Structure
+## Project Structure
 
 ```
 js-dev-toolkit/
@@ -398,7 +389,7 @@ js-dev-toolkit/
 └── Makefile            # Build recipes
 ```
 
----
+
 
 ## Browser Compatibility
 
@@ -408,7 +399,7 @@ Requires modern browsers with support for:
 - `Blob` and `URL.createObjectURL()`
 - TypedArrays (Float32Array, etc.)
 
----
+
 
 ## License
 
