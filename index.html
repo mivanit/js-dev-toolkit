@@ -5,6 +5,7 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>JS Dev Toolkit - Functionality Test</title>
 		<link rel="stylesheet" href="src/notif.css" />
+		<link rel="stylesheet" href="src/token-display.css" />
 		<style>
 			body {
 				font-family:
@@ -459,6 +460,60 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 					Configuration will appear here
 				</div>
 			</div>
+			<!-- Token Display -->
+			<div class="module">
+				<h2>7. Token Display (token-display.js)</h2>
+				<p style="color: #666; font-size: 14px; margin-bottom: 15px">
+					Visualize LLM tokens with color-coded activation values.
+					Hover over tokens to see details.
+				</p>
+				<div class="controls">
+					<select id="token-formatter">
+						<option value="bert">BERT-style (##subwords)</option>
+						<option value="gpt2">GPT2-style (space prefix)</option>
+					</select>
+					<select id="token-color">
+						<option value="red">Red</option>
+						<option value="blue">Blue</option>
+						<option value="green">Green</option>
+						<option value="orange">Orange (custom)</option>
+					</select>
+					<button onclick="renderTokenDisplay()">
+						Render Token Display
+					</button>
+				</div>
+				<div class="controls">
+					<a href="demos/token-display.html" target="_blank">
+						<button class="secondary">Open Full Demo</button>
+					</a>
+				</div>
+				<div id="token-output" style="margin-top: 15px"></div>
+			</div>
+			<!-- YAML Serialization -->
+			<div class="module">
+				<h2>8. YAML Serialization (yaml.js)</h2>
+				<div class="controls">
+					<button onclick="testYAMLSimple()">Simple Object</button>
+					<button onclick="testYAMLNested()">Nested Object</button>
+					<button onclick="testYAMLArrays()">With Arrays</button>
+				</div>
+				<div style="display: flex; gap: 20px; margin-top: 15px">
+					<div style="flex: 1">
+						<h4>JavaScript Object:</h4>
+						<pre
+							id="yaml-input"
+							style="min-height: 150px; white-space: pre-wrap"
+						>Click a button to see an example</pre>
+					</div>
+					<div style="flex: 1">
+						<h4>YAML Output:</h4>
+						<pre
+							id="yaml-output"
+							style="min-height: 150px; white-space: pre-wrap"
+						></pre>
+					</div>
+				</div>
+			</div>
 		</div>
 		<!-- Load all JavaScript files -->
 		<script src="src/notif.js"></script>
@@ -468,7 +523,8 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 		<script src="src/table.js"></script>
 		<script src="src/sparklines.js"></script>
 		<script src="src/config.js"></script>
-		<!-- RevoGrid CDN - removed as we're using DataTable instead -->
+		<script src="src/token-display.js"></script>
+		<script src="src/yaml.js"></script>
 		<!-- Test Scripts -->
 		<script>
 			// Global variables for testing
@@ -1140,6 +1196,114 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 				sparklineTable = null;
 				document.getElementById("table-output").textContent =
 					"DataTable cleared. Load CSV or JSONL data to see sparklines demo.";
+			}
+
+			// 7. Token Display Tests
+			function renderTokenDisplay() {
+				const formatterType =
+					document.getElementById("token-formatter").value;
+				const colorType = document.getElementById("token-color").value;
+
+				// Sample data based on formatter type
+				let tokens, activations, formatter;
+				if (formatterType === "bert") {
+					tokens = [
+						"The",
+						"transform",
+						"##er",
+						"model",
+						"process",
+						"##es",
+						"natural",
+						"language",
+					];
+					activations = [0.1, 0.8, 0.7, 0.4, 0.9, 0.85, 0.6, 0.95];
+					formatter = bertTokenFormatter;
+				} else {
+					tokens = [
+						"The",
+						" transformer",
+						" model",
+						" processes",
+						" natural",
+						" language",
+					];
+					activations = [0.1, 0.8, 0.4, 0.9, 0.6, 0.95];
+					formatter = gpt2TokenFormatter;
+				}
+
+				// Get color scheme
+				let colorScheme;
+				switch (colorType) {
+					case "blue":
+						colorScheme = blueColorScheme;
+						break;
+					case "green":
+						colorScheme = greenColorScheme;
+						break;
+					case "orange":
+						colorScheme = createColorScheme([255, 128, 0]);
+						break;
+					default:
+						colorScheme = redColorScheme;
+				}
+
+				// Create visualization
+				const container = document.getElementById("token-output");
+				container.innerHTML = "";
+				const viz = createTokenVisualization(
+					tokens,
+					activations,
+					formatter,
+					colorScheme,
+				);
+				container.appendChild(viz);
+			}
+
+			// 8. YAML Tests
+			function testYAMLSimple() {
+				const obj = {
+					name: "js-dev-toolkit",
+					version: "1.0.0",
+					author: "mivanit",
+					license: "GPLv3",
+				};
+				displayYAML(obj);
+			}
+
+			function testYAMLNested() {
+				const obj = {
+					project: {
+						name: "js-dev-toolkit",
+						repository: {
+							type: "git",
+							url: "https://github.com/mivanit/js-dev-toolkit",
+						},
+					},
+					config: {
+						debug: false,
+						maxRetries: 3,
+					},
+				};
+				displayYAML(obj);
+			}
+
+			function testYAMLArrays() {
+				const obj = {
+					modules: ["notif", "ColorUtil", "array", "DataFrame"],
+					dependencies: [],
+					scripts: {
+						test: "playwright test",
+						format: "prettier --write",
+					},
+				};
+				displayYAML(obj);
+			}
+
+			function displayYAML(obj) {
+				document.getElementById("yaml-input").textContent =
+					JSON.stringify(obj, null, 2);
+				document.getElementById("yaml-output").textContent = toYAML(obj);
 			}
 		</script>
 	</body>
