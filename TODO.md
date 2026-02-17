@@ -20,10 +20,7 @@
   - [x] Test notification system timing
   - [x] Test config URL parameter parsing
 
-- [?] Fix any issues with mock DOM in tests (using real browser via Playwright, not mocks)
-  - [?] Ensure DataTable tests work with mock environment
-  - [?] Verify notification system tests handle timeouts correctly
-  - [?] Test config system with mock window/fetch
+- [/] ~~Fix any issues with mock DOM in tests~~ (N/A - using real browser via Playwright, not mocks)
 
 - [~] Add missing test coverage (added smoke tests for high-priority functions)
   - [x] array.js: float16ToFloat32() and float16ToFloat32Array()
@@ -86,15 +83,15 @@
   - [ ] Document that notif.css must be included for notification styling
   - [ ] Document JSZip requirement for NPZ file support (optional dependency)
 
-- [ ] Add JSDoc comments to all public functions
-  - [ ] DataFrame.js - add param/return types
-  - [ ] ColorUtil.js - document colormap options
-  - [ ] array.js - document NPY/NPZ format support
-  - [ ] yaml.js - document limitations vs full YAML spec
-  - [ ] sparklines.js - document all options with examples
-  - [ ] table.js - document column config options
-  - [ ] notif.js - document all notification types
-  - [ ] config.js - document configuration system flow
+- [~] Add JSDoc comments to all public functions
+  - [x] DataFrame.js - add param/return types
+  - [~] ColorUtil.js - document colormap options (50% coverage)
+  - [x] array.js - document NPY/NPZ format support
+  - [~] yaml.js - document limitations vs full YAML spec (33% coverage)
+  - [~] sparklines.js - document all options with examples (40% coverage)
+  - [ ] table.js - document column config options (0% - critical gap)
+  - [x] notif.js - document all notification types
+  - [x] config.js - document configuration system flow
 
 ### Medium Priority
 - [~] Create usage examples (demos exist but not documented)
@@ -122,7 +119,7 @@
 
 - [ ] Review and implement TODOs in source files (CRITICAL)
   - [ ] table.js - Verify all _TABLE_CONSTS are used correctly
-  - [ ] array.js:212 - Implement NDArray operations (sum, mean, reshape, transpose)
+  - [x] array.js:212 - Implement NDArray operations (sum, mean, reshape, transpose)
 
 - [x] Bug fixes completed
   - [x] Fixed parseConfigValue undefined reference in config.js:144 (changed to decodeFromURL)
@@ -141,10 +138,10 @@
 ## Features
 
 ### High Priority
-- [ ] Complete NDArray functionality
-  - [ ] Implement sum, mean, min, max aggregations
-  - [ ] Implement reshape operation
-  - [ ] Implement transpose operation
+- [x] Complete NDArray functionality
+  - [x] Implement sum, mean, min, max aggregations
+  - [x] Implement reshape operation
+  - [x] Implement transpose operation
 
 - [ ] DataTable enhancements
   - [ ] Add keyboard navigation
