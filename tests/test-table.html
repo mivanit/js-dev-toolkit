@@ -984,6 +984,434 @@
 					document.body.removeChild(container);
 				});
 			});
+
+			describe("DataTable.handleSort() cycling", () => {
+				it("cycles from null to asc", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ name: "Bob" },
+						{ name: "Alice" },
+					];
+					const table = new DataTable(container, { data });
+
+					assert.strictEqual(table.sortColumnId, null);
+					assert.strictEqual(table.sortDirection, null);
+
+					table.handleSort("name");
+
+					assert.strictEqual(table.sortColumnId, "name");
+					assert.strictEqual(table.sortDirection, "asc");
+
+					document.body.removeChild(container);
+				});
+
+				it("cycles from asc to desc", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ name: "Bob" },
+						{ name: "Alice" },
+					];
+					const table = new DataTable(container, { data });
+
+					table.handleSort("name"); // null -> asc
+					table.handleSort("name"); // asc -> desc
+
+					assert.strictEqual(table.sortColumnId, "name");
+					assert.strictEqual(table.sortDirection, "desc");
+
+					document.body.removeChild(container);
+				});
+
+				it("cycles from desc to null", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ name: "Bob" },
+						{ name: "Alice" },
+					];
+					const table = new DataTable(container, { data });
+
+					table.handleSort("name"); // null -> asc
+					table.handleSort("name"); // asc -> desc
+					table.handleSort("name"); // desc -> null
+
+					assert.strictEqual(table.sortColumnId, null);
+					assert.strictEqual(table.sortDirection, null);
+
+					document.body.removeChild(container);
+				});
+
+				it("switches column resets to asc", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ name: "Bob", age: 25 },
+						{ name: "Alice", age: 30 },
+					];
+					const table = new DataTable(container, { data });
+
+					table.handleSort("name"); // name asc
+					table.handleSort("name"); // name desc
+					table.handleSort("age"); // switch to age, should be asc
+
+					assert.strictEqual(table.sortColumnId, "age");
+					assert.strictEqual(table.sortDirection, "asc");
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable.getColumnId()", () => {
+				it("returns id when provided", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const table = new DataTable(container, {});
+
+					const col = { key: "myKey", id: "myId" };
+					assert.strictEqual(table.getColumnId(col), "myId");
+
+					document.body.removeChild(container);
+				});
+
+				it("falls back to key when id not provided", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const table = new DataTable(container, {});
+
+					const col = { key: "myKey" };
+					assert.strictEqual(table.getColumnId(col), "myKey");
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable.cssClass()", () => {
+				it("prefixes class name", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const table = new DataTable(container, {});
+
+					assert.strictEqual(table.cssClass("header"), "tablejs-header");
+					assert.strictEqual(table.cssClass("cell"), "tablejs-cell");
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable.getFilterTooltip()", () => {
+				it("returns custom tooltip when provided", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const table = new DataTable(container, {});
+
+					const col = { key: "test", filterTooltip: "My custom tooltip" };
+					assert.strictEqual(table.getFilterTooltip(col), "My custom tooltip");
+
+					document.body.removeChild(container);
+				});
+
+				it("returns number tooltip for number type", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const table = new DataTable(container, {});
+
+					const col = { key: "test", type: "number" };
+					const tooltip = table.getFilterTooltip(col);
+					assert.ok(tooltip.includes(">"));
+					assert.ok(tooltip.includes("<"));
+
+					document.body.removeChild(container);
+				});
+
+				it("returns default tooltip for string type", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const table = new DataTable(container, {});
+
+					const col = { key: "test", type: "string" };
+					const tooltip = table.getFilterTooltip(col);
+					assert.ok(tooltip.includes("*"));
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable.calculateColumnInfo()", () => {
+				it("calculates number column statistics", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ value: 10 },
+						{ value: 20 },
+						{ value: 30 },
+						{ value: 40 },
+					];
+					const columns = [{ key: "value", label: "Value", type: "number" }];
+					const table = new DataTable(container, { data, columns });
+
+					const info = table.calculateColumnInfo(columns[0]);
+					assert.ok(info.includes("10")); // min
+					assert.ok(info.includes("40")); // max
+
+					document.body.removeChild(container);
+				});
+
+				it("calculates string column unique count", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ name: "Alice" },
+						{ name: "Bob" },
+						{ name: "Alice" },
+						{ name: "Charlie" },
+					];
+					const columns = [{ key: "name", label: "Name", type: "string" }];
+					const table = new DataTable(container, { data, columns });
+
+					const info = table.calculateColumnInfo(columns[0]);
+					assert.ok(info.includes("3")); // 3 unique values
+
+					document.body.removeChild(container);
+				});
+
+				it("uses custom infoFunction when provided", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ value: 1 },
+						{ value: 2 },
+						{ value: 3 },
+					];
+					const columns = [{
+						key: "value",
+						label: "Value",
+						type: "number",
+						infoFunction: (values) => `Sum: ${values.reduce((a, b) => a + b, 0)}`
+					}];
+					const table = new DataTable(container, { data, columns });
+
+					const info = table.calculateColumnInfo(columns[0]);
+					assert.strictEqual(info, "Sum: 6");
+
+					document.body.removeChild(container);
+				});
+
+				it("handles empty data", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const columns = [{ key: "value", label: "Value", type: "number" }];
+					const table = new DataTable(container, { data: [], columns });
+
+					const info = table.calculateColumnInfo(columns[0]);
+					assert.ok(info.includes("No data"));
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable custom sortFunction", () => {
+				it("uses custom sort function", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ name: "item-10" },
+						{ name: "item-2" },
+						{ name: "item-1" },
+					];
+					const columns = [{
+						key: "name",
+						label: "Name",
+						sortFunction: (val) => parseInt(val.split("-")[1])
+					}];
+					const table = new DataTable(container, { data, columns });
+
+					table.sortColumnId = "name";
+					table.sortDirection = "asc";
+					table.applyFiltersAndSort();
+
+					assert.strictEqual(table.filteredData[0].name, "item-1");
+					assert.strictEqual(table.filteredData[1].name, "item-2");
+					assert.strictEqual(table.filteredData[2].name, "item-10");
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable custom filterFunction", () => {
+				it("uses custom filter function", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ value: 5 },
+						{ value: 15 },
+						{ value: 25 },
+					];
+					const columns = [{
+						key: "value",
+						label: "Value",
+						type: "number",
+						filterFunction: (filterValue) => {
+							const num = parseInt(filterValue);
+							if (isNaN(num)) return null;
+							return (cellValue) => cellValue > num;
+						}
+					}];
+					const table = new DataTable(container, { data, columns });
+
+					table.filters = {
+						value: {
+							key: "value",
+							value: "10",
+							type: "number",
+							valid: true,
+							customFilter: (cellValue) => cellValue > 10
+						}
+					};
+					table.applyFiltersAndSort();
+
+					assert.strictEqual(table.filteredData.length, 2);
+					assert.strictEqual(table.filteredData[0].value, 15);
+					assert.strictEqual(table.filteredData[1].value, 25);
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable.validateCurrentPage()", () => {
+				it("adjusts page when exceeds total after filter", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = Array.from({ length: 30 }, (_, i) => ({ id: i }));
+					const table = new DataTable(container, { data, pageSize: 10 });
+
+					table.currentPage = 3; // Valid for 30 items
+					table.filteredData = data.slice(0, 5); // Now only 5 items
+					table.validateCurrentPage();
+
+					assert.strictEqual(table.currentPage, 1);
+
+					document.body.removeChild(container);
+				});
+
+				it("adjusts page when less than 1", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [{ id: 1 }];
+					const table = new DataTable(container, { data });
+
+					table.currentPage = 0;
+					table.validateCurrentPage();
+
+					assert.strictEqual(table.currentPage, 1);
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable.generatePageButtons()", () => {
+				it("shows all pages when total <= 10", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = Array.from({ length: 50 }, (_, i) => ({ id: i }));
+					const table = new DataTable(container, { data, pageSize: 10 });
+
+					const buttons = table.generatePageButtons(5);
+					assert.strictEqual(buttons.length, 5);
+					assert.ok(buttons.every(b => b.type === "page"));
+
+					document.body.removeChild(container);
+				});
+
+				it("uses ellipsis when total > 10", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = Array.from({ length: 200 }, (_, i) => ({ id: i }));
+					const table = new DataTable(container, { data, pageSize: 10 });
+
+					const buttons = table.generatePageButtons(20);
+					assert.ok(buttons.some(b => b.type === "dots"));
+					assert.ok(buttons.some(b => b.type === "page" && b.page === 1));
+					assert.ok(buttons.some(b => b.type === "page" && b.page === 20));
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable nested value filtering", () => {
+				it("filters on nested keys with dot notation", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [
+						{ user: { name: "Alice", age: 30 } },
+						{ user: { name: "Bob", age: 25 } },
+						{ user: { name: "Charlie", age: 35 } },
+					];
+					const columns = [
+						{ key: "user.name", label: "Name", type: "string" },
+						{ key: "user.age", label: "Age", type: "number" }
+					];
+					const table = new DataTable(container, { data, columns });
+
+					table.filters = {
+						"user.name": {
+							key: "user.name",
+							value: "ali*",
+							type: "string",
+							valid: true
+						}
+					};
+					table.applyFiltersAndSort();
+
+					assert.strictEqual(table.filteredData.length, 1);
+					assert.strictEqual(table.filteredData[0].user.name, "Alice");
+
+					document.body.removeChild(container);
+				});
+			});
+
+			describe("DataTable custom renderer", () => {
+				it("uses string renderer", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [{ value: 100 }];
+					const columns = [{
+						key: "value",
+						label: "Value",
+						renderer: (val) => `<strong>${val}</strong>`
+					}];
+					const table = new DataTable(container, { data, columns });
+
+					const cell = table.tbody.querySelector("td");
+					assert.ok(cell.innerHTML.includes("<strong>100</strong>"));
+
+					document.body.removeChild(container);
+				});
+
+				it("uses DOM element renderer", () => {
+					const container = document.createElement("div");
+					document.body.appendChild(container);
+					const data = [{ value: 42 }];
+					const columns = [{
+						key: "value",
+						label: "Value",
+						renderer: (val) => {
+							const span = document.createElement("span");
+							span.className = "custom-value";
+							span.textContent = val;
+							return span;
+						}
+					}];
+					const table = new DataTable(container, { data, columns });
+
+					const span = table.tbody.querySelector(".custom-value");
+					assert.ok(span);
+					assert.strictEqual(span.textContent, "42");
+
+					document.body.removeChild(container);
+				});
+			});
 		</script>
 	</body>
 </html>

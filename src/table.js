@@ -1,8 +1,90 @@
-// table.js - Interactive data table component
-// origin: https://github.com/mivanit/js-dev-toolkit
-// license: GPLv3
+/**
+ * @fileoverview Interactive data table component with sorting, filtering, and pagination.
+ * @module table
+ * @license GPLv3
+ * @see {@link https://github.com/mivanit/js-dev-toolkit}
+ *
+ * @example
+ * // Basic usage with auto-inferred columns
+ * const table = new DataTable('#my-container', {
+ *   data: [
+ *     { name: 'Alice', age: 30 },
+ *     { name: 'Bob', age: 25 }
+ *   ]
+ * });
+ *
+ * @example
+ * // With explicit column configuration
+ * const table = new DataTable('#my-container', {
+ *   data: myData,
+ *   columns: [
+ *     { key: 'name', label: 'Name', type: 'string' },
+ *     { key: 'age', label: 'Age', type: 'number', align: 'right' }
+ *   ],
+ *   pageSize: 25,
+ *   showFilters: true,
+ *   showInfo: true
+ * });
+ */
 
-// Global constants dictionary
+/**
+ * Column configuration object.
+ * @typedef {Object} ColumnConfig
+ * @property {string} key - Property name in data objects (supports dot notation for nested values)
+ * @property {string} [id] - Optional unique identifier (defaults to key)
+ * @property {string} [label] - Display label (defaults to capitalized key)
+ * @property {'string'|'number'|'boolean'|'date'} [type='string'] - Data type for filtering/sorting
+ * @property {string} [width] - CSS width value (e.g., '100px', '20%')
+ * @property {'left'|'center'|'right'} [align] - Text alignment
+ * @property {boolean} [filterable=true] - Whether column can be filtered
+ * @property {function(*, Object, ColumnConfig): (string|HTMLElement)} [renderer] - Custom cell renderer
+ * @property {function(*, Object): *} [sortFunction] - Custom sort value transformer
+ * @property {function(string): (function(*): boolean)|null} [filterFunction] - Custom filter function factory
+ * @property {string} [filterTooltip] - Custom filter help text
+ * @property {function(Array, ColumnConfig): (string|HTMLElement)} [infoFunction] - Custom info row calculator
+ */
+
+/**
+ * DataTable constructor configuration.
+ * @typedef {Object} DataTableConfig
+ * @property {Array<Object>} [data=[]] - Array of row data objects
+ * @property {Array<ColumnConfig>} [columns=[]] - Column configurations (auto-inferred if empty)
+ * @property {Array<number>} [pageSizeOptions=[10, 25, 50, 100]] - Available page size options
+ * @property {number} [pageSize] - Initial page size (defaults to first option)
+ * @property {boolean} [showFilters=true] - Whether to display filter row
+ * @property {boolean} [showInfo=false] - Whether to display info row with statistics
+ * @property {string} [minColumnWidth='2em'] - Minimum column width for resizing
+ */
+
+/**
+ * Parsed numeric filter object.
+ * @typedef {Object} NumericFilter
+ * @property {'=='|'!='|'>'|'<'|'>='|'<='} operator - Comparison operator
+ * @property {number} value - Numeric value to compare against
+ */
+
+/**
+ * Internal filter state object.
+ * @typedef {Object} FilterState
+ * @property {string} key - Column key for data access
+ * @property {string} value - Raw filter input value
+ * @property {string} type - Column data type
+ * @property {boolean} valid - Whether filter input is valid
+ * @property {function(*): boolean|null} [customFilter] - Custom filter function if applicable
+ */
+
+/**
+ * Global constants for DataTable styling and configuration.
+ * @constant {Object}
+ * @property {Object} COLORS - Color values for various UI elements
+ * @property {Object} SPACING - Padding, margin, and sizing values
+ * @property {Object} PAGINATION - Pagination-related defaults
+ * @property {Object} FEEDBACK - Animation and feedback timing
+ * @property {Object} ICONS - SVG icons and symbol characters
+ * @property {Object} MESSAGES - User-facing text messages
+ * @property {Object} FILTER_TOOLTIPS - Default filter help text
+ * @private
+ */
 const _TABLE_CONSTS = {
 	// CSS Class prefixes
 	CSS_PREFIX: "tablejs-",
@@ -77,7 +159,17 @@ const _TABLE_CONSTS = {
 	},
 };
 
+/**
+ * Interactive data table with sorting, filtering, pagination, and CSV export.
+ * @class
+ */
 class DataTable {
+	/**
+	 * Creates a new DataTable instance.
+	 * @param {HTMLElement|string} container - DOM element or CSS selector for the table container
+	 * @param {DataTableConfig} [config={}] - Configuration options
+	 * @throws {Error} If container element is not found
+	 */
 	constructor(container, config = {}) {
 		this.container =
 			typeof container === "string"
@@ -114,6 +206,11 @@ class DataTable {
 		this.init();
 	}
 
+	/**
+	 * Infers the data type of a value.
+	 * @param {*} value - Value to analyze
+	 * @returns {'string'|'number'|'boolean'|'date'} Inferred type
+	 */
 	inferType(value) {
 		if (value === null || value === undefined) return "string";
 		if (typeof value === "number") return "number";
@@ -122,6 +219,12 @@ class DataTable {
 		return "string";
 	}
 
+	/**
+	 * Gets a value from an object using dot notation for nested properties.
+	 * @param {Object} obj - Object to extract value from
+	 * @param {string} key - Property key (supports dot notation, e.g., 'user.address.city')
+	 * @returns {*} Value at the specified path, or undefined if not found
+	 */
 	getNestedValue(obj, key) {
 		// Support dot notation for nested keys (e.g., 'stats.entropy')
 		if (!key.includes(".")) {
@@ -139,15 +242,32 @@ class DataTable {
 		return value;
 	}
 
+	/**
+	 * Gets the unique identifier for a column.
+	 * @param {ColumnConfig} col - Column configuration
+	 * @returns {string} Column ID (uses id if provided, otherwise key)
+	 */
 	getColumnId(col) {
 		// Use id if provided, otherwise fall back to key
 		return col.id || col.key;
 	}
 
+	/**
+	 * Prefixes a class name with the table's CSS prefix.
+	 * @param {string} className - Base class name
+	 * @returns {string} Prefixed class name (e.g., 'tablejs-header')
+	 */
 	cssClass(className) {
 		return _TABLE_CONSTS.CSS_PREFIX + className;
 	}
 
+	/**
+	 * Creates a DOM element with optional class name and inline styles.
+	 * @param {string} tagName - HTML tag name
+	 * @param {string} [className] - CSS class name (will be prefixed)
+	 * @param {Object} [styles={}] - Inline styles to apply
+	 * @returns {HTMLElement} Created element
+	 */
 	createStyledElement(tagName, className, styles = {}) {
 		const element = document.createElement(tagName);
 		if (className) {
@@ -157,6 +277,10 @@ class DataTable {
 		return element;
 	}
 
+	/**
+	 * Calculates the minimum column width in pixels based on the configured minColumnWidth.
+	 * @returns {number} Minimum width in pixels
+	 */
 	getMinColumnWidthInPixels() {
 		// Create a temporary element to measure the minimum width
 		const tempDiv = document.createElement("div");
@@ -172,12 +296,20 @@ class DataTable {
 		return pixelWidth;
 	}
 
+	/**
+	 * Initializes the table by creating structure, applying filters, and rendering.
+	 * @private
+	 */
 	init() {
 		this.createTableStructure();
 		this.applyFiltersAndSort();
 		this.render();
 	}
 
+	/**
+	 * Creates the DOM structure for the table including header, filters, and pagination.
+	 * @private
+	 */
 	createTableStructure() {
 		this.container.innerHTML = "";
 
@@ -453,6 +585,13 @@ class DataTable {
 		this.container.table = this;
 	}
 
+	/**
+	 * Adds mouse event listeners for column resize functionality.
+	 * @param {HTMLElement} handle - Resize handle element
+	 * @param {HTMLElement} th - Table header cell element
+	 * @param {number} columnIndex - Index of the column being resized
+	 * @private
+	 */
 	addResizeListener(handle, th, columnIndex) {
 		let startX, startWidth;
 
@@ -488,6 +627,10 @@ class DataTable {
 		};
 	}
 
+	/**
+	 * Handles column header click to cycle through sort states (asc -> desc -> none).
+	 * @param {string} columnId - ID of the column to sort
+	 */
 	handleSort(columnId) {
 		if (this.sortColumnId === columnId) {
 			// Cycle through: asc -> desc -> none
@@ -506,6 +649,11 @@ class DataTable {
 		this.render();
 	}
 
+	/**
+	 * Parses a numeric filter string into operator and value.
+	 * @param {string} value - Filter string (e.g., '>50', '<=100', '42')
+	 * @returns {NumericFilter|null} Parsed filter object, or null if invalid
+	 */
 	parseNumericFilter(value) {
 		const trimmed = value.trim();
 		if (!trimmed) return null;
@@ -521,6 +669,12 @@ class DataTable {
 		return { operator, value: number };
 	}
 
+	/**
+	 * Applies a numeric filter comparison to a cell value.
+	 * @param {*} cellValue - Cell value to test
+	 * @param {NumericFilter} filter - Parsed numeric filter
+	 * @returns {boolean} True if value passes the filter
+	 */
 	applyNumericFilter(cellValue, filter) {
 		if (!filter) return true;
 
@@ -545,6 +699,11 @@ class DataTable {
 		}
 	}
 
+	/**
+	 * Gets the filter tooltip text for a column.
+	 * @param {ColumnConfig} col - Column configuration
+	 * @returns {string} Tooltip text explaining filter syntax
+	 */
 	getFilterTooltip(col) {
 		// Check for custom tooltip in column definition
 		if (col.filterTooltip) {
@@ -558,6 +717,13 @@ class DataTable {
 		return _TABLE_CONSTS.FILTER_TOOLTIPS.DEFAULT;
 	}
 
+	/**
+	 * Calculates statistics or summary info for a column.
+	 * For number columns: shows range, mean, and median.
+	 * For other types: shows unique value count.
+	 * @param {ColumnConfig} col - Column configuration
+	 * @returns {string} HTML string with column statistics
+	 */
 	calculateColumnInfo(col) {
 		// Check for custom info function in column definition
 		if (col.infoFunction) {
@@ -604,6 +770,15 @@ class DataTable {
 		}
 	}
 
+	/**
+	 * Handles filter input changes for a column.
+	 * @param {string} columnId - Column identifier
+	 * @param {string} columnKey - Column key for data access
+	 * @param {string} filterValue - Raw filter input value
+	 * @param {string} type - Column data type
+	 * @param {HTMLInputElement} inputElement - Filter input element
+	 * @param {ColumnConfig} col - Column configuration
+	 */
 	handleFilter(columnId, columnKey, filterValue, type, inputElement, col) {
 		if (!filterValue) {
 			delete this.filters[columnId];
@@ -654,6 +829,11 @@ class DataTable {
 		this.render();
 	}
 
+	/**
+	 * Clears the filter for a single column.
+	 * @param {string} columnId - Column identifier
+	 * @param {HTMLInputElement} inputElement - Filter input element
+	 */
 	clearFilter(columnId, inputElement) {
 		inputElement.value = "";
 		delete this.filters[columnId];
@@ -664,6 +844,10 @@ class DataTable {
 		this.render();
 	}
 
+	/**
+	 * Applies all active filters and sorting to the data.
+	 * Updates this.filteredData with the result.
+	 */
 	applyFiltersAndSort() {
 		// Start with all data
 		let filtered = [...this.data];
@@ -672,8 +856,8 @@ class DataTable {
 			for (const [columnId, filter] of Object.entries(this.filters)) {
 				if (!filter.valid) continue;
 
-				// Get cellValue using the stored key
-				const cellValue = row[filter.key];
+				// Get cellValue using the stored key (supports nested keys)
+				const cellValue = this.getNestedValue(row, filter.key);
 
 				// Apply custom filter if available
 				if (filter.customFilter) {
@@ -749,16 +933,28 @@ class DataTable {
 		this.filteredData = filtered;
 	}
 
+	/**
+	 * Gets the data rows for the current page.
+	 * @returns {Array<Object>} Array of row objects for the current page
+	 */
 	getPageData() {
 		const start = (this.currentPage - 1) * this.pageSize;
 		const end = start + this.pageSize;
 		return this.filteredData.slice(start, end);
 	}
 
+	/**
+	 * Calculates the total number of pages based on filtered data and page size.
+	 * @returns {number} Total page count
+	 */
 	getTotalPages() {
 		return Math.ceil(this.filteredData.length / this.pageSize);
 	}
 
+	/**
+	 * Validates and adjusts currentPage to be within valid bounds.
+	 * @private
+	 */
 	validateCurrentPage() {
 		const totalPages = this.getTotalPages();
 		if (this.currentPage > totalPages && totalPages > 0) {
@@ -768,6 +964,9 @@ class DataTable {
 		}
 	}
 
+	/**
+	 * Renders the complete table including data rows, pagination, and icons.
+	 */
 	render() {
 		this.renderTable();
 		this.renderPagination();
@@ -775,6 +974,10 @@ class DataTable {
 		this.updateInfoRow();
 	}
 
+	/**
+	 * Updates the sort indicator icons in column headers.
+	 * @private
+	 */
 	updateSortIcons() {
 		const headers = this.headerRow.querySelectorAll("th");
 		headers.forEach((th, index) => {
@@ -800,6 +1003,10 @@ class DataTable {
 		});
 	}
 
+	/**
+	 * Updates the info row with recalculated column statistics.
+	 * @private
+	 */
 	updateInfoRow() {
 		if (!this.showInfo || !this.infoRow) return;
 
@@ -810,6 +1017,10 @@ class DataTable {
 		});
 	}
 
+	/**
+	 * Renders the table body with current page data.
+	 * @private
+	 */
 	renderTable() {
 		this.tbody.innerHTML = "";
 
@@ -894,6 +1105,10 @@ class DataTable {
 		});
 	}
 
+	/**
+	 * Renders the pagination controls and attaches event listeners.
+	 * @private
+	 */
 	renderPagination() {
 		const totalPages = this.getTotalPages();
 		const paginationHTML = this.createPaginationHTML(totalPages);
@@ -984,6 +1199,12 @@ class DataTable {
 		}
 	}
 
+	/**
+	 * Creates the HTML string for pagination controls.
+	 * @param {number} totalPages - Total number of pages
+	 * @returns {string} HTML string for pagination
+	 * @private
+	 */
 	createPaginationHTML(totalPages) {
 		let html =
 			'<div style="display: flex; justify-content: space-between; align-items: center;">';
@@ -1035,6 +1256,12 @@ class DataTable {
 		return html;
 	}
 
+	/**
+	 * Generates page button configuration array with ellipsis handling.
+	 * @param {number} totalPages - Total number of pages
+	 * @returns {Array<{type: 'page'|'dots', page?: number}>} Array of page button configs
+	 * @private
+	 */
 	generatePageButtons(totalPages) {
 		if (totalPages <= 10) {
 			// Show all pages
@@ -1106,6 +1333,11 @@ class DataTable {
 		return items.slice(0, 10); // Ensure exactly 10 elements
 	}
 
+	/**
+	 * Creates the HTML string for the CSV export button group.
+	 * @returns {string} HTML string for export buttons
+	 * @private
+	 */
 	createExportCSVButton() {
 		const containerStyle = `display: flex; align-items: center; gap: 4px; border: ${_TABLE_CONSTS.SPACING.BORDER_WIDTH} solid ${_TABLE_CONSTS.COLORS.BORDER}; border-radius: 4px; padding: 2px; margin: 3px;`;
 		const btnStyle = `border: none; background: none; padding: ${_TABLE_CONSTS.SPACING.PADDING_BUTTON}; cursor: pointer; display: flex; align-items: center; gap: 4px;`;
@@ -1123,6 +1355,11 @@ class DataTable {
         </div>`;
 	}
 
+	/**
+	 * Creates the HTML string for the page size selector dropdown.
+	 * @returns {string} HTML string for page size selector
+	 * @private
+	 */
 	createPageSizeSelector() {
 		const options = this.pageSizeOptions
 			.map(
@@ -1140,7 +1377,10 @@ class DataTable {
             entries</label>`;
 	}
 
-	// Public methods for data manipulation
+	/**
+	 * Replaces the table data and re-renders.
+	 * @param {Array<Object>} data - New array of row data objects
+	 */
 	setData(data) {
 		this.data = data;
 		this.currentPage = 1;
@@ -1149,6 +1389,10 @@ class DataTable {
 		this.render();
 	}
 
+	/**
+	 * Adds a single row to the table data and re-renders.
+	 * @param {Object} row - Row data object to add
+	 */
 	addRow(row) {
 		this.data.push(row);
 		this.applyFiltersAndSort();
@@ -1156,6 +1400,11 @@ class DataTable {
 		this.render();
 	}
 
+	/**
+	 * Changes the number of rows displayed per page.
+	 * Resets to the first page after changing.
+	 * @param {number} size - New page size
+	 */
 	setPageSize(size) {
 		this.pageSize = size;
 		this.currentPage = 1;
@@ -1164,6 +1413,11 @@ class DataTable {
 		this.render();
 	}
 
+	/**
+	 * Exports the filtered data to a CSV string.
+	 * Handles escaping of commas, quotes, and newlines.
+	 * @returns {string} CSV formatted string
+	 */
 	exportCSV() {
 		const csv = [];
 
@@ -1192,6 +1446,9 @@ class DataTable {
 		return csv.join("\n");
 	}
 
+	/**
+	 * Exports the filtered data to CSV and triggers a file download.
+	 */
 	exportAndDownloadCSV() {
 		const csv = this.exportCSV();
 		const blob = new Blob([csv], { type: "text/csv" });
@@ -1203,6 +1460,11 @@ class DataTable {
 		URL.revokeObjectURL(url);
 	}
 
+	/**
+	 * Copies the filtered data as CSV to the clipboard.
+	 * Shows visual feedback on success.
+	 * @returns {Promise<void>}
+	 */
 	async copyCSVToClipboard() {
 		const csv = this.exportCSV();
 		try {
@@ -1227,6 +1489,12 @@ class DataTable {
 		}
 	}
 
+	/**
+	 * Fallback clipboard copy method for older browsers.
+	 * Uses execCommand('copy') as a fallback.
+	 * @param {string} text - Text to copy to clipboard
+	 * @private
+	 */
 	fallbackCopyToClipboard(text) {
 		const textArea = document.createElement("textarea");
 		textArea.value = text;
@@ -1256,6 +1524,9 @@ class DataTable {
 		document.body.removeChild(textArea);
 	}
 
+	/**
+	 * Clears all active filters and resets to the first page.
+	 */
 	clearAllFilters() {
 		this.filters = {};
 		this.container
