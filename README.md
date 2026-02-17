@@ -38,9 +38,10 @@ Include the modules you need directly in your HTML, and call the APIs from your 
 Open these HTML files in a browser to see the modules in action:
 
 - `index.html` - Comprehensive functionality test
-- `demos/grid.html` - DataTable demo
-- `demos/sparklines.html` - Sparklines gallery
-- `demos/token-display.html` - Token visualization
+- `docs/array.html` - NDArray range request demo
+- `docs/grid.html` - DataTable demo
+- `docs/sparklines.html` - Sparklines gallery
+- `docs/token-display.html` - Token visualization
 
 ---
 
@@ -184,9 +185,19 @@ arr.transpose();
 // Load NPZ (requires JSZip)
 const npz = await parseNPZ(arrayBuffer);
 const weights = npz['weights.npy'];
+
+// Partial loading with HTTP Range requests (NPY only)
+// Only downloads bytes for elements 100-199
+const slice = await NDArray.loadSlice('large.npy', [100, 200]);
+console.log(slice.shape);  // [100] for 1D, or [100, ...] for multi-dim
+
+// In-memory slicing
+const portion = arr.slice([10, 50]);  // elements 10-49
 ```
 
 **Supported dtypes:** uint8, uint16, uint32, uint64, int8, int16, int32, int64, float16, float32, float64, bool
+
+**Range requests:** `loadSlice` uses HTTP Range headers to download only the requested portion of an NPY file. This is useful for large arrays where you only need a subset. Falls back to full download with a console warning if the server doesn't support Range requests. Not supported for NPZ files (compressed archives).
 
 
 ## ColorUtil

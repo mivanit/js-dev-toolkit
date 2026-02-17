@@ -143,6 +143,109 @@ for (const dtype of _DTYPES) {
 	_DTYPE_BY_NAME[dtype.name] = dtype;
 }
 
+// NPY header info for range-based loading
+class NPYHeaderInfo {
+	constructor({ shape, dtype, fortranOrder, dataOffset }) {
+		this.shape = shape;
+		this.dtype = dtype;
+		this.fortranOrder = fortranOrder;
+		this.dataOffset = dataOffset;
+
+		// Get element size in bytes from dtype
+		const dtypeInfo = _DTYPE_BY_DESCRIPTOR[dtype];
+		this.elementSize = dtypeInfo ? dtypeInfo.size / 8 : null;
+
+		// Calculate stride for first axis (bytes per first-axis element)
+		// For shape [d0, d1, d2], stride = d1 * d2 * elementSize
+		this.firstAxisStride =
+			this.shape.slice(1).reduce((acc, dim) => acc * dim, 1) *
+			this.elementSize;
+	}
+}
+
+// Fetch only the NPY header using HTTP range requests
+async function fetchNPYHeader(url, fetchArgs = {}) {
+	// Fetch first 1KB - enough for most headers (typically < 200 bytes)
+	const initialResponse = await fetch(url, {
+		...fetchArgs,
+		headers: {
+			...fetchArgs.headers,
+			Range: "bytes=0-1023",
+		},
+	});
+
+	// Check if range requests are supported
+	if (initialResponse.status === 200) {
+		// Server returned full file - range not supported
+		console.warn(
+			"HTTP Range requests not supported for",
+			url,
+			"- downloading full file",
+		);
+		return { rangeSupported: false, fullResponse: initialResponse };
+	}
+
+	if (initialResponse.status !== 206) {
+		throw new Error(`Failed to fetch NPY header: ${initialResponse.status}`);
+	}
+
+	const initialBytes = await initialResponse.arrayBuffer();
+
+	// Parse header length (uint16 little-endian at bytes 8-9 for v1.0)
+	const headerLength = new DataView(initialBytes, 8, 2).getUint16(0, true);
+	const headerStart = 10;
+	const dataOffset = headerStart + headerLength;
+
+	let headerBytes;
+	if (dataOffset <= initialBytes.byteLength) {
+		// Header fits in initial 1KB fetch - no second request needed
+		headerBytes = initialBytes.slice(headerStart, dataOffset);
+	} else {
+		// Header larger than 1KB (rare) - fetch the rest
+		const headerResponse = await fetch(url, {
+			...fetchArgs,
+			headers: {
+				...fetchArgs.headers,
+				Range: `bytes=${initialBytes.byteLength}-${dataOffset - 1}`,
+			},
+		});
+
+		if (headerResponse.status !== 206) {
+			throw new Error(
+				`Failed to fetch NPY header content: ${headerResponse.status}`,
+			);
+		}
+
+		// Combine initial bytes with remaining header
+		const remainingBytes = await headerResponse.arrayBuffer();
+		const combined = new Uint8Array(dataOffset);
+		combined.set(new Uint8Array(initialBytes), 0);
+		combined.set(new Uint8Array(remainingBytes), initialBytes.byteLength);
+		headerBytes = combined.slice(headerStart, dataOffset);
+	}
+
+	const headerText = new TextDecoder("utf-8").decode(new Uint8Array(headerBytes));
+
+	// Parse header dict (reuse existing parsing logic)
+	const header = JSON.parse(
+		headerText
+			.toLowerCase()
+			.replace(/'/g, '"')
+			.replace("(", "[")
+			.replace(/,*\),*/g, "]"),
+	);
+
+	return {
+		rangeSupported: true,
+		info: new NPYHeaderInfo({
+			shape: header.shape,
+			dtype: header.descr,
+			fortranOrder: header.fortran_order,
+			dataOffset: dataOffset,
+		}),
+	};
+}
+
 class npyjs {
 	constructor(opts) {
 		this.convertFloat16 = opts?.convertFloat16 ?? true;
@@ -319,6 +422,41 @@ class NDArray {
 	 */
 	flatten() {
 		return new NDArray(this.data, [this._size], this.dtype);
+	}
+
+	/**
+	 * Slice the array along the first axis.
+	 * Returns a new NDArray containing elements [start, end) along the first axis.
+	 *
+	 * @param {Array<number>} range - [start, end) range for first axis
+	 * @returns {NDArray} Sliced array
+	 *
+	 * @example
+	 * const arr = new NDArray(data, [100, 10], 'float32');
+	 * const sliced = arr.slice([10, 20]); // shape: [10, 10]
+	 */
+	slice(range) {
+		const [start, end] = range;
+
+		// Validate bounds
+		if (start < 0 || end > this.shape[0] || start >= end) {
+			throw new Error(
+				`Invalid slice [${start}, ${end}) for array with shape ${this.shape}`,
+			);
+		}
+
+		// Calculate stride for first axis (elements per first-axis index)
+		const firstAxisStride = this.shape.slice(1).reduce((acc, dim) => acc * dim, 1);
+
+		// Extract slice data
+		const sliceStart = start * firstAxisStride;
+		const sliceEnd = end * firstAxisStride;
+		const slicedData = this.data.slice(sliceStart, sliceEnd);
+
+		// Construct sliced shape
+		const slicedShape = [end - start, ...this.shape.slice(1)];
+
+		return new NDArray(slicedData, slicedShape, this.dtype);
 	}
 
 	/**
@@ -893,6 +1031,87 @@ class NDArray {
 			}
 			return new NDArray(npyData.data, npyData.shape, npyData.dtype);
 		}
+	}
+
+	/**
+	 * Load a slice of an NPY array using HTTP range requests.
+	 * Only first-axis slicing is supported (contiguous bytes).
+	 *
+	 * @param {string} url - URL to the NPY file
+	 * @param {Array<number>} slice - [start, end) range for first axis
+	 * @param {Object} [fetchArgs] - Additional fetch arguments
+	 * @returns {Promise<NDArray>} - Sliced array
+	 *
+	 * @example
+	 * // Load rows 100-199 of a 2D array
+	 * const slice = await NDArray.loadSlice(url, [100, 200]);
+	 */
+	static async loadSlice(url, slice, fetchArgs = {}) {
+		// NPZ files are compressed archives - can't use range requests
+		if (url.endsWith(".npz")) {
+			throw new Error(
+				"loadSlice does not support NPZ files (compressed archives)",
+			);
+		}
+
+		const [start, end] = slice;
+
+		// Fetch header to get array metadata
+		const headerResult = await fetchNPYHeader(url, fetchArgs);
+
+		if (!headerResult.rangeSupported) {
+			// Fall back to full download
+			const fullBuffer = await headerResult.fullResponse.arrayBuffer();
+			const fullArray = NDArray.parse(fullBuffer);
+			return fullArray.slice(slice);
+		}
+
+		const { info } = headerResult;
+
+		// Validate slice bounds
+		if (start < 0 || end > info.shape[0] || start >= end) {
+			throw new Error(
+				`Invalid slice [${start}, ${end}) for array with shape ${info.shape}`,
+			);
+		}
+
+		// Calculate byte range for the slice
+		const byteStart = info.dataOffset + start * info.firstAxisStride;
+		const byteEnd = info.dataOffset + end * info.firstAxisStride - 1;
+
+		// Fetch the slice data
+		const dataResponse = await fetch(url, {
+			...fetchArgs,
+			headers: {
+				...fetchArgs.headers,
+				Range: `bytes=${byteStart}-${byteEnd}`,
+			},
+		});
+
+		if (dataResponse.status !== 206) {
+			// Range request failed, fall back to full download
+			console.warn(
+				"Range request for data failed, downloading full file",
+			);
+			const fullArray = await NDArray.load(url, null, fetchArgs);
+			return fullArray.slice(slice);
+		}
+
+		const dataBuffer = await dataResponse.arrayBuffer();
+
+		// Create typed array from the data
+		const dtypeInfo = _DTYPE_BY_DESCRIPTOR[info.dtype];
+		if (!dtypeInfo) {
+			throw new Error(`Unsupported dtype: ${info.dtype}`);
+		}
+
+		const nums = new dtypeInfo.arrayConstructor(dataBuffer);
+		const data = dtypeInfo.converter ? dtypeInfo.converter(nums) : nums;
+
+		// Construct sliced shape
+		const slicedShape = [end - start, ...info.shape.slice(1)];
+
+		return new NDArray(data, slicedShape, dtypeInfo.name);
 	}
 
 	/**

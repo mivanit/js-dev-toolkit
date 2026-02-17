@@ -1,10 +1,10 @@
 {
   "summary": {
-    "total_bytes": 135751,
+    "total_bytes": 136479,
     "covered_bytes": 111419,
-    "total_lines": 4624,
+    "total_lines": 4645,
     "total_lines_covered": 3776,
-    "total_coverage": 82.0760068065797,
+    "total_coverage": 81.63820074883316,
     "files_count": 8
   },
   "files": {
@@ -23,10 +23,10 @@
       "lines_covered": 417
     },
     "/home/miv/projects/tools/js-dev-toolkit/src/array.js": {
-      "coverage_percent": 72.34369006520906,
-      "total_bytes": 33891,
+      "coverage_percent": 70.82238077356365,
+      "total_bytes": 34619,
       "covered_bytes": 24518,
-      "lines_total": 1229,
+      "lines_total": 1250,
       "lines_covered": 898
     },
     "/home/miv/projects/tools/js-dev-toolkit/src/config.js": {

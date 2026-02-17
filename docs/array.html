@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>NDArray Range Request Demo</title>
+		<style>
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					sans-serif;
+				margin: 0;
+				padding: 20px;
+				background: #f8f9fa;
+			}
+
+			.container {
+				max-width: 900px;
+				margin: 0 auto;
+			}
+
+			h1 {
+				text-align: center;
+				color: #2c3e50;
+				margin-bottom: 10px;
+			}
+
+			.subtitle {
+				text-align: center;
+				color: #7f8c8d;
+				margin-bottom: 30px;
+			}
+
+			.section {
+				background: white;
+				border-radius: 8px;
+				padding: 25px;
+				margin-bottom: 20px;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+			}
+
+			.section h2 {
+				color: #34495e;
+				border-bottom: 2px solid #3498db;
+				padding-bottom: 10px;
+				margin-top: 0;
+				margin-bottom: 20px;
+			}
+
+			.chart-container {
+				background: #f8f9fa;
+				border-radius: 4px;
+				padding: 15px;
+				margin-bottom: 15px;
+			}
+
+			.chart-label {
+				font-size: 12px;
+				color: #7f8c8d;
+				margin-bottom: 8px;
+			}
+
+			.controls {
+				display: flex;
+				gap: 15px;
+				align-items: center;
+				flex-wrap: wrap;
+				margin-bottom: 15px;
+			}
+
+			.control-group {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.control-group label {
+				font-weight: 500;
+				color: #2c3e50;
+			}
+
+			input[type="number"] {
+				width: 80px;
+				padding: 8px;
+				border: 1px solid #ddd;
+				border-radius: 4px;
+				font-size: 14px;
+			}
+
+			button {
+				padding: 10px 20px;
+				background: #3498db;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+				font-size: 14px;
+				font-weight: 500;
+			}
+
+			button:hover {
+				background: #2980b9;
+			}
+
+			button:disabled {
+				background: #bdc3c7;
+				cursor: not-allowed;
+			}
+
+			.status {
+				padding: 12px;
+				border-radius: 4px;
+				font-family: monospace;
+				font-size: 13px;
+				background: #ecf0f1;
+				color: #2c3e50;
+				white-space: pre-wrap;
+				word-break: break-all;
+			}
+
+			.status.success {
+				background: #d5f4e6;
+				color: #27ae60;
+			}
+
+			.status.error {
+				background: #fadbd8;
+				color: #c0392b;
+			}
+
+			.info-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+				gap: 10px;
+				margin-bottom: 15px;
+			}
+
+			.info-item {
+				background: #f8f9fa;
+				padding: 10px;
+				border-radius: 4px;
+			}
+
+			.info-item .label {
+				font-size: 11px;
+				color: #7f8c8d;
+				text-transform: uppercase;
+			}
+
+			.info-item .value {
+				font-size: 18px;
+				font-weight: 600;
+				color: #2c3e50;
+			}
+
+			.note {
+				font-size: 13px;
+				color: #7f8c8d;
+				font-style: italic;
+				margin-top: 10px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>NDArray Range Request Demo</h1>
+			<p class="subtitle">
+				Load partial arrays using HTTP Range requests - only download
+				the bytes you need
+			</p>
+
+			<div class="section">
+				<h2>Full Array</h2>
+				<div class="info-grid">
+					<div class="info-item">
+						<div class="label">Shape</div>
+						<div class="value" id="full-shape">-</div>
+					</div>
+					<div class="info-item">
+						<div class="label">Dtype</div>
+						<div class="value" id="full-dtype">-</div>
+					</div>
+					<div class="info-item">
+						<div class="label">File Size</div>
+						<div class="value" id="full-size">-</div>
+					</div>
+				</div>
+				<div class="chart-container">
+					<div class="chart-label">sin(x*2) + x*0.5 for x in [0, 20]</div>
+					<div id="full-chart"></div>
+				</div>
+			</div>
+
+			<div class="section">
+				<h2>Slice with Range Request</h2>
+				<div class="controls">
+					<div class="control-group">
+						<label>Start:</label>
+						<input type="number" id="start" value="100" min="0" />
+					</div>
+					<div class="control-group">
+						<label>End:</label>
+						<input type="number" id="end" value="200" min="1" />
+					</div>
+					<button id="load-slice">Load Slice</button>
+				</div>
+
+				<div class="info-grid">
+					<div class="info-item">
+						<div class="label">Slice Shape</div>
+						<div class="value" id="slice-shape">-</div>
+					</div>
+					<div class="info-item">
+						<div class="label">Bytes Fetched</div>
+						<div class="value" id="slice-bytes">-</div>
+					</div>
+					<div class="info-item">
+						<div class="label">Savings</div>
+						<div class="value" id="slice-savings">-</div>
+					</div>
+				</div>
+
+				<div class="chart-container">
+					<div class="chart-label">Sliced data (fetched via Range request)</div>
+					<div id="slice-chart"></div>
+				</div>
+
+				<div class="status" id="status">
+					Click "Load Slice" to fetch a portion of the array using HTTP Range requests.
+				</div>
+
+				<p class="note">
+					Open browser DevTools Network tab to see the Range headers
+					in action.
+				</p>
+			</div>
+		</div>
+
+		<script src="src/array.js"></script>
+		<script src="src/sparklines.js"></script>
+		<script>
+			const DEMO_FILE = "demo-array.npy";
+			let fullArray = null;
+			let totalFileSize = 0;
+
+			async function init() {
+				// Check if running via HTTP (required for fetch/Range requests)
+				if (window.location.protocol === "file:") {
+					document.getElementById("status").textContent =
+						"This demo requires HTTP. Run: python -m http.server -d docs";
+					document.getElementById("status").className = "status error";
+					document.getElementById("load-slice").disabled = true;
+					return;
+				}
+
+				try {
+					// Load full array to show comparison
+					fullArray = await NDArray.load(DEMO_FILE);
+
+					document.getElementById("full-shape").textContent =
+						`[${fullArray.shape.join(", ")}]`;
+					document.getElementById("full-dtype").textContent =
+						fullArray.dtype;
+
+					// Estimate file size (header ~128 bytes + data)
+					totalFileSize = 128 + fullArray.size * 4; // float32 = 4 bytes
+					document.getElementById("full-size").textContent =
+						formatBytes(totalFileSize);
+
+					// Render full array sparkline
+					const fullData = Array.from(fullArray.data);
+					document.getElementById("full-chart").innerHTML = sparkline(
+						fullData,
+						null,
+						{
+							width: 800,
+							height: 80,
+							color: "#3498db",
+							shading: 0.2,
+							xAxis: { line: true, ticks: true },
+							yAxis: { line: true, ticks: true },
+						},
+					);
+
+					// Update max values for inputs
+					document.getElementById("start").max = fullArray.shape[0] - 1;
+					document.getElementById("end").max = fullArray.shape[0];
+				} catch (err) {
+					document.getElementById("status").textContent =
+						`Error loading array: ${err.message}`;
+					document.getElementById("status").className = "status error";
+				}
+			}
+
+			async function loadSlice() {
+				const start = parseInt(document.getElementById("start").value);
+				const end = parseInt(document.getElementById("end").value);
+				const statusEl = document.getElementById("status");
+
+				if (start >= end) {
+					statusEl.textContent = "Error: start must be less than end";
+					statusEl.className = "status error";
+					return;
+				}
+
+				if (start < 0 || end > fullArray.shape[0]) {
+					statusEl.textContent = `Error: range must be within [0, ${fullArray.shape[0]})`;
+					statusEl.className = "status error";
+					return;
+				}
+
+				statusEl.textContent = "Loading slice...";
+				statusEl.className = "status";
+
+				try {
+					const sliceArr = await NDArray.loadSlice(DEMO_FILE, [start, end]);
+
+					// Update UI
+					document.getElementById("slice-shape").textContent =
+						`[${sliceArr.shape.join(", ")}]`;
+
+					const bytesLoaded = sliceArr.size * 4 + 200; // data + headers estimate
+					document.getElementById("slice-bytes").textContent =
+						formatBytes(bytesLoaded);
+
+					const savings = ((1 - bytesLoaded / totalFileSize) * 100).toFixed(1);
+					document.getElementById("slice-savings").textContent =
+						`${savings}%`;
+
+					// Render slice sparkline
+					const sliceData = Array.from(sliceArr.data);
+					document.getElementById("slice-chart").innerHTML = sparkline(
+						sliceData,
+						null,
+						{
+							width: 800,
+							height: 80,
+							color: "#27ae60",
+							shading: 0.2,
+							xAxis: { line: true, ticks: true },
+							yAxis: { line: true, ticks: true },
+						},
+					);
+
+					statusEl.textContent =
+						`Loaded elements [${start}, ${end}) via Range request.\n` +
+						`Range header: bytes=${128 + start * 4}-${128 + end * 4 - 1}`;
+					statusEl.className = "status success";
+				} catch (err) {
+					statusEl.textContent = `Error: ${err.message}`;
+					statusEl.className = "status error";
+				}
+			}
+
+			function formatBytes(bytes) {
+				if (bytes < 1024) return bytes + " B";
+				if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+				return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+			}
+
+			// Event listeners
+			document.getElementById("load-slice").addEventListener("click", loadSlice);
+
+			// Initialize on load
+			init();
+		</script>
+	</body>
+</html>

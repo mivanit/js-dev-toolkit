@@ -18,17 +18,6 @@ coverage:
 	@echo "Running tests with coverage collection..."
 	uv run --with playwright python tests/run_coverage.py
 
-.PHONY: coverage-html
-coverage-html: coverage
-	@echo "Opening coverage report..."
-	@if command -v xdg-open > /dev/null; then \
-		xdg-open coverage/index.html; \
-	elif command -v open > /dev/null; then \
-		open coverage/index.html; \
-	else \
-		echo "Coverage report at coverage/index.html"; \
-	fi
-
 .PHONY: clean-coverage
 clean-coverage:
 	@echo "Cleaning coverage data..."
@@ -51,8 +40,13 @@ format-check:
 	npx -y prettier --check "**/*.js" "**/*.html" "**/*.css"
 	uv run --with ruff ruff format --check tests/
 
+.PHONY: generate-demo-data
+generate-demo-data:
+	@echo "Generating demo NPY file..."
+	uv run --with numpy python tests/generate_demo_npy.py
+
 .PHONY: docs
-docs:
+docs: generate-demo-data
 	@echo "Building docs for GitHub Pages"
 	mkdir -p docs/src
 	cp -r src/* docs/src/
