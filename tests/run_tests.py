@@ -16,13 +16,13 @@ def get_demo_files():
     project_root = Path(__file__).parent.parent
     demo_files = []
 
-    # Add main index.html
-    index_html = project_root / "index.html"
+    # Add main index.html from docs/
+    index_html = project_root / "docs" / "index.html"
     if index_html.exists():
         demo_files.append(index_html)
 
-    # Add all demos/*.html files
-    demos_dir = project_root / "demos"
+    # Add all docs/*.html files (demo pages)
+    demos_dir = project_root / "docs"
     if demos_dir.exists():
         demo_files.extend(sorted(demos_dir.glob("*.html")))
 
