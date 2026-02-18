@@ -1,17 +1,21 @@
-// array.js - NumPy array parsing and utilities
-// version 0.2.0
-// append ".dev-{name}" if you edit this locally
-// origin: https://github.com/mivanit/js-dev-toolkit
-// license: GPLv3
-//
-// Note: this file has been modified from original code at:
-// https://github.com/aplbrain/npyjs
-// under Apache License
-// https://github.com/aplbrain/npyjs/blob/b0cd99b7f4c2bff791b4977e16dec3478519920b/LICENSE
-// added:
-// - npz loading (requires jszip)
-// - JSON deserialization for various inline array formats (see https://github.com/mivanit/muutils , https://github.com/mivanit/zanj )
-// ------------------------------------------------------------
+/**
+ * @fileoverview NumPy array parsing and utilities
+ * @module array
+ * @version 0.1.0
+ * @license GPLv3
+ * @see {@link https://github.com/mivanit/js-dev-toolkit}
+ *
+ * @note Append ".dev-{name}" to version if you edit this locally
+ *
+ * @note This file has been modified from original code at:
+ * {@link https://github.com/aplbrain/npyjs} under Apache License
+ * {@link https://github.com/aplbrain/npyjs/blob/b0cd99b7f4c2bff791b4977e16dec3478519920b/LICENSE}
+ *
+ * Modifications:
+ * - npz loading (requires jszip)
+ * - JSON deserialization for various inline array formats
+ *   (see {@link https://github.com/mivanit/muutils}, {@link https://github.com/mivanit/zanj})
+ */
 
 // Must match muutils.json_serialize.util._FORMAT_KEY
 const _FORMAT_KEY = "__muutils_format__";
@@ -165,12 +169,12 @@ class NPYHeaderInfo {
 
 // Fetch only the NPY header using HTTP range requests
 async function fetchNPYHeader(url, fetchArgs = {}) {
-	// Fetch first 10 bytes to get magic, version, header length
+	// Fetch first 1KB - enough for most headers (typically < 200 bytes)
 	const initialResponse = await fetch(url, {
 		...fetchArgs,
 		headers: {
 			...fetchArgs.headers,
-			Range: "bytes=0-9",
+			Range: "bytes=0-1023",
 		},
 	});
 
@@ -186,7 +190,9 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 	}
 
 	if (initialResponse.status !== 206) {
-		throw new Error(`Failed to fetch NPY header: ${initialResponse.status}`);
+		throw new Error(
+			`Failed to fetch NPY header: ${initialResponse.status}`,
+		);
 	}
 
 	const initialBytes = await initialResponse.arrayBuffer();
@@ -194,23 +200,39 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 	// Parse header length (uint16 little-endian at bytes 8-9 for v1.0)
 	const headerLength = new DataView(initialBytes, 8, 2).getUint16(0, true);
 	const headerStart = 10;
-	const headerEnd = headerStart + headerLength - 1;
+	const dataOffset = headerStart + headerLength;
 
-	// Fetch the header content
-	const headerResponse = await fetch(url, {
-		...fetchArgs,
-		headers: {
-			...fetchArgs.headers,
-			Range: `bytes=${headerStart}-${headerEnd}`,
-		},
-	});
+	let headerBytes;
+	if (dataOffset <= initialBytes.byteLength) {
+		// Header fits in initial 1KB fetch - no second request needed
+		headerBytes = initialBytes.slice(headerStart, dataOffset);
+	} else {
+		// Header larger than 1KB (rare) - fetch the rest
+		const headerResponse = await fetch(url, {
+			...fetchArgs,
+			headers: {
+				...fetchArgs.headers,
+				Range: `bytes=${initialBytes.byteLength}-${dataOffset - 1}`,
+			},
+		});
 
-	if (headerResponse.status !== 206) {
-		throw new Error(`Failed to fetch NPY header content: ${headerResponse.status}`);
+		if (headerResponse.status !== 206) {
+			throw new Error(
+				`Failed to fetch NPY header content: ${headerResponse.status}`,
+			);
+		}
+
+		// Combine initial bytes with remaining header
+		const remainingBytes = await headerResponse.arrayBuffer();
+		const combined = new Uint8Array(dataOffset);
+		combined.set(new Uint8Array(initialBytes), 0);
+		combined.set(new Uint8Array(remainingBytes), initialBytes.byteLength);
+		headerBytes = combined.slice(headerStart, dataOffset);
 	}
 
-	const headerBytes = await headerResponse.arrayBuffer();
-	const headerText = new TextDecoder("utf-8").decode(new Uint8Array(headerBytes));
+	const headerText = new TextDecoder("utf-8").decode(
+		new Uint8Array(headerBytes),
+	);
 
 	// Parse header dict (reuse existing parsing logic)
 	const header = JSON.parse(
@@ -227,7 +249,7 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 			shape: header.shape,
 			dtype: header.descr,
 			fortranOrder: header.fortran_order,
-			dataOffset: headerStart + headerLength,
+			dataOffset: dataOffset,
 		}),
 	};
 }
@@ -414,15 +436,18 @@ class NDArray {
 	 * Slice the array along the first axis.
 	 * Returns a new NDArray containing elements [start, end) along the first axis.
 	 *
-	 * @param {Array<number>} range - [start, end) range for first axis
+	 * @param {Array<number>|number} range - [start, end) range or single index for first axis
 	 * @returns {NDArray} Sliced array
 	 *
 	 * @example
 	 * const arr = new NDArray(data, [100, 10], 'float32');
 	 * const sliced = arr.slice([10, 20]); // shape: [10, 10]
+	 * const row = arr.slice(5);           // shape: [1, 10] - single row
 	 */
 	slice(range) {
-		const [start, end] = range;
+		// Allow single int to get one row
+		const [start, end] =
+			typeof range === "number" ? [range, range + 1] : range;
 
 		// Validate bounds
 		if (start < 0 || end > this.shape[0] || start >= end) {
@@ -432,7 +457,9 @@ class NDArray {
 		}
 
 		// Calculate stride for first axis (elements per first-axis index)
-		const firstAxisStride = this.shape.slice(1).reduce((acc, dim) => acc * dim, 1);
+		const firstAxisStride = this.shape
+			.slice(1)
+			.reduce((acc, dim) => acc * dim, 1);
 
 		// Extract slice data
 		const sliceStart = start * firstAxisStride;
@@ -1024,16 +1051,27 @@ class NDArray {
 	 * Only first-axis slicing is supported (contiguous bytes).
 	 *
 	 * @param {string} url - URL to the NPY file
-	 * @param {Array<number>} slice - [start, end) range for first axis
+	 * @param {Array<number>|number} slice - [start, end) range or single index for first axis
 	 * @param {Object} [fetchArgs] - Additional fetch arguments
 	 * @returns {Promise<NDArray>} - Sliced array
 	 *
 	 * @example
 	 * // Load rows 100-199 of a 2D array
 	 * const slice = await NDArray.loadSlice(url, [100, 200]);
+	 * // Load single row
+	 * const row = await NDArray.loadSlice(url, 50);
 	 */
 	static async loadSlice(url, slice, fetchArgs = {}) {
-		const [start, end] = slice;
+		// NPZ files are compressed archives - can't use range requests
+		if (url.endsWith(".npz")) {
+			throw new Error(
+				"loadSlice does not support NPZ files (compressed archives)",
+			);
+		}
+
+		// Allow single int to get one row
+		const [start, end] =
+			typeof slice === "number" ? [slice, slice + 1] : slice;
 
 		// Fetch header to get array metadata
 		const headerResult = await fetchNPYHeader(url, fetchArgs);

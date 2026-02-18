@@ -295,7 +295,7 @@ class CoverageReporter:
             <tr><th>File</th><th>Coverage</th><th>Lines</th></tr>
         </thead>
         <tbody>
-            {''.join(rows)}
+            {"".join(rows)}
         </tbody>
     </table>
 </body>
@@ -339,7 +339,7 @@ class CoverageReporter:
     <div class="stats">
         Coverage: <strong>{cov.coverage_percent:.1f}%</strong> ({cov.lines_covered}/{cov.lines_total} lines)
     </div>
-    <pre>{''.join(line_html)}</pre>
+    <pre>{"".join(line_html)}</pre>
 </body>
 </html>"""
 

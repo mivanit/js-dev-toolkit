@@ -186,7 +186,9 @@
 					</div>
 				</div>
 				<div class="chart-container">
-					<div class="chart-label">sin(x*2) + x*0.5 for x in [0, 20]</div>
+					<div class="chart-label">
+						sin(x*2) + x*0.5 for x in [0, 20]
+					</div>
 					<div id="full-chart"></div>
 				</div>
 			</div>
@@ -221,12 +223,15 @@
 				</div>
 
 				<div class="chart-container">
-					<div class="chart-label">Sliced data (fetched via Range request)</div>
+					<div class="chart-label">
+						Sliced data (fetched via Range request)
+					</div>
 					<div id="slice-chart"></div>
 				</div>
 
 				<div class="status" id="status">
-					Click "Load Slice" to fetch a portion of the array using HTTP Range requests.
+					Click "Load Slice" to fetch a portion of the array using
+					HTTP Range requests.
 				</div>
 
 				<p class="note">
@@ -248,7 +253,8 @@
 				if (window.location.protocol === "file:") {
 					document.getElementById("status").textContent =
 						"This demo requires HTTP. Run: python -m http.server -d docs";
-					document.getElementById("status").className = "status error";
+					document.getElementById("status").className =
+						"status error";
 					document.getElementById("load-slice").disabled = true;
 					return;
 				}
@@ -283,12 +289,14 @@
 					);
 
 					// Update max values for inputs
-					document.getElementById("start").max = fullArray.shape[0] - 1;
+					document.getElementById("start").max =
+						fullArray.shape[0] - 1;
 					document.getElementById("end").max = fullArray.shape[0];
 				} catch (err) {
 					document.getElementById("status").textContent =
 						`Error loading array: ${err.message}`;
-					document.getElementById("status").className = "status error";
+					document.getElementById("status").className =
+						"status error";
 				}
 			}
 
@@ -313,7 +321,10 @@
 				statusEl.className = "status";
 
 				try {
-					const sliceArr = await NDArray.loadSlice(DEMO_FILE, [start, end]);
+					const sliceArr = await NDArray.loadSlice(DEMO_FILE, [
+						start,
+						end,
+					]);
 
 					// Update UI
 					document.getElementById("slice-shape").textContent =
@@ -323,24 +334,24 @@
 					document.getElementById("slice-bytes").textContent =
 						formatBytes(bytesLoaded);
 
-					const savings = ((1 - bytesLoaded / totalFileSize) * 100).toFixed(1);
+					const savings = (
+						(1 - bytesLoaded / totalFileSize) *
+						100
+					).toFixed(1);
 					document.getElementById("slice-savings").textContent =
 						`${savings}%`;
 
 					// Render slice sparkline
 					const sliceData = Array.from(sliceArr.data);
-					document.getElementById("slice-chart").innerHTML = sparkline(
-						sliceData,
-						null,
-						{
+					document.getElementById("slice-chart").innerHTML =
+						sparkline(sliceData, null, {
 							width: 800,
 							height: 80,
 							color: "#27ae60",
 							shading: 0.2,
 							xAxis: { line: true, ticks: true },
 							yAxis: { line: true, ticks: true },
-						},
-					);
+						});
 
 					statusEl.textContent =
 						`Loaded elements [${start}, ${end}) via Range request.\n` +
@@ -354,12 +365,15 @@
 
 			function formatBytes(bytes) {
 				if (bytes < 1024) return bytes + " B";
-				if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+				if (bytes < 1024 * 1024)
+					return (bytes / 1024).toFixed(1) + " KB";
 				return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 			}
 
 			// Event listeners
-			document.getElementById("load-slice").addEventListener("click", loadSlice);
+			document
+				.getElementById("load-slice")
+				.addEventListener("click", loadSlice);
 
 			// Initialize on load
 			init();

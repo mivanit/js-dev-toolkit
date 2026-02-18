@@ -190,7 +190,9 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 	}
 
 	if (initialResponse.status !== 206) {
-		throw new Error(`Failed to fetch NPY header: ${initialResponse.status}`);
+		throw new Error(
+			`Failed to fetch NPY header: ${initialResponse.status}`,
+		);
 	}
 
 	const initialBytes = await initialResponse.arrayBuffer();
@@ -228,7 +230,9 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 		headerBytes = combined.slice(headerStart, dataOffset);
 	}
 
-	const headerText = new TextDecoder("utf-8").decode(new Uint8Array(headerBytes));
+	const headerText = new TextDecoder("utf-8").decode(
+		new Uint8Array(headerBytes),
+	);
 
 	// Parse header dict (reuse existing parsing logic)
 	const header = JSON.parse(
@@ -442,7 +446,8 @@ class NDArray {
 	 */
 	slice(range) {
 		// Allow single int to get one row
-		const [start, end] = typeof range === "number" ? [range, range + 1] : range;
+		const [start, end] =
+			typeof range === "number" ? [range, range + 1] : range;
 
 		// Validate bounds
 		if (start < 0 || end > this.shape[0] || start >= end) {
@@ -452,7 +457,9 @@ class NDArray {
 		}
 
 		// Calculate stride for first axis (elements per first-axis index)
-		const firstAxisStride = this.shape.slice(1).reduce((acc, dim) => acc * dim, 1);
+		const firstAxisStride = this.shape
+			.slice(1)
+			.reduce((acc, dim) => acc * dim, 1);
 
 		// Extract slice data
 		const sliceStart = start * firstAxisStride;
@@ -1063,7 +1070,8 @@ class NDArray {
 		}
 
 		// Allow single int to get one row
-		const [start, end] = typeof slice === "number" ? [slice, slice + 1] : slice;
+		const [start, end] =
+			typeof slice === "number" ? [slice, slice + 1] : slice;
 
 		// Fetch header to get array metadata
 		const headerResult = await fetchNPYHeader(url, fetchArgs);

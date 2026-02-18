@@ -989,10 +989,7 @@
 				it("cycles from null to asc", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = [
-						{ name: "Bob" },
-						{ name: "Alice" },
-					];
+					const data = [{ name: "Bob" }, { name: "Alice" }];
 					const table = new DataTable(container, { data });
 
 					assert.strictEqual(table.sortColumnId, null);
@@ -1009,10 +1006,7 @@
 				it("cycles from asc to desc", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = [
-						{ name: "Bob" },
-						{ name: "Alice" },
-					];
+					const data = [{ name: "Bob" }, { name: "Alice" }];
 					const table = new DataTable(container, { data });
 
 					table.handleSort("name"); // null -> asc
@@ -1027,10 +1021,7 @@
 				it("cycles from desc to null", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = [
-						{ name: "Bob" },
-						{ name: "Alice" },
-					];
+					const data = [{ name: "Bob" }, { name: "Alice" }];
 					const table = new DataTable(container, { data });
 
 					table.handleSort("name"); // null -> asc
@@ -1093,7 +1084,10 @@
 					document.body.appendChild(container);
 					const table = new DataTable(container, {});
 
-					assert.strictEqual(table.cssClass("header"), "tablejs-header");
+					assert.strictEqual(
+						table.cssClass("header"),
+						"tablejs-header",
+					);
 					assert.strictEqual(table.cssClass("cell"), "tablejs-cell");
 
 					document.body.removeChild(container);
@@ -1106,8 +1100,14 @@
 					document.body.appendChild(container);
 					const table = new DataTable(container, {});
 
-					const col = { key: "test", filterTooltip: "My custom tooltip" };
-					assert.strictEqual(table.getFilterTooltip(col), "My custom tooltip");
+					const col = {
+						key: "test",
+						filterTooltip: "My custom tooltip",
+					};
+					assert.strictEqual(
+						table.getFilterTooltip(col),
+						"My custom tooltip",
+					);
 
 					document.body.removeChild(container);
 				});
@@ -1148,7 +1148,9 @@
 						{ value: 30 },
 						{ value: 40 },
 					];
-					const columns = [{ key: "value", label: "Value", type: "number" }];
+					const columns = [
+						{ key: "value", label: "Value", type: "number" },
+					];
 					const table = new DataTable(container, { data, columns });
 
 					const info = table.calculateColumnInfo(columns[0]);
@@ -1167,7 +1169,9 @@
 						{ name: "Alice" },
 						{ name: "Charlie" },
 					];
-					const columns = [{ key: "name", label: "Name", type: "string" }];
+					const columns = [
+						{ key: "name", label: "Name", type: "string" },
+					];
 					const table = new DataTable(container, { data, columns });
 
 					const info = table.calculateColumnInfo(columns[0]);
@@ -1179,17 +1183,16 @@
 				it("uses custom infoFunction when provided", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = [
-						{ value: 1 },
-						{ value: 2 },
-						{ value: 3 },
+					const data = [{ value: 1 }, { value: 2 }, { value: 3 }];
+					const columns = [
+						{
+							key: "value",
+							label: "Value",
+							type: "number",
+							infoFunction: (values) =>
+								`Sum: ${values.reduce((a, b) => a + b, 0)}`,
+						},
 					];
-					const columns = [{
-						key: "value",
-						label: "Value",
-						type: "number",
-						infoFunction: (values) => `Sum: ${values.reduce((a, b) => a + b, 0)}`
-					}];
 					const table = new DataTable(container, { data, columns });
 
 					const info = table.calculateColumnInfo(columns[0]);
@@ -1201,8 +1204,13 @@
 				it("handles empty data", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const columns = [{ key: "value", label: "Value", type: "number" }];
-					const table = new DataTable(container, { data: [], columns });
+					const columns = [
+						{ key: "value", label: "Value", type: "number" },
+					];
+					const table = new DataTable(container, {
+						data: [],
+						columns,
+					});
 
 					const info = table.calculateColumnInfo(columns[0]);
 					assert.ok(info.includes("No data"));
@@ -1220,11 +1228,13 @@
 						{ name: "item-2" },
 						{ name: "item-1" },
 					];
-					const columns = [{
-						key: "name",
-						label: "Name",
-						sortFunction: (val) => parseInt(val.split("-")[1])
-					}];
+					const columns = [
+						{
+							key: "name",
+							label: "Name",
+							sortFunction: (val) => parseInt(val.split("-")[1]),
+						},
+					];
 					const table = new DataTable(container, { data, columns });
 
 					table.sortColumnId = "name";
@@ -1243,21 +1253,19 @@
 				it("uses custom filter function", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = [
-						{ value: 5 },
-						{ value: 15 },
-						{ value: 25 },
+					const data = [{ value: 5 }, { value: 15 }, { value: 25 }];
+					const columns = [
+						{
+							key: "value",
+							label: "Value",
+							type: "number",
+							filterFunction: (filterValue) => {
+								const num = parseInt(filterValue);
+								if (isNaN(num)) return null;
+								return (cellValue) => cellValue > num;
+							},
+						},
 					];
-					const columns = [{
-						key: "value",
-						label: "Value",
-						type: "number",
-						filterFunction: (filterValue) => {
-							const num = parseInt(filterValue);
-							if (isNaN(num)) return null;
-							return (cellValue) => cellValue > num;
-						}
-					}];
 					const table = new DataTable(container, { data, columns });
 
 					table.filters = {
@@ -1266,8 +1274,8 @@
 							value: "10",
 							type: "number",
 							valid: true,
-							customFilter: (cellValue) => cellValue > 10
-						}
+							customFilter: (cellValue) => cellValue > 10,
+						},
 					};
 					table.applyFiltersAndSort();
 
@@ -1283,8 +1291,13 @@
 				it("adjusts page when exceeds total after filter", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = Array.from({ length: 30 }, (_, i) => ({ id: i }));
-					const table = new DataTable(container, { data, pageSize: 10 });
+					const data = Array.from({ length: 30 }, (_, i) => ({
+						id: i,
+					}));
+					const table = new DataTable(container, {
+						data,
+						pageSize: 10,
+					});
 
 					table.currentPage = 3; // Valid for 30 items
 					table.filteredData = data.slice(0, 5); // Now only 5 items
@@ -1314,12 +1327,17 @@
 				it("shows all pages when total <= 10", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = Array.from({ length: 50 }, (_, i) => ({ id: i }));
-					const table = new DataTable(container, { data, pageSize: 10 });
+					const data = Array.from({ length: 50 }, (_, i) => ({
+						id: i,
+					}));
+					const table = new DataTable(container, {
+						data,
+						pageSize: 10,
+					});
 
 					const buttons = table.generatePageButtons(5);
 					assert.strictEqual(buttons.length, 5);
-					assert.ok(buttons.every(b => b.type === "page"));
+					assert.ok(buttons.every((b) => b.type === "page"));
 
 					document.body.removeChild(container);
 				});
@@ -1327,13 +1345,22 @@
 				it("uses ellipsis when total > 10", () => {
 					const container = document.createElement("div");
 					document.body.appendChild(container);
-					const data = Array.from({ length: 200 }, (_, i) => ({ id: i }));
-					const table = new DataTable(container, { data, pageSize: 10 });
+					const data = Array.from({ length: 200 }, (_, i) => ({
+						id: i,
+					}));
+					const table = new DataTable(container, {
+						data,
+						pageSize: 10,
+					});
 
 					const buttons = table.generatePageButtons(20);
-					assert.ok(buttons.some(b => b.type === "dots"));
-					assert.ok(buttons.some(b => b.type === "page" && b.page === 1));
-					assert.ok(buttons.some(b => b.type === "page" && b.page === 20));
+					assert.ok(buttons.some((b) => b.type === "dots"));
+					assert.ok(
+						buttons.some((b) => b.type === "page" && b.page === 1),
+					);
+					assert.ok(
+						buttons.some((b) => b.type === "page" && b.page === 20),
+					);
 
 					document.body.removeChild(container);
 				});
@@ -1350,7 +1377,7 @@
 					];
 					const columns = [
 						{ key: "user.name", label: "Name", type: "string" },
-						{ key: "user.age", label: "Age", type: "number" }
+						{ key: "user.age", label: "Age", type: "number" },
 					];
 					const table = new DataTable(container, { data, columns });
 
@@ -1359,13 +1386,16 @@
 							key: "user.name",
 							value: "ali*",
 							type: "string",
-							valid: true
-						}
+							valid: true,
+						},
 					};
 					table.applyFiltersAndSort();
 
 					assert.strictEqual(table.filteredData.length, 1);
-					assert.strictEqual(table.filteredData[0].user.name, "Alice");
+					assert.strictEqual(
+						table.filteredData[0].user.name,
+						"Alice",
+					);
 
 					document.body.removeChild(container);
 				});
@@ -1376,11 +1406,13 @@
 					const container = document.createElement("div");
 					document.body.appendChild(container);
 					const data = [{ value: 100 }];
-					const columns = [{
-						key: "value",
-						label: "Value",
-						renderer: (val) => `<strong>${val}</strong>`
-					}];
+					const columns = [
+						{
+							key: "value",
+							label: "Value",
+							renderer: (val) => `<strong>${val}</strong>`,
+						},
+					];
 					const table = new DataTable(container, { data, columns });
 
 					const cell = table.tbody.querySelector("td");
@@ -1393,16 +1425,18 @@
 					const container = document.createElement("div");
 					document.body.appendChild(container);
 					const data = [{ value: 42 }];
-					const columns = [{
-						key: "value",
-						label: "Value",
-						renderer: (val) => {
-							const span = document.createElement("span");
-							span.className = "custom-value";
-							span.textContent = val;
-							return span;
-						}
-					}];
+					const columns = [
+						{
+							key: "value",
+							label: "Value",
+							renderer: (val) => {
+								const span = document.createElement("span");
+								span.className = "custom-value";
+								span.textContent = val;
+								return span;
+							},
+						},
+					];
 					const table = new DataTable(container, { data, columns });
 
 					const span = table.tbody.querySelector(".custom-value");

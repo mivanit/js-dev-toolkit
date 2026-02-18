@@ -503,7 +503,9 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 						<pre
 							id="yaml-input"
 							style="min-height: 150px; white-space: pre-wrap"
-						>Click a button to see an example</pre>
+						>
+Click a button to see an example</pre
+						>
 					</div>
 					<div style="flex: 1">
 						<h4>YAML Output:</h4>
@@ -1303,7 +1305,8 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 			function displayYAML(obj) {
 				document.getElementById("yaml-input").textContent =
 					JSON.stringify(obj, null, 2);
-				document.getElementById("yaml-output").textContent = toYAML(obj);
+				document.getElementById("yaml-output").textContent =
+					toYAML(obj);
 			}
 		</script>
 	</body>

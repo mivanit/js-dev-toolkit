@@ -1,6 +1,9 @@
-// yaml.js - Simple YAML serialization util
-// origin: https://github.com/mivanit/js-dev-toolkit
-// license: GPLv3
+/**
+ * @fileoverview Simple YAML serialization util
+ * @module yaml
+ * @license GPLv3
+ * @see {@link https://github.com/mivanit/js-dev-toolkit}
+ */
 
 /**
  * Convert a JavaScript object to YAML format
