@@ -1,6 +1,9 @@
-// ColorUtil.js - Color manipulation utilities
-// origin: https://github.com/mivanit/js-dev-toolkit
-// license: GPLv3
+/**
+ * @fileoverview Color manipulation utilities
+ * @module ColorUtil
+ * @license GPLv3
+ * @see {@link https://github.com/mivanit/js-dev-toolkit}
+ */
 
 function hslToHex(h, s, l) {
 	s /= 100;

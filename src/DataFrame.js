@@ -1,6 +1,9 @@
-// DataFrame.js - Tabular data manipulation and display
-// origin: https://github.com/mivanit/js-dev-toolkit
-// license: GPLv3
+/**
+ * @fileoverview Tabular data manipulation and display
+ * @module DataFrame
+ * @license GPLv3
+ * @see {@link https://github.com/mivanit/js-dev-toolkit}
+ */
 
 class DataFrame {
 	/**

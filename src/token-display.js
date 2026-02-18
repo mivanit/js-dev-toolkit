@@ -1,4 +1,9 @@
-// Token display utilities
+/**
+ * @fileoverview Token display utilities
+ * @module token-display
+ * @license GPLv3
+ * @see {@link https://github.com/mivanit/js-dev-toolkit}
+ */
 
 /**
  * Tokenizer formatter for BERT-style tokenizers (##subword tokens, spaces between words)
