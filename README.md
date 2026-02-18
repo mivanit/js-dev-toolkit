@@ -187,12 +187,12 @@ const npz = await parseNPZ(arrayBuffer);
 const weights = npz['weights.npy'];
 
 // Partial loading with HTTP Range requests (NPY only)
-// Only downloads bytes for elements 100-199
-const slice = await NDArray.loadSlice('large.npy', [100, 200]);
-console.log(slice.shape);  // [100] for 1D, or [100, ...] for multi-dim
+const slice = await NDArray.loadSlice('large.npy', [100, 200]); // elements 100-199
+const row = await NDArray.loadSlice('large.npy', 50);           // single row 50
 
 // In-memory slicing
 const portion = arr.slice([10, 50]);  // elements 10-49
+const singleRow = arr.slice(5);       // just row 5
 ```
 
 **Supported dtypes:** uint8, uint16, uint32, uint64, int8, int16, int32, int64, float16, float32, float64, bool
