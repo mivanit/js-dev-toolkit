@@ -679,23 +679,20 @@ class NDArray {
 	 * @returns {number|NDArray} Minimum as scalar or NDArray depending on axis
 	 */
 	min(axis = null) {
+		axis = this._validateAxis(axis);
 		const rangeResult = this.range(axis);
 
-		// If axis is null, we get a [2] array, return the scalar min
 		if (axis === null) {
 			return rangeResult.data[0];
 		}
 
-		// Otherwise, extract the min values (every other element, starting at 0)
 		const baseSize = rangeResult.data.length / 2;
 		const minData = new this.data.constructor(baseSize);
 		for (let i = 0; i < baseSize; i++) {
 			minData[i] = rangeResult.data[i * 2];
 		}
 
-		const newShape = this.shape.filter(
-			(_, i) => i !== this._validateAxis(axis),
-		);
+		const newShape = this.shape.filter((_, i) => i !== axis);
 		return new this.constructor(minData, newShape, this.dtype);
 	}
 
@@ -705,23 +702,20 @@ class NDArray {
 	 * @returns {number|NDArray} Maximum as scalar or NDArray depending on axis
 	 */
 	max(axis = null) {
+		axis = this._validateAxis(axis);
 		const rangeResult = this.range(axis);
 
-		// If axis is null, we get a [2] array, return the scalar max
 		if (axis === null) {
 			return rangeResult.data[1];
 		}
 
-		// Otherwise, extract the max values (every other element, starting at 1)
 		const baseSize = rangeResult.data.length / 2;
 		const maxData = new this.data.constructor(baseSize);
 		for (let i = 0; i < baseSize; i++) {
 			maxData[i] = rangeResult.data[i * 2 + 1];
 		}
 
-		const newShape = this.shape.filter(
-			(_, i) => i !== this._validateAxis(axis),
-		);
+		const newShape = this.shape.filter((_, i) => i !== axis);
 		return new this.constructor(maxData, newShape, this.dtype);
 	}
 

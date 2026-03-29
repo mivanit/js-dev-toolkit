@@ -70,7 +70,10 @@ class Tensor extends NDArray {
 			return new Tensor(out, [...this.shape], this.dtype);
 		}
 		// same shape
-		if (this.data.length !== other.data.length) {
+		if (
+			this.shape.length !== other.shape.length ||
+			!this.shape.every((d, i) => d === other.shape[i])
+		) {
 			throw new Error(
 				`add shape mismatch: [${this.shape}] vs [${other.shape}]`,
 			);
@@ -422,19 +425,27 @@ class NeuralNet {
 			for (let d = 0; d < D; d++) {
 				if (t.data[off + d] > max) max = t.data[off + d];
 			}
-			if (!isFinite(max)) {
+			if (max === -Infinity) {
+				// All values are -Infinity or NaN (NaN > -Infinity is false)
 				let hasNaN = false;
 				for (let d = 0; d < D; d++) {
-					if (isNaN(t.data[off + d])) {
-						hasNaN = true;
-						break;
-					}
+					if (isNaN(t.data[off + d])) { hasNaN = true; break; }
 				}
 				if (hasNaN) {
 					for (let d = 0; d < D; d++) out[off + d] = NaN;
 				} else {
 					const uniform = 1 / D;
 					for (let d = 0; d < D; d++) out[off + d] = uniform;
+				}
+			} else if (max === Infinity) {
+				// Concentrate probability on +Infinity elements
+				let infCount = 0;
+				for (let d = 0; d < D; d++) {
+					if (t.data[off + d] === Infinity) infCount++;
+				}
+				const p = 1 / infCount;
+				for (let d = 0; d < D; d++) {
+					out[off + d] = t.data[off + d] === Infinity ? p : 0;
 				}
 			} else {
 				let sum = 0;
