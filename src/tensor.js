@@ -378,7 +378,7 @@ class Tensor extends NDArray {
 	 * Embedding lookup: indices (int array) into table (vocab, dim) -> (seq, dim).
 	 * Delegates to NeuralNet.embedding.
 	 *
-	 * @param {Array<number>|Int32Array} indices - Token indices
+	 * @param {Array<number>|Int32Array|NDArray|Tensor} indices - Token indices
 	 * @param {Tensor|NDArray} table - Embedding table of shape (vocab, dim)
 	 * @returns {Tensor}
 	 */
@@ -691,11 +691,14 @@ class NeuralNet {
 	/**
 	 * Embedding lookup: indices (int array) into table (vocab, dim) -> (seq, dim).
 	 *
-	 * @param {Array<number>|Int32Array} indices - Token indices
+	 * @param {Array<number>|Int32Array|NDArray|Tensor} indices - Token indices
 	 * @param {Tensor|NDArray} table - Embedding table of shape (vocab, dim)
 	 * @returns {Tensor}
 	 */
 	static embedding(indices, table) {
+		if (indices instanceof NDArray) {
+			indices = indices.data;
+		}
 		if (table.shape.length !== 2) {
 			throw new Error(
 				`embedding requires 2D table, got shape [${table.shape}]`,

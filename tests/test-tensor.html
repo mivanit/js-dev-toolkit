@@ -1281,6 +1281,38 @@
 					);
 				});
 			});
+
+			describe("NeuralNet.embedding() — NDArray/Tensor indices", () => {
+				it("accepts NDArray indices", () => {
+					const table = new Tensor(
+						new Float32Array([10, 20, 30, 40, 50, 60]),
+						[3, 2],
+					);
+					const indices = new NDArray(
+						new Int32Array([2, 0]),
+						[2],
+						"int32",
+					);
+					const result = NeuralNet.embedding(indices, table);
+					assert.deepStrictEqual(result.shape, [2, 2]);
+					assertArrayEqual(Array.from(result.data), [50, 60, 10, 20]);
+				});
+
+				it("accepts Tensor indices", () => {
+					const table = new Tensor(
+						new Float32Array([1, 2, 3, 4]),
+						[2, 2],
+					);
+					const indices = new Tensor([0, 1, 0], [3], "int32");
+					const result = Tensor.embedding(indices, table);
+					assert.ok(result instanceof Tensor);
+					assert.deepStrictEqual(result.shape, [3, 2]);
+					assertArrayEqual(
+						Array.from(result.data),
+						[1, 2, 3, 4, 1, 2],
+					);
+				});
+			});
 			// ========================================
 			// Plan audit — remaining tests
 			// ========================================
