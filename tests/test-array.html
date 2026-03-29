@@ -47,6 +47,41 @@
 				});
 			});
 
+			describe("NDArray constructor — shape validation", () => {
+				it("rejects negative dimension", () => {
+					assert.throws(
+						() => new NDArray(new Float32Array(1), [-1], "float32"),
+						/Invalid shape dimension/,
+					);
+				});
+
+				it("rejects NaN dimension", () => {
+					assert.throws(
+						() =>
+							new NDArray(new Float32Array(1), [NaN], "float32"),
+						/Invalid shape dimension/,
+					);
+				});
+
+				it("rejects float dimension", () => {
+					assert.throws(
+						() =>
+							new NDArray(new Float32Array(1), [1.5], "float32"),
+						/Invalid shape dimension/,
+					);
+				});
+
+				it("accepts 0D (scalar) shape", () => {
+					const arr = new NDArray(
+						new Float32Array([42]),
+						[],
+						"float32",
+					);
+					assert.strictEqual(arr.ndim, 0);
+					assert.strictEqual(arr.data[0], 42);
+				});
+			});
+
 			describe("NDArray.get()", () => {
 				it("gets single element from 1D array", () => {
 					const data = new Float32Array([1, 2, 3]);

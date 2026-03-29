@@ -1340,6 +1340,22 @@
 				});
 			});
 
+			describe("Tensor.zeros() — shape validation", () => {
+				it("rejects negative dimension", () => {
+					assert.throws(
+						() => Tensor.zeros([-1]),
+						/Invalid shape dimension/,
+					);
+				});
+
+				it("rejects NaN dimension", () => {
+					assert.throws(
+						() => Tensor.zeros([NaN]),
+						/Invalid shape dimension/,
+					);
+				});
+			});
+
 			describe("Tensor.causalMask() — boundary cases", () => {
 				it("causalMask(1) returns [[0]]", () => {
 					const m = Tensor.causalMask(1);

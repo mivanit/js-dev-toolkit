@@ -422,6 +422,15 @@ class NDArray {
 		this.dtype = dtype;
 		this.ndim = shape.length;
 
+		// Validate shape dimensions
+		for (let i = 0; i < shape.length; i++) {
+			if (!Number.isInteger(shape[i]) || shape[i] < 0) {
+				throw new Error(
+					`Invalid shape dimension at index ${i}: ${shape[i]} (must be non-negative integer)`,
+				);
+			}
+		}
+
 		// Calculate total size from shape
 		this._size = shape.reduce((acc, dim) => acc * dim, 1);
 

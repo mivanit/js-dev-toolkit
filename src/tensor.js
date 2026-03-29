@@ -51,6 +51,13 @@ class Tensor extends NDArray {
 		if (!dtypeInfo) {
 			throw new Error(`Unsupported dtype: ${dtype}`);
 		}
+		for (let i = 0; i < shape.length; i++) {
+			if (!Number.isInteger(shape[i]) || shape[i] < 0) {
+				throw new Error(
+					`Invalid shape dimension at index ${i}: ${shape[i]} (must be non-negative integer)`,
+				);
+			}
+		}
 		const size = shape.reduce((a, b) => a * b, 1);
 		return new Tensor(
 			new dtypeInfo.arrayConstructor(size),
@@ -186,7 +193,7 @@ class Tensor extends NDArray {
 		}
 		if (other.shape.length !== 2) {
 			throw new Error(
-				`matmul requires other to be 2D, got shape [${other.shape}]. Use matmulBatched() for batched operations`,
+				`matmul requires other to be 2D, got shape [${other.shape}]; use matmulBatched() when both operands have batch dims`,
 			);
 		}
 		const K = other.shape[0];
