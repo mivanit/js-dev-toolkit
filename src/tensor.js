@@ -232,7 +232,7 @@ class Tensor extends NDArray {
 		// ML convenience: swap last two dims
 		const shape = [...this.shape];
 		if (shape.length < 2) {
-			return new Tensor(this.data, shape, this.dtype);
+			return new Tensor(new this.data.constructor(this.data), shape, this.dtype);
 		}
 
 		const M = shape[shape.length - 2];

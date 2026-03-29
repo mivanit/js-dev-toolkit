@@ -52,6 +52,10 @@ function float16ToFloat32Array(float16Array) {
 	return float32Array;
 }
 
+function _isBigIntArray(arr) {
+	return arr instanceof BigInt64Array || arr instanceof BigUint64Array;
+}
+
 // Canonical dtype list - single source of truth
 const _DTYPES = [
 	{
@@ -495,7 +499,7 @@ class NDArray {
 
 		// Sum over all elements
 		if (axis === null) {
-			if (this._size === 0) return 0;
+			if (this._size === 0) return _isBigIntArray(this.data) ? 0n : 0;
 			let total = this.data[0];
 			for (let i = 1; i < this._size; i++) {
 				total += this.data[i];
@@ -507,11 +511,6 @@ class NDArray {
 		const newShape = this.shape.filter((_, i) => i !== axis);
 		const newSize = newShape.reduce((acc, dim) => acc * dim, 1);
 		const resultData = new this.data.constructor(newSize);
-
-		// Initialize result array
-		for (let i = 0; i < newSize; i++) {
-			resultData[i] = 0;
-		}
 
 		// Calculate strides for indexing
 		const strides = new Array(this.ndim);
@@ -559,12 +558,19 @@ class NDArray {
 			if (this._size === 0) {
 				return NaN;
 			}
-			return this.sum(null) / this._size;
+			const total = this.sum(null);
+			const div = _isBigIntArray(this.data)
+				? BigInt(this._size)
+				: this._size;
+			return total / div;
 		}
 
 		// Mean along specific axis
 		const sumResult = this.sum(axis);
-		const divisor = this.shape[axis];
+		const isBigInt = _isBigIntArray(sumResult.data);
+		const divisor = isBigInt
+			? BigInt(this.shape[axis])
+			: this.shape[axis];
 
 		// Divide all elements by the count
 		const resultData = new sumResult.data.constructor(
@@ -588,9 +594,12 @@ class NDArray {
 		// Range over all elements - return [2] array
 		if (axis === null) {
 			if (this._size === 0) {
+				const isBigInt = _isBigIntArray(this.data);
 				const resultData = new this.data.constructor(2);
-				resultData[0] = NaN;
-				resultData[1] = NaN;
+				if (!isBigInt) {
+					resultData[0] = NaN;
+					resultData[1] = NaN;
+				}
 				return new this.constructor(resultData, [2], this.dtype);
 			}
 			let minVal = this.data[0];
