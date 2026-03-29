@@ -1905,6 +1905,68 @@
 					);
 				});
 			});
+			describe("NDArray BigInt — sliceDim and transpose", () => {
+				it("sliceDim on int64 preserves dtype", () => {
+					const arr = new NDArray(
+						new BigInt64Array([1n, 2n, 3n, 4n, 5n, 6n]),
+						[2, 3],
+						"int64",
+					);
+					const result = arr.sliceDim(1, 0, 2);
+					assert.strictEqual(result.dtype, "int64");
+					assert.ok(result.data instanceof BigInt64Array);
+					assert.deepStrictEqual(result.shape, [2, 2]);
+					assert.strictEqual(result.data[0], 1n);
+					assert.strictEqual(result.data[1], 2n);
+					assert.strictEqual(result.data[2], 4n);
+					assert.strictEqual(result.data[3], 5n);
+				});
+
+				it("transpose on int64 preserves dtype and values", () => {
+					const arr = new NDArray(
+						new BigInt64Array([1n, 2n, 3n, 4n, 5n, 6n]),
+						[2, 3],
+						"int64",
+					);
+					const result = arr.transpose();
+					assert.strictEqual(result.dtype, "int64");
+					assert.ok(result.data instanceof BigInt64Array);
+					assert.deepStrictEqual(result.shape, [3, 2]);
+					// Transposed: [[1,4],[2,5],[3,6]]
+					assert.strictEqual(result.data[0], 1n);
+					assert.strictEqual(result.data[1], 4n);
+					assert.strictEqual(result.data[2], 2n);
+					assert.strictEqual(result.data[3], 5n);
+					assert.strictEqual(result.data[4], 3n);
+					assert.strictEqual(result.data[5], 6n);
+				});
+			});
+
+			describe("NDArray.sliceDim() — 4D array", () => {
+				it("sliceDim(0, 0, 1) on [2,3,2,2]", () => {
+					const data = new Float32Array(24);
+					for (let i = 0; i < 24; i++) data[i] = i;
+					const arr = new NDArray(data, [2, 3, 2, 2], "float32");
+					const result = arr.sliceDim(0, 0, 1);
+					assert.deepStrictEqual(result.shape, [1, 3, 2, 2]);
+					assert.strictEqual(result.data.length, 12);
+					// First 12 elements of original
+					assertArrayEqual(
+						Array.from(result.data),
+						[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+					);
+				});
+
+				it("sliceDim(2, 1, 2) on [2,3,2,2] — single element along axis 2", () => {
+					const data = new Float32Array(24);
+					for (let i = 0; i < 24; i++) data[i] = i;
+					const arr = new NDArray(data, [2, 3, 2, 2], "float32");
+					const result = arr.sliceDim(2, 1, 2);
+					assert.deepStrictEqual(result.shape, [2, 3, 1, 2]);
+					assert.strictEqual(result.data.length, 12);
+				});
+			});
+
 			describe("NDArray.reshape() — negative dimension validation", () => {
 				it("throws on negative non-(-1) dimension", () => {
 					const arr = new NDArray(
@@ -1912,10 +1974,7 @@
 						[6],
 						"float32",
 					);
-					assert.throws(
-						() => arr.reshape([-6, -1]),
-						/invalid/i,
-					);
+					assert.throws(() => arr.reshape([-6, -1]), /invalid/i);
 				});
 			});
 		</script>
