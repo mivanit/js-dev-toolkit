@@ -472,7 +472,7 @@ class NDArray {
 		}
 
 		// Validate bounds
-		if (start < 0 || end > dim0 || start >= end) {
+		if (start < 0 || end > dim0 || start > end) {
 			throw new Error(
 				`Invalid slice [${start}, ${end}) for array with shape ${this.shape}`,
 			);
@@ -1075,7 +1075,7 @@ class NDArray {
 		if (start < 0) start = shape[dim] + start;
 		if (end < 0) end = shape[dim] + end;
 
-		if (start < 0 || end > shape[dim] || start >= end) {
+		if (start < 0 || end > shape[dim] || start > end) {
 			throw new Error(
 				`Invalid slice [${start}, ${end}) for axis ${dim} with size ${shape[dim]}`,
 			);
@@ -1245,9 +1245,20 @@ class NDArray {
 		const { info } = headerResult;
 
 		// Validate slice bounds
-		if (start < 0 || end > info.shape[0] || start >= end) {
+		if (start < 0 || end > info.shape[0] || start > end) {
 			throw new Error(
 				`Invalid slice [${start}, ${end}) for array with shape ${info.shape}`,
+			);
+		}
+
+		// Empty slice — return immediately without HTTP fetch
+		if (start === end) {
+			const slicedShape = [0, ...info.shape.slice(1)];
+			const dtypeInfo = _DTYPE_BY_DESCRIPTOR[info.dtype];
+			return new NDArray(
+				new dtypeInfo.arrayConstructor(0),
+				slicedShape,
+				dtypeInfo.name,
 			);
 		}
 
