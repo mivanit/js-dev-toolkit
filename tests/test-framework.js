@@ -138,6 +138,15 @@ function assertArrayEqual(actual, expected, message, tolerance = 1e-6) {
 		);
 	}
 	for (let i = 0; i < actual.length; i++) {
+		if (isNaN(actual[i]) || isNaN(expected[i])) {
+			if (isNaN(actual[i]) !== isNaN(expected[i])) {
+				throw new Error(
+					message ||
+						`Arrays differ at index ${i}: ${actual[i]} vs ${expected[i]}`,
+				);
+			}
+			continue;
+		}
 		if (Math.abs(actual[i] - expected[i]) > tolerance) {
 			throw new Error(
 				message ||
