@@ -318,6 +318,11 @@ class Tensor extends NDArray {
 	 * @returns {Tensor}
 	 */
 	static causalMask(S) {
+		if (!Number.isInteger(S) || S < 0) {
+			throw new Error(
+				`causalMask requires a non-negative integer, got ${S}`,
+			);
+		}
 		const out = new Float32Array(S * S);
 		for (let i = 0; i < S; i++) {
 			for (let j = 0; j < S; j++) {
@@ -427,6 +432,11 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static softmax(t) {
+		if (t.shape.length === 0) {
+			throw new Error(
+				"softmax requires at least 1D input, got 0D (scalar)",
+			);
+		}
 		const shape = [...t.shape];
 		const D = shape[shape.length - 1];
 		const n = t.data.length / D;
