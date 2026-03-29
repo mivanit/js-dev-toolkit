@@ -561,12 +561,7 @@ class NDArray {
 		// Mean over all elements
 		if (axis === null) {
 			if (this._size === 0) {
-				if (_isBigIntArray(this.data)) {
-					throw new Error(
-						"mean of empty slice is undefined for BigInt arrays",
-					);
-				}
-				return NaN;
+				throw new Error("mean of empty slice is undefined");
 			}
 			const total = this.sum(null);
 			const div = _isBigIntArray(this.data)
@@ -578,10 +573,8 @@ class NDArray {
 		// Mean along specific axis
 		const sumResult = this.sum(axis);
 		const isBigInt = _isBigIntArray(sumResult.data);
-		if (this.shape[axis] === 0 && isBigInt) {
-			throw new Error(
-				"mean of empty slice is undefined for BigInt arrays",
-			);
+		if (this.shape[axis] === 0) {
+			throw new Error("mean of empty slice is undefined");
 		}
 		const divisor = isBigInt ? BigInt(this.shape[axis]) : this.shape[axis];
 
