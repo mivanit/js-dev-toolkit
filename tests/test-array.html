@@ -1977,6 +1977,42 @@
 					assert.throws(() => arr.reshape([-6, -1]), /invalid/i);
 				});
 			});
+			describe("NDArray.set() — TypedArray values", () => {
+				it("distributes TypedArray values across indices", () => {
+					const arr = new NDArray(
+						new Float32Array([0, 0, 0, 0, 0, 0]),
+						[2, 3],
+						"float32",
+					);
+					arr.set([0], new Float32Array([10, 20, 30]));
+					assertArrayEqual(
+						Array.from(arr.data),
+						[10, 20, 30, 0, 0, 0],
+					);
+				});
+
+				it("throws on TypedArray length mismatch", () => {
+					const arr = new NDArray(
+						new Float32Array(6),
+						[2, 3],
+						"float32",
+					);
+					assert.throws(
+						() => arr.set([0], new Float32Array([1, 2])),
+						/broadcast/i,
+					);
+				});
+
+				it("works with Int32Array values", () => {
+					const arr = new NDArray(
+						new Int32Array([0, 0, 0]),
+						[3],
+						"int32",
+					);
+					arr.set([], new Int32Array([7, 8, 9]));
+					assertArrayEqual(Array.from(arr.data), [7, 8, 9]);
+				});
+			});
 		</script>
 	</body>
 </html>
