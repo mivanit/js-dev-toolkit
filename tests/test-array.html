@@ -642,21 +642,13 @@
 					assert.strictEqual(result.data[1], 42); // max
 				});
 
-				it("returns NaN for empty float array", () => {
+				it("throws on empty float array (matches NumPy)", () => {
 					const arr = new NDArray(
 						new Float32Array([]),
 						[0],
 						"float32",
 					);
-					const r = arr.range();
-					assert.ok(
-						isNaN(r.data[0]),
-						"min should be NaN for empty array",
-					);
-					assert.ok(
-						isNaN(r.data[1]),
-						"max should be NaN for empty array",
-					);
+					assert.throws(() => arr.range(), /zero-size|no identity/i);
 				});
 
 				it("works on uint8 arrays (axis)", () => {
@@ -1314,14 +1306,13 @@
 					assert.strictEqual(arr.sum(), 0);
 				});
 
-				it("range() on empty array doesn't crash", () => {
+				it("range() on empty array throws (matches NumPy)", () => {
 					const arr = new NDArray(
 						new Float32Array(0),
 						[0],
 						"float32",
 					);
-					const r = arr.range();
-					assert.deepStrictEqual(r.shape, [2]);
+					assert.throws(() => arr.range(), /zero-size|no identity/i);
 				});
 			});
 
@@ -2035,6 +2026,148 @@
 					);
 					arr.set([], new Int32Array([7, 8, 9]));
 					assertArrayEqual(Array.from(arr.data), [7, 8, 9]);
+				});
+			});
+
+			describe("NDArray — empty reduction throws (matches NumPy)", () => {
+				it("range(null) throws on empty float array", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0],
+						"float32",
+					);
+					assert.throws(() => arr.range(), /zero-size|no identity/i);
+				});
+
+				it("range(axis) throws on 0-size axis", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0, 3],
+						"float32",
+					);
+					assert.throws(() => arr.range(0), /zero-size|no identity/i);
+				});
+
+				it("min(null) throws on empty array", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0],
+						"float32",
+					);
+					assert.throws(() => arr.min(), /zero-size|no identity/i);
+				});
+
+				it("max(null) throws on empty array", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0],
+						"float32",
+					);
+					assert.throws(() => arr.max(), /zero-size|no identity/i);
+				});
+
+				it("min(axis) throws on 0-size axis", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0, 2],
+						"float32",
+					);
+					assert.throws(() => arr.min(0), /zero-size|no identity/i);
+				});
+
+				it("max(axis) throws on 0-size axis", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0, 2],
+						"float32",
+					);
+					assert.throws(() => arr.max(0), /zero-size|no identity/i);
+				});
+
+				it("range(null) throws on empty BigInt array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([]),
+						[0],
+						"int64",
+					);
+					assert.throws(() => arr.range(), /zero-size|no identity/i);
+				});
+
+				it("min(null) throws on empty BigInt array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([]),
+						[0],
+						"int64",
+					);
+					assert.throws(() => arr.min(), /zero-size|no identity/i);
+				});
+			});
+
+			describe("NDArray — empty mean (matches NumPy)", () => {
+				it("mean(null) returns NaN for empty float array", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0],
+						"float32",
+					);
+					assert.ok(isNaN(arr.mean()));
+				});
+
+				it("mean(axis) returns NaN for float 0-size axis", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0, 3],
+						"float32",
+					);
+					const m = arr.mean(0);
+					assert.deepStrictEqual(m.shape, [3]);
+					assert.ok(isNaN(m.data[0]));
+				});
+
+				it("mean(null) throws for empty BigInt array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([]),
+						[0],
+						"int64",
+					);
+					assert.throws(() => arr.mean(), /empty slice|undefined/i);
+				});
+
+				it("mean(axis) throws for BigInt 0-size axis", () => {
+					const arr = new NDArray(
+						new BigInt64Array([]),
+						[0, 3],
+						"int64",
+					);
+					assert.throws(() => arr.mean(0), /empty slice|undefined/i);
+				});
+			});
+
+			describe("NDArray.mean(axis) — BigInt happy path", () => {
+				it("mean(axis) works on BigInt64Array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([2n, 4n, 6n, 8n]),
+						[2, 2],
+						"int64",
+					);
+					const m = arr.mean(0);
+					assert.deepStrictEqual(m.shape, [2]);
+					assert.strictEqual(m.data[0], 4n);
+					assert.strictEqual(m.data[1], 6n);
+				});
+			});
+
+			describe("NDArray.sum(axis) — BigInt happy path", () => {
+				it("sum(axis) works on BigInt64Array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([1n, 2n, 3n, 4n, 5n, 6n]),
+						[2, 3],
+						"int64",
+					);
+					const s = arr.sum(1);
+					assert.deepStrictEqual(s.shape, [2]);
+					assert.strictEqual(s.data[0], 6n);
+					assert.strictEqual(s.data[1], 15n);
 				});
 			});
 		</script>
