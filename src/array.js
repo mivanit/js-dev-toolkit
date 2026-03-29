@@ -258,6 +258,12 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 			.replace(/,*\),*/g, "]"),
 	);
 
+	if (header.fortran_order) {
+		throw new Error(
+			"Fortran-order NPY files are not supported. Save with order='C'.",
+		);
+	}
+
 	return {
 		rangeSupported: true,
 		info: new NPYHeaderInfo({
@@ -307,6 +313,13 @@ class npyjs {
 				.replace(/,*\),*/g, "]"),
 		);
 		const shape = header.shape;
+
+		if (header.fortran_order) {
+			throw new Error(
+				"Fortran-order NPY files are not supported. Save with order='C'.",
+			);
+		}
+
 		const dtype = this.dtypes[header.descr];
 
 		if (!dtype) {
