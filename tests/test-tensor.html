@@ -1442,6 +1442,85 @@
 					assert.ok(s.data[1] < s.data[2]);
 				});
 			});
+			describe("NeuralNet.embedding() — dimension validation", () => {
+				it("rejects 3D table", () => {
+					const table = new Tensor(new Float32Array(24), [2, 3, 4]);
+					assert.throws(
+						() => NeuralNet.embedding([0], table),
+						/2D table/,
+					);
+				});
+
+				it("rejects 1D table", () => {
+					const table = new Tensor(new Float32Array(6), [6]);
+					assert.throws(
+						() => NeuralNet.embedding([0], table),
+						/2D table/,
+					);
+				});
+
+				it("rejects out-of-range index", () => {
+					const table = new Tensor(new Float32Array(6), [2, 3]);
+					assert.throws(
+						() => NeuralNet.embedding([5], table),
+						/invalid/,
+					);
+				});
+
+				it("rejects negative index", () => {
+					const table = new Tensor(new Float32Array(6), [2, 3]);
+					assert.throws(
+						() => NeuralNet.embedding([-1], table),
+						/invalid/,
+					);
+				});
+
+				it("rejects non-integer index", () => {
+					const table = new Tensor(new Float32Array(6), [2, 3]);
+					assert.throws(
+						() => NeuralNet.embedding([0.5], table),
+						/invalid/,
+					);
+				});
+			});
+
+			describe("Tensor constructor — BigInt dtypes", () => {
+				it("auto-converts plain numbers to BigInt for int64", () => {
+					const t = new Tensor([1, 2, 3], [3], "int64");
+					assert.ok(t.data instanceof BigInt64Array);
+					assert.strictEqual(t.data[0], 1n);
+					assert.strictEqual(t.data[1], 2n);
+					assert.strictEqual(t.data[2], 3n);
+				});
+
+				it("accepts BigInt values directly for int64", () => {
+					const t = new Tensor([1n, 2n, 3n], [3], "int64");
+					assert.ok(t.data instanceof BigInt64Array);
+					assert.strictEqual(t.data[0], 1n);
+				});
+
+				it("auto-converts plain numbers to BigInt for uint64", () => {
+					const t = new Tensor([10, 20], [2], "uint64");
+					assert.ok(t.data instanceof BigUint64Array);
+					assert.strictEqual(t.data[0], 10n);
+					assert.strictEqual(t.data[1], 20n);
+				});
+
+				it("Tensor.zeros works for int64", () => {
+					const t = Tensor.zeros([3], "int64");
+					assert.ok(t.data instanceof BigInt64Array);
+					assert.strictEqual(t.data.length, 3);
+					assert.strictEqual(t.data[0], 0n);
+				});
+			});
+
+			describe("Tensor.matmulBatched() — validation", () => {
+				it("rejects 1D other tensor", () => {
+					const a = new Tensor(new Float32Array(6), [1, 2, 3]);
+					const b = new Tensor(new Float32Array(3), [3]);
+					assert.throws(() => a.matmulBatched(b));
+				});
+			});
 		</script>
 	</body>
 </html>
