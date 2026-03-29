@@ -181,10 +181,7 @@
 					const t = arr.toTensor();
 					const scaled = t.scale(2);
 					const result = NDArray.fromTensor(scaled);
-					assertArrayEqual(
-						Array.from(result.data),
-						[2, 4, 6, 8],
-					);
+					assertArrayEqual(Array.from(result.data), [2, 4, 6, 8]);
 				});
 			});
 
@@ -202,10 +199,7 @@
 					);
 					const result = a.toTensor().matmul(b.toTensor());
 					assert.deepStrictEqual(result.shape, [2, 2]);
-					assertArrayEqual(
-						Array.from(result.data),
-						[19, 22, 43, 50],
-					);
+					assertArrayEqual(Array.from(result.data), [19, 22, 43, 50]);
 				});
 
 				it("softmax after toTensor", () => {
@@ -214,7 +208,7 @@
 						[1, 3],
 						"float32",
 					);
-					const result = arr.toTensor().softmax();
+					const result = NeuralNet.softmax(arr.toTensor());
 					const sum =
 						result.data[0] + result.data[1] + result.data[2];
 					assert.ok(Math.abs(sum - 1.0) < 1e-6);
@@ -235,10 +229,7 @@
 						a.toTensor().scale(2).add(b.toTensor()),
 					);
 					assert.ok(result instanceof NDArray);
-					assertArrayEqual(
-						Array.from(result.data),
-						[12, 24, 36],
-					);
+					assertArrayEqual(Array.from(result.data), [12, 24, 36]);
 				});
 			});
 
@@ -262,10 +253,7 @@
 					);
 					const s = arr.sliceDim(1, 1, 3);
 					assert.deepStrictEqual(s.shape, [2, 2]);
-					assertArrayEqual(
-						Array.from(s.data),
-						[2, 3, 5, 6],
-					);
+					assertArrayEqual(Array.from(s.data), [2, 3, 5, 6]);
 				});
 
 				it("slices 3D along middle axis", () => {
@@ -293,10 +281,7 @@
 					);
 					const s = arr.sliceDim(-1, 0, 2);
 					assert.deepStrictEqual(s.shape, [2, 2]);
-					assertArrayEqual(
-						Array.from(s.data),
-						[1, 2, 4, 5],
-					);
+					assertArrayEqual(Array.from(s.data), [1, 2, 4, 5]);
 				});
 
 				it("preserves dtype", () => {
@@ -316,10 +301,7 @@
 						[2],
 						"float32",
 					);
-					assert.throws(
-						() => arr.sliceDim(5, 0, 1),
-						/out of bounds/,
-					);
+					assert.throws(() => arr.sliceDim(5, 0, 1), /out of bounds/);
 				});
 
 				it("throws on invalid slice range", () => {
@@ -328,18 +310,25 @@
 						[2, 2],
 						"float32",
 					);
-					assert.throws(
-						() => arr.sliceDim(0, -1, 1),
-						/Invalid slice/,
+					assert.throws(() => arr.sliceDim(0, 0, 5), /Invalid slice/);
+					assert.throws(() => arr.sliceDim(0, 1, 0), /Invalid slice/);
+				});
+
+				it("supports negative start/end", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
 					);
-					assert.throws(
-						() => arr.sliceDim(0, 0, 5),
-						/Invalid slice/,
-					);
-					assert.throws(
-						() => arr.sliceDim(0, 1, 0),
-						/Invalid slice/,
-					);
+					// sliceDim(0, -1, 2) → last row
+					const last = arr.sliceDim(0, -1, 2);
+					assert.deepStrictEqual(last.shape, [1, 3]);
+					assertArrayEqual(Array.from(last.data), [4, 5, 6]);
+
+					// sliceDim(1, -2, -1) → second column
+					const col = arr.sliceDim(1, -2, -1);
+					assert.deepStrictEqual(col.shape, [2, 1]);
+					assertArrayEqual(Array.from(col.data), [2, 5]);
 				});
 			});
 		</script>
