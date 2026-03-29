@@ -1304,6 +1304,7 @@
 					assert.strictEqual(s.data[0], 1.0);
 				});
 			});
+
 			describe("Tensor.matmul() — rejects >2D other", () => {
 				it("throws when other is 3D", () => {
 					const a = new Tensor(new Float32Array(4), [2, 2]);
