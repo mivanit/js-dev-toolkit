@@ -445,14 +445,23 @@ class NeuralNet {
 					for (let d = 0; d < D; d++) out[off + d] = uniform;
 				}
 			} else if (max === Infinity) {
-				// Concentrate probability on +Infinity elements
-				let infCount = 0;
+				// Check for NaN — if present, entire output is NaN
+				let hasNaN = false;
 				for (let d = 0; d < D; d++) {
-					if (t.data[off + d] === Infinity) infCount++;
+					if (isNaN(t.data[off + d])) { hasNaN = true; break; }
 				}
-				const p = 1 / infCount;
-				for (let d = 0; d < D; d++) {
-					out[off + d] = t.data[off + d] === Infinity ? p : 0;
+				if (hasNaN) {
+					for (let d = 0; d < D; d++) out[off + d] = NaN;
+				} else {
+					// Concentrate probability on +Infinity elements
+					let infCount = 0;
+					for (let d = 0; d < D; d++) {
+						if (t.data[off + d] === Infinity) infCount++;
+					}
+					const p = 1 / infCount;
+					for (let d = 0; d < D; d++) {
+						out[off + d] = t.data[off + d] === Infinity ? p : 0;
+					}
 				}
 			} else {
 				let sum = 0;
