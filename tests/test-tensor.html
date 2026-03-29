@@ -1605,6 +1605,57 @@
 					assert.throws(() => NeuralNet.softmax(t), /at least 1D/);
 				});
 			});
+
+			describe("NeuralNet — rejects BigInt dtype", () => {
+				it("relu rejects int64", () => {
+					const t = new Tensor(
+						new BigInt64Array([1n, 2n]),
+						[2],
+						"int64",
+					);
+					assert.throws(() => NeuralNet.relu(t), /float dtype/);
+				});
+
+				it("softmax rejects int64", () => {
+					const t = new Tensor(
+						new BigInt64Array([1n, 2n]),
+						[2],
+						"int64",
+					);
+					assert.throws(() => NeuralNet.softmax(t), /float dtype/);
+				});
+
+				it("sigmoid rejects uint64", () => {
+					const t = new Tensor(
+						new BigUint64Array([1n, 2n]),
+						[2],
+						"uint64",
+					);
+					assert.throws(() => NeuralNet.sigmoid(t), /float dtype/);
+				});
+
+				it("layernorm rejects int64", () => {
+					const t = new Tensor(
+						new BigInt64Array([1n, 2n]),
+						[2],
+						"int64",
+					);
+					const w = new Tensor(new Float32Array([1, 1]), [2]);
+					const b = new Tensor(new Float32Array([0, 0]), [2]);
+					assert.throws(
+						() => NeuralNet.layernorm(t, w, b),
+						/float dtype/,
+					);
+				});
+			});
+
+			describe("Tensor.matmulBatched — validates other shape", () => {
+				it("rejects 1D other with clear error", () => {
+					const a = new Tensor(new Float32Array(6), [1, 2, 3]);
+					const b = new Tensor(new Float32Array(3), [3]);
+					assert.throws(() => a.matmulBatched(b), /at least 2D/);
+				});
+			});
 			// ============================================================
 			// einsum tests
 			// ============================================================
@@ -1745,14 +1796,20 @@
 			describe("einsum — 3-operand chain matmul", () => {
 				it("ij,jk,kl->il matches A.matmul(B).matmul(C)", () => {
 					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
-					const b = new Tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], [3, 4]);
+					const b = new Tensor(
+						[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+						[3, 4],
+					);
 					const c = new Tensor([1, 2, 3, 4, 5, 6, 7, 8], [4, 2]);
 					const expected = a.matmul(b).matmul(c);
 					const result = einsum("ij,jk,kl->il", a, b, c);
 					assert.deepStrictEqual(result.shape, expected.shape);
 					for (let i = 0; i < expected.data.length; i++) {
-						assert.strictEqual(result.data[i], expected.data[i],
-							`index ${i}: einsum=${result.data[i]} chain=${expected.data[i]}`);
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} chain=${expected.data[i]}`,
+						);
 					}
 				});
 			});
@@ -1763,6 +1820,19 @@
 					const r = einsum("ij->ij", a);
 					assert.deepStrictEqual(r.shape, [2, 3]);
 					assertArrayEqual(Array.from(r.data), [1, 2, 3, 4, 5, 6]);
+				});
+			});
+
+			describe("einsum — Hadamard (element-wise) product", () => {
+				it("ij,ij->ij computes element-wise product", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const b = new Tensor([7, 8, 9, 10, 11, 12], [2, 3]);
+					const r = einsum("ij,ij->ij", a, b);
+					assert.deepStrictEqual(r.shape, [2, 3]);
+					assertArrayEqual(
+						Array.from(r.data),
+						[7, 16, 27, 40, 55, 72],
+					);
 				});
 			});
 
@@ -1789,33 +1859,51 @@
 				it("throws on empty operand spec (ij,->ij)", () => {
 					const a = new Tensor([1, 2, 3, 4], [2, 2]);
 					const b = new Tensor([5, 6, 7, 8], [2, 2]);
-					assert.throws(() => einsum("ij,->ij", a, b), /0 labels|0 dims|2 dims.*0/);
+					assert.throws(
+						() => einsum("ij,->ij", a, b),
+						/0 labels|0 dims|2 dims.*0/,
+					);
 				});
 
 				it("throws on too many operands", () => {
 					const a = new Tensor([1, 2, 3, 4], [2, 2]);
 					const b = new Tensor([5, 6, 7, 8], [2, 2]);
-					assert.throws(() => einsum("ij->ji", a, b), /expected 1.*got 2/i);
+					assert.throws(
+						() => einsum("ij->ji", a, b),
+						/expected 1.*got 2/i,
+					);
 				});
 
 				it("throws on zero operands", () => {
-					assert.throws(() => einsum("i,j->ij"), /expected 2.*got 0/i);
+					assert.throws(
+						() => einsum("i,j->ij"),
+						/expected 2.*got 0/i,
+					);
 				});
 
 				it("throws on repeated output label (ii)", () => {
 					const a = new Tensor([1, 2, 3, 4], [2, 2]);
-					assert.throws(() => einsum("ij->ii", a), /repeated output label/);
+					assert.throws(
+						() => einsum("ij->ii", a),
+						/repeated output label/,
+					);
 				});
 
 				it("throws on output label not in any input", () => {
 					const a = new Tensor([1, 2, 3, 4], [2, 2]);
-					assert.throws(() => einsum("ij->ijk", a), /output label 'k'/);
+					assert.throws(
+						() => einsum("ij->ijk", a),
+						/output label 'k'/,
+					);
 				});
 
 				it("throws on dimension mismatch across operands", () => {
 					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
 					const b = new Tensor([1, 2, 3, 4, 5, 6, 7, 8], [4, 2]);
-					assert.throws(() => einsum("ij,jk->ik", a, b), /mismatch.*'j'/);
+					assert.throws(
+						() => einsum("ij,jk->ik", a, b),
+						/mismatch.*'j'/,
+					);
 				});
 
 				it("throws on notation with no operand specs but arrow (->i)", () => {
