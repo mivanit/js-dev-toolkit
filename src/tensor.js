@@ -661,6 +661,15 @@ function einsum(notation, ...operands) {
 
 	const outLabels = rhs.split("");
 
+	// Reject repeated output labels (e.g. "ij->ii")
+	const outLabelDups = new Set();
+	for (const label of outLabels) {
+		if (outLabelDups.has(label)) {
+			throw new Error(`einsum: repeated output label '${label}'`);
+		}
+		outLabelDups.add(label);
+	}
+
 	// --- Build dimension map: label → size ---
 	const dimSize = {};
 	for (let o = 0; o < operands.length; o++) {
@@ -736,11 +745,7 @@ function einsum(notation, ...operands) {
 	const dtypeInfo = _DTYPE_BY_NAME[dtype];
 	const result = new dtypeInfo.arrayConstructor(outSize);
 
-	// --- Build index-mapping tables for fast inner loop ---
-	// For each operand, precompute: for each (outLabel, contractedLabel),
-	// which dimension does it correspond to, and what stride?
-	// We map: label → current value in the iteration
-	const labelIdx = {}; // label → current index value (mutated during iteration)
+	const labelIdx = {}; // label → current index value, mutated during iteration
 
 	// --- Main summation loop ---
 	for (let outFlat = 0; outFlat < outSize; outFlat++) {

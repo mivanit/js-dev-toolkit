@@ -1742,6 +1742,88 @@
 				});
 			});
 
+			describe("einsum — 3-operand chain matmul", () => {
+				it("ij,jk,kl->il matches A.matmul(B).matmul(C)", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const b = new Tensor([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], [3, 4]);
+					const c = new Tensor([1, 2, 3, 4, 5, 6, 7, 8], [4, 2]);
+					const expected = a.matmul(b).matmul(c);
+					const result = einsum("ij,jk,kl->il", a, b, c);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(result.data[i], expected.data[i],
+							`index ${i}: einsum=${result.data[i]} chain=${expected.data[i]}`);
+					}
+				});
+			});
+
+			describe("einsum — identity copy", () => {
+				it("ij->ij copies data unchanged", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const r = einsum("ij->ij", a);
+					assert.deepStrictEqual(r.shape, [2, 3]);
+					assertArrayEqual(Array.from(r.data), [1, 2, 3, 4, 5, 6]);
+				});
+			});
+
+			describe("einsum — 0D scalar passthrough", () => {
+				it("-> with 0D tensor returns same value", () => {
+					const a = new Tensor([42], []);
+					const r = einsum("->", a);
+					assert.deepStrictEqual(r.shape, []);
+					assert.strictEqual(r.data[0], 42);
+				});
+			});
+
+			describe("einsum — invalid notation", () => {
+				it("throws on empty notation (no arrow)", () => {
+					const a = new Tensor([1, 2], [2]);
+					assert.throws(() => einsum("", a), /must contain/);
+				});
+
+				it("throws on multiple arrows (malformed rhs)", () => {
+					const a = new Tensor([1, 2], [2]);
+					assert.throws(() => einsum("->->i", a), /dims/);
+				});
+
+				it("throws on empty operand spec (ij,->ij)", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					const b = new Tensor([5, 6, 7, 8], [2, 2]);
+					assert.throws(() => einsum("ij,->ij", a, b), /0 labels|0 dims|2 dims.*0/);
+				});
+
+				it("throws on too many operands", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					const b = new Tensor([5, 6, 7, 8], [2, 2]);
+					assert.throws(() => einsum("ij->ji", a, b), /expected 1.*got 2/i);
+				});
+
+				it("throws on zero operands", () => {
+					assert.throws(() => einsum("i,j->ij"), /expected 2.*got 0/i);
+				});
+
+				it("throws on repeated output label (ii)", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					assert.throws(() => einsum("ij->ii", a), /repeated output label/);
+				});
+
+				it("throws on output label not in any input", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					assert.throws(() => einsum("ij->ijk", a), /output label 'k'/);
+				});
+
+				it("throws on dimension mismatch across operands", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const b = new Tensor([1, 2, 3, 4, 5, 6, 7, 8], [4, 2]);
+					assert.throws(() => einsum("ij,jk->ik", a, b), /mismatch.*'j'/);
+				});
+
+				it("throws on notation with no operand specs but arrow (->i)", () => {
+					const a = new Tensor([1, 2], [2]);
+					assert.throws(() => einsum("->i", a), /1 dims.*0/);
+				});
+			});
+
 			describe("einsum — cross-validation with existing ops", () => {
 				it("ij,jk->ik matches matmul (3x2 @ 2x4)", () => {
 					const a = new Tensor([1, 2, 3, 4, 5, 6], [3, 2]);
