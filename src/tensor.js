@@ -448,7 +448,10 @@ class NeuralNet {
 				// Check for NaN — if present, entire output is NaN
 				let hasNaN = false;
 				for (let d = 0; d < D; d++) {
-					if (isNaN(t.data[off + d])) { hasNaN = true; break; }
+					if (isNaN(t.data[off + d])) {
+						hasNaN = true;
+						break;
+					}
 				}
 				if (hasNaN) {
 					for (let d = 0; d < D; d++) out[off + d] = NaN;
