@@ -568,9 +568,7 @@ class NDArray {
 		// Mean along specific axis
 		const sumResult = this.sum(axis);
 		const isBigInt = _isBigIntArray(sumResult.data);
-		const divisor = isBigInt
-			? BigInt(this.shape[axis])
-			: this.shape[axis];
+		const divisor = isBigInt ? BigInt(this.shape[axis]) : this.shape[axis];
 
 		// Divide all elements by the count
 		const resultData = new sumResult.data.constructor(

@@ -235,7 +235,11 @@ class Tensor extends NDArray {
 		// ML convenience: swap last two dims
 		const shape = [...this.shape];
 		if (shape.length < 2) {
-			return new Tensor(new this.data.constructor(this.data), shape, this.dtype);
+			return new Tensor(
+				new this.data.constructor(this.data),
+				shape,
+				this.dtype,
+			);
 		}
 
 		const M = shape[shape.length - 2];
@@ -429,7 +433,10 @@ class NeuralNet {
 				// All values are -Infinity or NaN (NaN > -Infinity is false)
 				let hasNaN = false;
 				for (let d = 0; d < D; d++) {
-					if (isNaN(t.data[off + d])) { hasNaN = true; break; }
+					if (isNaN(t.data[off + d])) {
+						hasNaN = true;
+						break;
+					}
 				}
 				if (hasNaN) {
 					for (let d = 0; d < D; d++) out[off + d] = NaN;
