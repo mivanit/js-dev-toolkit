@@ -87,6 +87,18 @@
 					assert.strictEqual(slice.shape[0], 2);
 					assertArrayEqual(Array.from(slice.data), [1, 2]);
 				});
+
+				it("does not mutate caller's indices array", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					const indices = [-1, 0];
+					arr.get(...indices);
+					assert.deepStrictEqual(
+						indices,
+						[-1, 0],
+						"caller's array should not be mutated",
+					);
+				});
 			});
 
 			describe("NDArray.set()", () => {
@@ -525,6 +537,15 @@
 					assert.strictEqual(arr.sum(), 42);
 				});
 
+				it("returns 0 for empty array", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0],
+						"float32",
+					);
+					assert.strictEqual(arr.sum(), 0);
+				});
+
 				it("sums 3D array along axis 0", () => {
 					const data = new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]);
 					const arr = new NDArray(data, [2, 2, 2], "float32");
@@ -620,6 +641,50 @@
 					assert.strictEqual(result.data[0], 42); // min
 					assert.strictEqual(result.data[1], 42); // max
 				});
+
+				it("returns NaN for empty float array", () => {
+					const arr = new NDArray(
+						new Float32Array([]),
+						[0],
+						"float32",
+					);
+					const r = arr.range();
+					assert.ok(
+						isNaN(r.data[0]),
+						"min should be NaN for empty array",
+					);
+					assert.ok(
+						isNaN(r.data[1]),
+						"max should be NaN for empty array",
+					);
+				});
+
+				it("works on uint8 arrays (axis)", () => {
+					const arr = new NDArray(
+						new Uint8Array([10, 20, 30, 40, 50, 60]),
+						[2, 3],
+						"uint8",
+					);
+					const r = arr.range(0);
+					assert.deepStrictEqual(r.shape, [3, 2]);
+					// col 0: min=10, max=40; col 1: min=20, max=50; col 2: min=30, max=60
+					assertArrayEqual(
+						Array.from(r.data),
+						[10, 40, 20, 50, 30, 60],
+					);
+				});
+
+				it("works on int32 arrays (axis)", () => {
+					const arr = new NDArray(
+						new Int32Array([-5, 10, -3, 7]),
+						[2, 2],
+						"int32",
+					);
+					const r = arr.range(0);
+					assert.deepStrictEqual(r.shape, [2, 2]);
+					// col 0: min=-5, max=-3; col 1: min=7, max=10
+					assertArrayEqual(Array.from(r.data), [-5, -3, 7, 10]);
+				});
 			});
 
 			describe("NDArray.min()", () => {
@@ -658,6 +723,15 @@
 					const arr = new NDArray(data, [1], "float32");
 					assert.strictEqual(arr.min(), 42);
 				});
+
+				it("works on uint8 arrays (axis)", () => {
+					const arr = new NDArray(
+						new Uint8Array([10, 20, 30, 40]),
+						[2, 2],
+						"uint8",
+					);
+					assertArrayEqual(Array.from(arr.min(0).data), [10, 20]);
+				});
 			});
 
 			describe("NDArray.max()", () => {
@@ -695,6 +769,15 @@
 					const data = new Float32Array([42]);
 					const arr = new NDArray(data, [1], "float32");
 					assert.strictEqual(arr.max(), 42);
+				});
+
+				it("works on int32 arrays (axis)", () => {
+					const arr = new NDArray(
+						new Int32Array([5, -10, 3, -7]),
+						[2, 2],
+						"int32",
+					);
+					assertArrayEqual(Array.from(arr.max(0).data), [5, -7]);
 				});
 			});
 
@@ -949,9 +1032,33 @@
 				it("throws on invalid slice bounds", () => {
 					const data = new Float32Array([1, 2, 3, 4, 5]);
 					const arr = new NDArray(data, [5], "float32");
-					assert.throws(() => arr.slice([-1, 3]), /Invalid slice/);
 					assert.throws(() => arr.slice([0, 10]), /Invalid slice/);
 					assert.throws(() => arr.slice([3, 2]), /Invalid slice/);
+				});
+
+				it("supports negative indices", () => {
+					const data = new Float32Array([
+						1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+					]);
+					const arr = new NDArray(data, [3, 4], "float32");
+
+					// slice(-1) → last row
+					const last = arr.slice(-1);
+					assert.deepStrictEqual(last.shape, [1, 4]);
+					assertArrayEqual(Array.from(last.data), [9, 10, 11, 12]);
+
+					// slice([-2, -1]) → second-to-last row
+					const mid = arr.slice([-2, -1]);
+					assert.deepStrictEqual(mid.shape, [1, 4]);
+					assertArrayEqual(Array.from(mid.data), [5, 6, 7, 8]);
+
+					// slice([-2, 3]) → last two rows
+					const lastTwo = arr.slice([-2, 3]);
+					assert.deepStrictEqual(lastTwo.shape, [2, 4]);
+					assertArrayEqual(
+						Array.from(lastTwo.data),
+						[5, 6, 7, 8, 9, 10, 11, 12],
+					);
 				});
 
 				it("preserves dtype", () => {
@@ -1022,27 +1129,36 @@
 				it("throws on out of bounds dim", () => {
 					const data = new Float32Array([1, 2]);
 					const arr = new NDArray(data, [2], "float32");
-					assert.throws(
-						() => arr.sliceDim(5, 0, 1),
-						/out of bounds/,
-					);
+					assert.throws(() => arr.sliceDim(5, 0, 1), /out of bounds/);
 				});
 
 				it("throws on invalid slice range", () => {
 					const data = new Float32Array([1, 2, 3, 4]);
 					const arr = new NDArray(data, [2, 2], "float32");
-					assert.throws(
-						() => arr.sliceDim(0, -1, 1),
-						/Invalid slice/,
-					);
-					assert.throws(
-						() => arr.sliceDim(0, 0, 5),
-						/Invalid slice/,
-					);
-					assert.throws(
-						() => arr.sliceDim(0, 1, 0),
-						/Invalid slice/,
-					);
+					assert.throws(() => arr.sliceDim(0, 0, 5), /Invalid slice/);
+					assert.throws(() => arr.sliceDim(0, 1, 0), /Invalid slice/);
+				});
+
+				it("supports negative start/end", () => {
+					const data = new Float32Array([
+						1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+					]);
+					const arr = new NDArray(data, [3, 4], "float32");
+
+					// sliceDim(0, -1, 3) → last row
+					const last = arr.sliceDim(0, -1, 3);
+					assert.deepStrictEqual(last.shape, [1, 4]);
+					assertArrayEqual(Array.from(last.data), [9, 10, 11, 12]);
+
+					// sliceDim(1, -2, -1) → third column only
+					const col = arr.sliceDim(1, -2, -1);
+					assert.deepStrictEqual(col.shape, [3, 1]);
+					assertArrayEqual(Array.from(col.data), [3, 7, 11]);
+
+					// sliceDim(0, -2, -1) → second row
+					const mid = arr.sliceDim(0, -2, -1);
+					assert.deepStrictEqual(mid.shape, [1, 4]);
+					assertArrayEqual(Array.from(mid.data), [5, 6, 7, 8]);
 				});
 
 				it("matches slice() for axis 0", () => {
@@ -1053,10 +1169,7 @@
 					const s1 = arr.slice([1, 3]);
 					const s2 = arr.sliceDim(0, 1, 3);
 					assert.deepStrictEqual(s1.shape, s2.shape);
-					assertArrayEqual(
-						Array.from(s1.data),
-						Array.from(s2.data),
-					);
+					assertArrayEqual(Array.from(s1.data), Array.from(s2.data));
 				});
 			});
 
@@ -1081,8 +1194,7 @@
 					// Pad header to align (total = 10 + HEADER_LEN must be divisible by 64)
 					const minLen = headerDict.length + 1; // +1 for newline
 					const totalMin = 10 + minLen;
-					const padded =
-						Math.ceil(totalMin / 64) * 64 - 10;
+					const padded = Math.ceil(totalMin / 64) * 64 - 10;
 					const headerStr =
 						headerDict +
 						" ".repeat(padded - headerDict.length - 1) +
@@ -1090,8 +1202,7 @@
 					const headerLen = headerStr.length;
 
 					const bytesPerElement = dtype === "float64" ? 8 : 4;
-					const dataBytes =
-						data.length * bytesPerElement;
+					const dataBytes = data.length * bytesPerElement;
 					const totalBytes = 10 + headerLen + dataBytes;
 					const buf = new ArrayBuffer(totalBytes);
 					const view = new DataView(buf);
@@ -1114,41 +1225,23 @@
 						bytes[10 + i] = headerStr.charCodeAt(i);
 					}
 					// Data
-					const dataView = new DataView(
-						buf,
-						10 + headerLen,
-					);
+					const dataView = new DataView(buf, 10 + headerLen);
 					for (let i = 0; i < data.length; i++) {
 						if (dtype === "float64") {
-							dataView.setFloat64(
-								i * 8,
-								data[i],
-								true,
-							);
+							dataView.setFloat64(i * 8, data[i], true);
 						} else {
-							dataView.setFloat32(
-								i * 4,
-								data[i],
-								true,
-							);
+							dataView.setFloat32(i * 4, data[i], true);
 						}
 					}
 					return buf;
 				}
 
 				it("parses NPY with small header correctly", () => {
-					const buf = makeNPYBuffer(
-						[3],
-						"float32",
-						[1, 2, 3],
-					);
+					const buf = makeNPYBuffer([3], "float32", [1, 2, 3]);
 					const arr = NDArray.parse(buf);
 					assert.deepStrictEqual(arr.shape, [3]);
 					assert.strictEqual(arr.dtype, "float32");
-					assertArrayEqual(
-						Array.from(arr.data),
-						[1, 2, 3],
-					);
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
 				});
 
 				it("parses NPY with header > 255 bytes (Bug #1: getUint8 truncation)", () => {
@@ -1157,16 +1250,13 @@
 					const dims = 85;
 					const shape = new Array(dims).fill(1);
 					shape[0] = 2; // total elements = 2
-					const buf = makeNPYBuffer(
-						shape,
-						"float32",
-						[42, 99],
-					);
+					const buf = makeNPYBuffer(shape, "float32", [42, 99]);
 
 					// Verify header is actually > 255 bytes
-					const headerLen = new DataView(
-						buf.slice(8, 10),
-					).getUint16(0, true);
+					const headerLen = new DataView(buf.slice(8, 10)).getUint16(
+						0,
+						true,
+					);
 					assert.ok(
 						headerLen > 255,
 						`header should be > 255 bytes, got ${headerLen}`,
@@ -1175,10 +1265,7 @@
 					const arr = NDArray.parse(buf);
 					assert.strictEqual(arr.shape.length, dims);
 					assert.strictEqual(arr.shape[0], 2);
-					assertArrayEqual(
-						Array.from(arr.data),
-						[42, 99],
-					);
+					assertArrayEqual(Array.from(arr.data), [42, 99]);
 				});
 			});
 
@@ -1189,10 +1276,7 @@
 						[4, 5, 6],
 					]);
 					assert.deepStrictEqual(arr.shape, [2, 3]);
-					assertArrayEqual(
-						Array.from(arr.data),
-						[1, 2, 3, 4, 5, 6],
-					);
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3, 4, 5, 6]);
 				});
 
 				it("deserializes 3D nested list", () => {
@@ -1216,10 +1300,219 @@
 				it("still works for flat 1D list", () => {
 					const arr = NDArray.fromJSON([10, 20, 30]);
 					assert.deepStrictEqual(arr.shape, [3]);
-					assertArrayEqual(
-						Array.from(arr.data),
-						[10, 20, 30],
+					assertArrayEqual(Array.from(arr.data), [10, 20, 30]);
+				});
+			});
+
+			describe("NDArray edge cases — empty array operations", () => {
+				it("sum() on empty array returns 0", () => {
+					const arr = new NDArray(
+						new Float32Array(0),
+						[0],
+						"float32",
 					);
+					assert.strictEqual(arr.sum(), 0);
+				});
+
+				it("range() on empty array doesn't crash", () => {
+					const arr = new NDArray(
+						new Float32Array(0),
+						[0],
+						"float32",
+					);
+					const r = arr.range();
+					assert.deepStrictEqual(r.shape, [2]);
+				});
+			});
+
+			describe("NDArray — NaN/Infinity behavior", () => {
+				it("sum with NaN returns NaN", () => {
+					const arr = new NDArray(
+						new Float32Array([1, NaN, 3]),
+						[3],
+						"float32",
+					);
+					assert.ok(isNaN(arr.sum()));
+				});
+
+				it("min finds -Infinity", () => {
+					const arr = new NDArray(
+						new Float32Array([Infinity, 1, -Infinity]),
+						[3],
+						"float32",
+					);
+					assert.strictEqual(arr.min(), -Infinity);
+				});
+
+				it("max finds Infinity", () => {
+					const arr = new NDArray(
+						new Float32Array([Infinity, 1, -Infinity]),
+						[3],
+						"float32",
+					);
+					assert.strictEqual(arr.max(), Infinity);
+				});
+			});
+
+			describe("fromJSON — jagged array validation", () => {
+				it("throws on jagged nested arrays", () => {
+					assert.throws(
+						() =>
+							NDArray.fromJSON([
+								[1, 2],
+								[3, 4, 5],
+							]),
+						/jagged|mismatch|shape/i,
+					);
+				});
+
+				it("throws on jagged data in array_list_meta format", () => {
+					assert.throws(
+						() =>
+							NDArray.fromJSON({
+								__muutils_format__:
+									"numpy.ndarray:array_list_meta",
+								shape: [2, 2],
+								dtype: "float32",
+								data: [[1, 2], [3]],
+							}),
+						/jagged|mismatch|shape/i,
+					);
+				});
+			});
+			describe("NDArray.transpose() — negative axes", () => {
+				it("accepts negative axes", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const t = arr.transpose([-1, -2]);
+					assert.deepStrictEqual(t.shape, [3, 2]);
+					assertArrayEqual(Array.from(t.data), [1, 4, 2, 5, 3, 6]);
+				});
+			});
+
+			describe("fromJSON — binary formats", () => {
+				it("deserializes array_hex_meta format", () => {
+					// Float32 [1.0, 2.0] as little-endian hex
+					// 1.0 = 0x3F800000 → LE: 0000803f
+					// 2.0 = 0x40000000 → LE: 00000040
+					const arr = NDArray.fromJSON({
+						__muutils_format__: "numpy.ndarray:array_hex_meta",
+						shape: [2],
+						dtype: "float32",
+						data: "0000803f00000040",
+					});
+					assert.deepStrictEqual(arr.shape, [2]);
+					assertArrayEqual(Array.from(arr.data), [1.0, 2.0]);
+				});
+
+				it("deserializes array_b64_meta format", () => {
+					// Float32 [1.0, 2.0] as base64
+					const bytes = new Uint8Array([0, 0, 128, 63, 0, 0, 0, 64]);
+					const b64 = btoa(String.fromCharCode(...bytes));
+					const arr = NDArray.fromJSON({
+						__muutils_format__: "numpy.ndarray:array_b64_meta",
+						shape: [2],
+						dtype: "float32",
+						data: b64,
+					});
+					assert.deepStrictEqual(arr.shape, [2]);
+					assertArrayEqual(Array.from(arr.data), [1.0, 2.0]);
+				});
+
+				it("deserializes zero_dim format", () => {
+					const arr = NDArray.fromJSON({
+						__muutils_format__: "numpy.ndarray:zero_dim",
+						shape: [],
+						dtype: "float32",
+						data: 42.0,
+					});
+					assert.deepStrictEqual(arr.shape, []);
+					assert.strictEqual(arr.data[0], 42.0);
+				});
+
+				it("rejects hex with wrong byte count", () => {
+					assert.throws(
+						() =>
+							NDArray.fromJSON({
+								__muutils_format__:
+									"numpy.ndarray:array_hex_meta",
+								shape: [2],
+								dtype: "float32",
+								data: "0000803f",
+							}),
+						/size|match|expected/i,
+					);
+				});
+			});
+
+			describe("NDArray.inferFormat()", () => {
+				it("detects list format from plain array", () => {
+					assert.strictEqual(NDArray.inferFormat([1, 2, 3]), "list");
+				});
+
+				it("detects array_list_meta format", () => {
+					assert.strictEqual(
+						NDArray.inferFormat({
+							__muutils_format__: "numpy.ndarray:array_list_meta",
+							shape: [2],
+							dtype: "float32",
+							data: [1, 2],
+						}),
+						"array_list_meta",
+					);
+				});
+
+				it("returns null for unrecognized object", () => {
+					assert.strictEqual(
+						NDArray.inferFormat({ foo: "bar" }),
+						null,
+					);
+				});
+			});
+			describe("NDArray.get() — mixed null indices on 3D", () => {
+				it("get(0, null, 1) returns 1D slice", () => {
+					// shape [2,3,4], data = 0..23
+					const data = new Float32Array(24);
+					for (let i = 0; i < 24; i++) data[i] = i;
+					const arr = new NDArray(data, [2, 3, 4], "float32");
+					// get(0, null, 1) → elements at [0,0,1], [0,1,1], [0,2,1] = 1, 5, 9
+					const result = arr.get(0, null, 1);
+					assert.deepStrictEqual(result.shape, [3]);
+					assertArrayEqual(
+						Array.from(result.data),
+						[1, 5, 9],
+					);
+				});
+
+				it("get(null, 1) on 2D returns column", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					// get(null, 1) → elements at [0,1], [1,1] = 2, 5
+					const result = arr.get(null, 1);
+					assert.deepStrictEqual(result.shape, [2]);
+					assertArrayEqual(
+						Array.from(result.data),
+						[2, 5],
+					);
+				});
+			});
+
+			describe("NDArray.toString()", () => {
+				it("returns a string representation", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[3],
+						"float32",
+					);
+					const s = arr.toString();
+					assert.ok(typeof s === "string");
+					assert.ok(s.length > 0);
 				});
 			});
 		</script>
