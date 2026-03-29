@@ -1027,7 +1027,7 @@ class NDArray {
 
 		// Otherwise, set all indices to the value
 		// If value is an array, distribute its values
-		if (Array.isArray(value) || value instanceof NDArray) {
+		if (Array.isArray(value) || ArrayBuffer.isView(value) || value instanceof NDArray) {
 			const valueArray = value instanceof NDArray ? value.data : value;
 			if (valueArray.length !== flatIndices.length) {
 				throw new Error(
