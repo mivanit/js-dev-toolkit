@@ -727,6 +727,15 @@ class NDArray {
 			throw new Error("newShape must be an array");
 		}
 
+		// Reject invalid negative dimensions (only -1 is allowed)
+		for (const dim of newShape) {
+			if (dim < -1) {
+				throw new Error(
+					`invalid dimension ${dim} in reshape (only -1 is allowed for auto-calculation)`,
+				);
+			}
+		}
+
 		// Handle -1 for auto-calculation
 		const autoIdx = newShape.indexOf(-1);
 		let finalShape = [...newShape];
