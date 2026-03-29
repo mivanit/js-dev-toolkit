@@ -561,6 +561,11 @@ class NDArray {
 		// Mean over all elements
 		if (axis === null) {
 			if (this._size === 0) {
+				if (_isBigIntArray(this.data)) {
+					throw new Error(
+						"mean of empty slice is undefined for BigInt arrays",
+					);
+				}
 				return NaN;
 			}
 			const total = this.sum(null);
@@ -573,6 +578,11 @@ class NDArray {
 		// Mean along specific axis
 		const sumResult = this.sum(axis);
 		const isBigInt = _isBigIntArray(sumResult.data);
+		if (this.shape[axis] === 0 && isBigInt) {
+			throw new Error(
+				"mean of empty slice is undefined for BigInt arrays",
+			);
+		}
 		const divisor = isBigInt ? BigInt(this.shape[axis]) : this.shape[axis];
 
 		// Divide all elements by the count
@@ -597,13 +607,9 @@ class NDArray {
 		// Range over all elements - return [2] array
 		if (axis === null) {
 			if (this._size === 0) {
-				const isBigInt = _isBigIntArray(this.data);
-				const resultData = new this.data.constructor(2);
-				if (!isBigInt) {
-					resultData[0] = NaN;
-					resultData[1] = NaN;
-				}
-				return new this.constructor(resultData, [2], this.dtype);
+				throw new Error(
+					"zero-size array to reduction operation range which has no identity",
+				);
 			}
 			let minVal = this.data[0];
 			let maxVal = this.data[0];
@@ -622,6 +628,11 @@ class NDArray {
 		}
 
 		// Range along specific axis - result shape is [..., 2]
+		if (this.shape[axis] === 0) {
+			throw new Error(
+				"zero-size array to reduction operation range which has no identity",
+			);
+		}
 		const baseShape = this.shape.filter((_, i) => i !== axis);
 		const newShape = [...baseShape, 2];
 		const baseSize = baseShape.reduce((acc, dim) => acc * dim, 1);
