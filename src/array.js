@@ -1,7 +1,7 @@
 /**
  * @fileoverview NumPy array parsing and utilities
  * @module array
- * @version 0.1.0
+ * @version 0.2.0
  * @license GPLv3
  * @see {@link https://github.com/mivanit/js-dev-toolkit}
  *
@@ -147,6 +147,12 @@ for (const dtype of _DTYPES) {
 	_DTYPE_BY_NAME[dtype.name] = dtype;
 }
 
+// Generate map: TypedArray constructor -> dtype name (for type inference)
+const _CONSTRUCTOR_TO_DTYPE = new Map();
+for (const dtype of _DTYPES) {
+	_CONSTRUCTOR_TO_DTYPE.set(dtype.arrayConstructor, dtype.name);
+}
+
 // NPY header info for range-based loading
 class NPYHeaderInfo {
 	constructor({ shape, dtype, fortranOrder, dataOffset }) {
@@ -239,7 +245,7 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 		headerText
 			.toLowerCase()
 			.replace(/'/g, '"')
-			.replace("(", "[")
+			.replace(/\(/g, "[")
 			.replace(/,*\),*/g, "]"),
 	);
 
@@ -278,7 +284,7 @@ class npyjs {
 		// const version = arrayBufferContents.slice(6, 8); // Uint8-encoded
 		const headerLength = new DataView(
 			arrayBufferContents.slice(8, 10),
-		).getUint8(0);
+		).getUint16(0, true);
 		const offsetBytes = 10 + headerLength;
 
 		const hcontents = new TextDecoder("utf-8").decode(
@@ -288,7 +294,7 @@ class npyjs {
 			hcontents
 				.toLowerCase() // True -> true
 				.replace(/'/g, '"')
-				.replace("(", "[")
+				.replace(/\(/g, "[")
 				.replace(/,*\),*/g, "]"),
 		);
 		const shape = header.shape;
@@ -429,7 +435,7 @@ class NDArray {
 	 * @returns {NDArray} 1D NDArray
 	 */
 	flatten() {
-		return new NDArray(this.data, [this._size], this.dtype);
+		return new this.constructor(this.data, [this._size], this.dtype);
 	}
 
 	/**
@@ -469,7 +475,7 @@ class NDArray {
 		// Construct sliced shape
 		const slicedShape = [end - start, ...this.shape.slice(1)];
 
-		return new NDArray(slicedData, slicedShape, this.dtype);
+		return new this.constructor(slicedData, slicedShape, this.dtype);
 	}
 
 	/**
@@ -529,7 +535,7 @@ class NDArray {
 			resultData[resultIdx] += this.data[i];
 		}
 
-		return new NDArray(resultData, newShape, this.dtype);
+		return new this.constructor(resultData, newShape, this.dtype);
 	}
 
 	/**
@@ -560,7 +566,7 @@ class NDArray {
 			resultData[i] = sumResult.data[i] / divisor;
 		}
 
-		return new NDArray(resultData, sumResult.shape, this.dtype);
+		return new this.constructor(resultData, sumResult.shape, this.dtype);
 	}
 
 	/**
@@ -586,7 +592,7 @@ class NDArray {
 			const resultData = new this.data.constructor(2);
 			resultData[0] = minVal;
 			resultData[1] = maxVal;
-			return new NDArray(resultData, [2], this.dtype);
+			return new this.constructor(resultData, [2], this.dtype);
 		}
 
 		// Range along specific axis - result shape is [..., 2]
@@ -638,7 +644,7 @@ class NDArray {
 			}
 		}
 
-		return new NDArray(resultData, newShape, this.dtype);
+		return new this.constructor(resultData, newShape, this.dtype);
 	}
 
 	/**
@@ -664,7 +670,7 @@ class NDArray {
 		const newShape = this.shape.filter(
 			(_, i) => i !== this._validateAxis(axis),
 		);
-		return new NDArray(minData, newShape, this.dtype);
+		return new this.constructor(minData, newShape, this.dtype);
 	}
 
 	/**
@@ -690,7 +696,7 @@ class NDArray {
 		const newShape = this.shape.filter(
 			(_, i) => i !== this._validateAxis(axis),
 		);
-		return new NDArray(maxData, newShape, this.dtype);
+		return new this.constructor(maxData, newShape, this.dtype);
 	}
 
 	/**
@@ -735,7 +741,7 @@ class NDArray {
 		}
 
 		// Create new array with same data but different shape
-		return new NDArray(this.data, finalShape, this.dtype);
+		return new this.constructor(this.data, finalShape, this.dtype);
 	}
 
 	/**
@@ -815,7 +821,7 @@ class NDArray {
 			newData[newFlatIdx] = this.data[i];
 		}
 
-		return new NDArray(newData, newShape, this.dtype);
+		return new this.constructor(newData, newShape, this.dtype);
 	}
 
 	/**
@@ -950,7 +956,7 @@ class NDArray {
 			resultData[i] = this.data[flatIndices[i]];
 		}
 
-		return new NDArray(resultData, resultShape, this.dtype);
+		return new this.constructor(resultData, resultShape, this.dtype);
 	}
 
 	/**
@@ -1051,7 +1057,7 @@ class NDArray {
 			}
 		}
 
-		return new NDArray(out, newShape, this.dtype);
+		return new this.constructor(out, newShape, this.dtype);
 	}
 
 	/**
@@ -1067,6 +1073,9 @@ class NDArray {
 			throw new ReferenceError(
 				"Tensor class not found — load tensor.js after array.js",
 			);
+		}
+		if (!_DTYPE_BY_NAME[dtype]) {
+			throw new Error(`Unsupported dtype: ${dtype}`);
 		}
 		const data =
 			this.dtype === dtype
@@ -1092,11 +1101,8 @@ class NDArray {
 			dtype ||
 			(t instanceof NDArray
 				? t.dtype
-				: t.data instanceof Float32Array
-					? "float32"
-					: t.data instanceof Float64Array
-						? "float64"
-						: "float32");
+				: _CONSTRUCTOR_TO_DTYPE.get(t.data.constructor) ||
+					"float32");
 		return new NDArray(t.data, [...t.shape], inferredDtype);
 	}
 
@@ -1288,8 +1294,13 @@ class NDArray {
 			// Convert nested list to flat TypedArray
 			const flatList = obj.flat(Infinity);
 			const data = new Float64Array(flatList);
-			// Try to infer shape (simple 1D for now)
-			const shape = [obj.length];
+			// Infer shape by walking first elements at each nesting level
+			const shape = [];
+			let current = obj;
+			while (Array.isArray(current)) {
+				shape.push(current.length);
+				current = current[0];
+			}
 			return new NDArray(data, shape, "float64");
 		}
 

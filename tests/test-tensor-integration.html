@@ -81,6 +81,18 @@
 						"should share buffer when dtypes match",
 					);
 				});
+
+				it("throws on invalid dtype", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[3],
+						"float32",
+					);
+					assert.throws(
+						() => arr.toTensor("bogus"),
+						/Unsupported dtype/,
+					);
+				});
 			});
 
 			describe("NDArray.fromTensor()", () => {
@@ -123,6 +135,24 @@
 						() => NDArray.fromTensor({}),
 						/Expected object/,
 					);
+				});
+
+				it("infers int32 dtype from Int32Array", () => {
+					const plain = {
+						data: new Int32Array([1, 2, 3]),
+						shape: [3],
+					};
+					const arr = NDArray.fromTensor(plain);
+					assert.strictEqual(arr.dtype, "int32");
+				});
+
+				it("infers uint8 dtype from Uint8Array", () => {
+					const plain = {
+						data: new Uint8Array([1, 2, 3]),
+						shape: [3],
+					};
+					const arr = NDArray.fromTensor(plain);
+					assert.strictEqual(arr.dtype, "uint8");
 				});
 			});
 

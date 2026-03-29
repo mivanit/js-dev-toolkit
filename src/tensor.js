@@ -1,6 +1,7 @@
 /**
  * @fileoverview Tensor class for ML/transformer inference, extending NDArray.
  * @module tensor
+ * @version 0.2.0
  * @license GPLv3
  * @see {@link https://github.com/mivanit/js-dev-toolkit}
  *
@@ -65,6 +66,11 @@ class Tensor extends NDArray {
 			return new Tensor(out, [...this.shape], this.dtype);
 		}
 		// same shape
+		if (this.data.length !== other.data.length) {
+			throw new Error(
+				`add shape mismatch: [${this.shape}] vs [${other.shape}]`,
+			);
+		}
 		const out = new this.data.constructor(this.data.length);
 		for (let i = 0; i < this.data.length; i++) {
 			out[i] = this.data[i] + other.data[i];
@@ -94,19 +100,27 @@ class Tensor extends NDArray {
 	 * @returns {Tensor}
 	 */
 	matmul(other) {
+		if (other.shape.length < 2) {
+			throw new Error(
+				`matmul requires other to be at least 2D, got shape [${other.shape}]`,
+			);
+		}
 		const K = other.shape[0];
 		const N = other.shape[1];
 
 		if (this.shape.length === 2) {
 			const M = this.shape[0];
+			if (this.shape[1] !== K)
+				throw new Error(
+					`matmul shape mismatch: [${M}, ${this.shape[1]}] x [${K}, ${N}]`,
+				);
 			const out = new this.data.constructor(M * N);
 			for (let m = 0; m < M; m++) {
-				for (let n = 0; n < N; n++) {
-					let sum = 0;
-					for (let k = 0; k < K; k++) {
-						sum += this.data[m * K + k] * other.data[k * N + n];
+				for (let k = 0; k < K; k++) {
+					const aVal = this.data[m * K + k];
+					for (let n = 0; n < N; n++) {
+						out[m * N + n] += aVal * other.data[k * N + n];
 					}
-					out[m * N + n] = sum;
 				}
 			}
 			return new Tensor(out, [M, N], this.dtype);
@@ -129,14 +143,11 @@ class Tensor extends NDArray {
 			const aOff = batch * aStride;
 			const oOff = batch * M * N;
 			for (let m = 0; m < M; m++) {
-				for (let n = 0; n < N; n++) {
-					let sum = 0;
-					for (let k = 0; k < K; k++) {
-						sum +=
-							this.data[aOff + m * K + k] *
-							other.data[k * N + n];
+				for (let k = 0; k < K; k++) {
+					const aVal = this.data[aOff + m * K + k];
+					for (let n = 0; n < N; n++) {
+						out[oOff + m * N + n] += aVal * other.data[k * N + n];
 					}
-					out[oOff + m * N + n] = sum;
 				}
 			}
 		}
@@ -158,6 +169,15 @@ class Tensor extends NDArray {
 		const bK = other.shape[other.shape.length - 2];
 		if (K !== bK)
 			throw new Error(`matmulBatched K mismatch: ${K} vs ${bK}`);
+		const otherBatchDims = other.shape.slice(0, -2);
+		if (
+			batchDims.length !== otherBatchDims.length ||
+			!batchDims.every((d, i) => d === otherBatchDims[i])
+		) {
+			throw new Error(
+				`matmulBatched batch dims mismatch: [${batchDims}] vs [${otherBatchDims}]`,
+			);
+		}
 
 		const batchSize = batchDims.reduce((x, y) => x * y, 1);
 		const out = new this.data.constructor(batchSize * M * N);
@@ -169,14 +189,12 @@ class Tensor extends NDArray {
 			const bOff = batch * bStride;
 			const oOff = batch * M * N;
 			for (let m = 0; m < M; m++) {
-				for (let n = 0; n < N; n++) {
-					let sum = 0;
-					for (let k = 0; k < K; k++) {
-						sum +=
-							this.data[aOff + m * K + k] *
-							other.data[bOff + k * N + n];
+				for (let k = 0; k < K; k++) {
+					const aVal = this.data[aOff + m * K + k];
+					for (let n = 0; n < N; n++) {
+						out[oOff + m * N + n] +=
+							aVal * other.data[bOff + k * N + n];
 					}
-					out[oOff + m * N + n] = sum;
 				}
 			}
 		}
@@ -194,18 +212,13 @@ class Tensor extends NDArray {
 	 */
 	transpose(axes) {
 		if (axes !== undefined) {
-			const result = super.transpose(axes);
-			return new Tensor(result.data, result.shape, result.dtype);
+			return super.transpose(axes);
 		}
 
 		// ML convenience: swap last two dims
 		const shape = [...this.shape];
 		if (shape.length < 2) {
-			return new Tensor(
-				new this.data.constructor(this.data),
-				shape,
-				this.dtype,
-			);
+			return new Tensor(this.data, shape, this.dtype);
 		}
 
 		const M = shape[shape.length - 2];
@@ -284,8 +297,11 @@ class Tensor extends NDArray {
 				out[off + d] = Math.exp(this.data[off + d] - max);
 				sum += out[off + d];
 			}
-			for (let d = 0; d < D; d++) {
-				out[off + d] /= sum;
+			if (sum === 0) {
+				const uniform = 1 / D;
+				for (let d = 0; d < D; d++) out[off + d] = uniform;
+			} else {
+				for (let d = 0; d < D; d++) out[off + d] /= sum;
 			}
 		}
 		return new Tensor(out, shape, this.dtype);
@@ -334,9 +350,14 @@ class Tensor extends NDArray {
 	static embedding(indices, table) {
 		const D = table.shape[1];
 		const S = indices.length;
-		const out = new Float32Array(S * D);
+		const out = new table.data.constructor(S * D);
 		for (let s = 0; s < S; s++) {
 			const row = indices[s];
+			if (row < 0 || row >= table.shape[0]) {
+				throw new Error(
+					`embedding index ${row} out of bounds for vocab size ${table.shape[0]}`,
+				);
+			}
 			const srcOff = row * D;
 			const dstOff = s * D;
 			for (let d = 0; d < D; d++) {

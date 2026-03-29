@@ -109,6 +109,18 @@
 						[11, 22, 33, 14, 25, 36],
 					);
 				});
+
+				it("throws on shape mismatch", () => {
+					const a = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const b = new Tensor([1, 2], [2]);
+					assert.throws(
+						() => a.add(b),
+						/shape mismatch|Cannot broadcast/,
+					);
+				});
 			});
 
 			describe("Tensor.scale()", () => {
@@ -179,6 +191,18 @@
 					assertArrayEqual(
 						Array.from(c.data),
 						[3, 4, 6, 8],
+					);
+				});
+
+				it("throws on 2D shape mismatch", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					const b = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[3, 2],
+					);
+					assert.throws(
+						() => a.matmul(b),
+						/matmul shape mismatch/,
 					);
 				});
 
@@ -529,6 +553,227 @@
 					);
 					assert.strictEqual(t.min(), 1);
 					assert.strictEqual(t.max(), 9);
+				});
+
+				it("reshape returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[6],
+					);
+					const r = t.reshape([2, 3]);
+					assert.ok(
+						r instanceof Tensor,
+						"reshape should return Tensor",
+					);
+				});
+
+				it("slice returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const s = t.slice(0);
+					assert.ok(
+						s instanceof Tensor,
+						"slice should return Tensor",
+					);
+				});
+
+				it("flatten returns Tensor instance", () => {
+					const t = new Tensor([1, 2, 3, 4], [2, 2]);
+					const f = t.flatten();
+					assert.ok(
+						f instanceof Tensor,
+						"flatten should return Tensor",
+					);
+				});
+
+				it("sum(axis) returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const s = t.sum(0);
+					assert.ok(
+						s instanceof Tensor,
+						"sum(axis) should return Tensor",
+					);
+				});
+
+				it("mean(axis) returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const m = t.mean(0);
+					assert.ok(
+						m instanceof Tensor,
+						"mean(axis) should return Tensor",
+					);
+				});
+
+				it("min(axis) returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const m = t.min(0);
+					assert.ok(
+						m instanceof Tensor,
+						"min(axis) should return Tensor",
+					);
+				});
+
+				it("max(axis) returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const m = t.max(0);
+					assert.ok(
+						m instanceof Tensor,
+						"max(axis) should return Tensor",
+					);
+				});
+
+				it("transpose(axes) returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const tr = t.transpose([1, 0]);
+					assert.ok(
+						tr instanceof Tensor,
+						"transpose(axes) should return Tensor",
+					);
+				});
+
+				it("sliceDim returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const s = t.sliceDim(1, 0, 2);
+					assert.ok(
+						s instanceof Tensor,
+						"sliceDim should return Tensor",
+					);
+				});
+
+				it("get (sub-array) returns Tensor instance", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const row = t.get(0, null);
+					assert.ok(
+						row instanceof Tensor,
+						"get sub-array should return Tensor",
+					);
+				});
+
+				it("chaining inherited + Tensor methods works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[6],
+					);
+					const result = t.reshape([2, 3]).softmax();
+					assert.ok(result instanceof Tensor);
+					assert.deepStrictEqual(result.shape, [2, 3]);
+				});
+			});
+
+			// ========================================
+			// Regression tests for audit bugs
+			// ========================================
+
+			describe("Tensor.softmax() — edge cases (Bug #7)", () => {
+				it("handles all -Infinity without NaN", () => {
+					const t = new Tensor(
+						[-Infinity, -Infinity, -Infinity],
+						[1, 3],
+					);
+					const s = t.softmax();
+					for (let i = 0; i < 3; i++) {
+						assert.ok(
+							!isNaN(s.data[i]),
+							`softmax[${i}] should not be NaN`,
+						);
+					}
+					const sum =
+						s.data[0] + s.data[1] + s.data[2];
+					assert.ok(
+						Math.abs(sum - 1.0) < 1e-6,
+						`softmax should sum to 1, got ${sum}`,
+					);
+				});
+
+				it("handles mixed -Infinity and finite", () => {
+					const t = new Tensor(
+						[-Infinity, 0, -Infinity],
+						[1, 3],
+					);
+					const s = t.softmax();
+					assert.ok(
+						Math.abs(s.data[1] - 1.0) < 1e-6,
+						"finite element should get all probability",
+					);
+					assert.ok(
+						Math.abs(s.data[0]) < 1e-6,
+						"-Infinity element should be ~0",
+					);
+				});
+			});
+
+			describe("Tensor.matmul() — input validation (Bug #8)", () => {
+				it("throws when other is 1D", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					const b = new Tensor([1, 2], [2]);
+					assert.throws(
+						() => a.matmul(b),
+						/at least 2D/,
+					);
+				});
+			});
+
+			describe("Tensor.matmulBatched() — batch dim validation (Bug #9)", () => {
+				it("throws when batch dims mismatch", () => {
+					const a = new Tensor(
+						new Float32Array(8),
+						[2, 2, 2],
+					);
+					const b = new Tensor(
+						new Float32Array(6),
+						[3, 2, 1],
+					);
+					assert.throws(
+						() => a.matmulBatched(b),
+						/batch.*mismatch/i,
+					);
+				});
+			});
+
+			describe("Tensor.embedding() — bounds check (Bug #10)", () => {
+				it("throws on out-of-bounds index", () => {
+					const table = new Tensor(
+						[1, 2, 3, 4],
+						[2, 2],
+					);
+					assert.throws(
+						() => Tensor.embedding([5], table),
+						/out of bounds/,
+					);
+				});
+
+				it("throws on negative index", () => {
+					const table = new Tensor(
+						[1, 2, 3, 4],
+						[2, 2],
+					);
+					assert.throws(
+						() => Tensor.embedding([-1], table),
+						/out of bounds/,
+					);
 				});
 			});
 		</script>

@@ -1059,6 +1059,169 @@
 					);
 				});
 			});
+
+			// ========================================
+			// Regression tests for audit bugs
+			// ========================================
+
+			describe("NPY parse() — header length bug", () => {
+				// Helper: build a valid NPY v1.0 ArrayBuffer
+				function makeNPYBuffer(shape, dtype, data) {
+					const descrMap = {
+						float32: "<f4",
+						float64: "<f8",
+					};
+					const descr = descrMap[dtype] || "<f4";
+					// Build header string (Python dict format)
+					const shapeStr =
+						"(" +
+						shape.join(", ") +
+						(shape.length === 1 ? ",)" : ")");
+					const headerDict = `{'descr': '${descr}', 'fortran_order': False, 'shape': ${shapeStr}, }`;
+					// Pad header to align (total = 10 + HEADER_LEN must be divisible by 64)
+					const minLen = headerDict.length + 1; // +1 for newline
+					const totalMin = 10 + minLen;
+					const padded =
+						Math.ceil(totalMin / 64) * 64 - 10;
+					const headerStr =
+						headerDict +
+						" ".repeat(padded - headerDict.length - 1) +
+						"\n";
+					const headerLen = headerStr.length;
+
+					const bytesPerElement = dtype === "float64" ? 8 : 4;
+					const dataBytes =
+						data.length * bytesPerElement;
+					const totalBytes = 10 + headerLen + dataBytes;
+					const buf = new ArrayBuffer(totalBytes);
+					const view = new DataView(buf);
+					const bytes = new Uint8Array(buf);
+
+					// Magic: \x93NUMPY
+					bytes[0] = 0x93;
+					bytes[1] = 0x4e; // N
+					bytes[2] = 0x55; // U
+					bytes[3] = 0x4d; // M
+					bytes[4] = 0x50; // P
+					bytes[5] = 0x59; // Y
+					// Version 1.0
+					bytes[6] = 1;
+					bytes[7] = 0;
+					// Header length as uint16 LE
+					view.setUint16(8, headerLen, true);
+					// Header string
+					for (let i = 0; i < headerStr.length; i++) {
+						bytes[10 + i] = headerStr.charCodeAt(i);
+					}
+					// Data
+					const dataView = new DataView(
+						buf,
+						10 + headerLen,
+					);
+					for (let i = 0; i < data.length; i++) {
+						if (dtype === "float64") {
+							dataView.setFloat64(
+								i * 8,
+								data[i],
+								true,
+							);
+						} else {
+							dataView.setFloat32(
+								i * 4,
+								data[i],
+								true,
+							);
+						}
+					}
+					return buf;
+				}
+
+				it("parses NPY with small header correctly", () => {
+					const buf = makeNPYBuffer(
+						[3],
+						"float32",
+						[1, 2, 3],
+					);
+					const arr = NDArray.parse(buf);
+					assert.deepStrictEqual(arr.shape, [3]);
+					assert.strictEqual(arr.dtype, "float32");
+					assertArrayEqual(
+						Array.from(arr.data),
+						[1, 2, 3],
+					);
+				});
+
+				it("parses NPY with header > 255 bytes (Bug #1: getUint8 truncation)", () => {
+					// Create a shape with many dimensions to force a long header
+					// Each dim adds ~3 chars ("1, "), need ~80 dims to exceed 255
+					const dims = 85;
+					const shape = new Array(dims).fill(1);
+					shape[0] = 2; // total elements = 2
+					const buf = makeNPYBuffer(
+						shape,
+						"float32",
+						[42, 99],
+					);
+
+					// Verify header is actually > 255 bytes
+					const headerLen = new DataView(
+						buf.slice(8, 10),
+					).getUint16(0, true);
+					assert.ok(
+						headerLen > 255,
+						`header should be > 255 bytes, got ${headerLen}`,
+					);
+
+					const arr = NDArray.parse(buf);
+					assert.strictEqual(arr.shape.length, dims);
+					assert.strictEqual(arr.shape[0], 2);
+					assertArrayEqual(
+						Array.from(arr.data),
+						[42, 99],
+					);
+				});
+			});
+
+			describe("fromJSON('list') — nested arrays (Bug #5)", () => {
+				it("deserializes 2D nested list", () => {
+					const arr = NDArray.fromJSON([
+						[1, 2, 3],
+						[4, 5, 6],
+					]);
+					assert.deepStrictEqual(arr.shape, [2, 3]);
+					assertArrayEqual(
+						Array.from(arr.data),
+						[1, 2, 3, 4, 5, 6],
+					);
+				});
+
+				it("deserializes 3D nested list", () => {
+					const arr = NDArray.fromJSON([
+						[
+							[1, 2],
+							[3, 4],
+						],
+						[
+							[5, 6],
+							[7, 8],
+						],
+					]);
+					assert.deepStrictEqual(arr.shape, [2, 2, 2]);
+					assertArrayEqual(
+						Array.from(arr.data),
+						[1, 2, 3, 4, 5, 6, 7, 8],
+					);
+				});
+
+				it("still works for flat 1D list", () => {
+					const arr = NDArray.fromJSON([10, 20, 30]);
+					assert.deepStrictEqual(arr.shape, [3]);
+					assertArrayEqual(
+						Array.from(arr.data),
+						[10, 20, 30],
+					);
+				});
+			});
 		</script>
 	</body>
 </html>
