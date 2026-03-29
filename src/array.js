@@ -999,6 +999,108 @@ class NDArray {
 	}
 
 	/**
+	 * Slice along an arbitrary dimension: extract [start, end) along the given axis.
+	 * Returns a new contiguous NDArray.
+	 *
+	 * @param {number} dim - Axis to slice along (supports negative indexing)
+	 * @param {number} start - Start index (inclusive)
+	 * @param {number} end - End index (exclusive)
+	 * @returns {NDArray} Sliced array
+	 *
+	 * @example
+	 * const arr = new NDArray(data, [2, 3, 4], 'float32');
+	 * const sliced = arr.sliceDim(1, 0, 2); // shape: [2, 2, 4]
+	 */
+	sliceDim(dim, start, end) {
+		const shape = this.shape;
+		const rank = shape.length;
+
+		// Handle negative dim
+		if (dim < 0) dim = rank + dim;
+
+		if (dim < 0 || dim >= rank) {
+			throw new Error(
+				`dim ${dim} is out of bounds for array with ${rank} dimensions`,
+			);
+		}
+		if (start < 0 || end > shape[dim] || start >= end) {
+			throw new Error(
+				`Invalid slice [${start}, ${end}) for axis ${dim} with size ${shape[dim]}`,
+			);
+		}
+
+		const newShape = [...shape];
+		newShape[dim] = end - start;
+
+		const outerSize = shape.slice(0, dim).reduce((a, b) => a * b, 1);
+		const innerSize = shape.slice(dim + 1).reduce((a, b) => a * b, 1);
+		const dimSize = shape[dim];
+		const sliceSize = (end - start) * innerSize;
+
+		const out = new this.data.constructor(
+			newShape.reduce((a, b) => a * b, 1),
+		);
+
+		for (let outer = 0; outer < outerSize; outer++) {
+			for (let d = start; d < end; d++) {
+				const srcOff = (outer * dimSize + d) * innerSize;
+				const dstOff = outer * sliceSize + (d - start) * innerSize;
+				for (let inner = 0; inner < innerSize; inner++) {
+					out[dstOff + inner] = this.data[srcOff + inner];
+				}
+			}
+		}
+
+		return new NDArray(out, newShape, this.dtype);
+	}
+
+	/**
+	 * Convert to a Tensor instance (requires tensor.js to be loaded).
+	 * If dtype is already float32, shares the underlying data buffer.
+	 *
+	 * @param {string} [dtype='float32'] - Target dtype for the Tensor
+	 * @returns {Tensor} Tensor instance
+	 * @throws {ReferenceError} If tensor.js is not loaded
+	 */
+	toTensor(dtype = "float32") {
+		if (typeof Tensor === "undefined") {
+			throw new ReferenceError(
+				"Tensor class not found — load tensor.js after array.js",
+			);
+		}
+		const data =
+			this.dtype === dtype
+				? this.data
+				: new _DTYPE_BY_NAME[dtype].arrayConstructor(this.data);
+		return new Tensor(data, [...this.shape], dtype);
+	}
+
+	/**
+	 * Create an NDArray from a Tensor or plain tensor object {data, shape}.
+	 *
+	 * @param {Object} t - Tensor instance or plain object with data and shape properties
+	 * @param {string} [dtype] - Override dtype (auto-detected from data if omitted)
+	 * @returns {NDArray} NDArray instance
+	 */
+	static fromTensor(t, dtype) {
+		if (!t || !t.data || !t.shape) {
+			throw new Error(
+				"Expected object with data and shape properties",
+			);
+		}
+		const inferredDtype =
+			dtype ||
+			(t instanceof NDArray
+				? t.dtype
+				: t.data instanceof Float32Array
+					? "float32"
+					: t.data instanceof Float64Array
+						? "float64"
+						: "float32");
+		return new NDArray(t.data, [...t.shape], inferredDtype);
+	}
+
+	/**
 	 * Returns a string representation of the array
 	 *
 	 * @returns {string} String representation of the array

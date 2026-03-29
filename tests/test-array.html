@@ -972,6 +972,93 @@
 					assertArrayEqual(Array.from(row.data), [5, 6, 7, 8]);
 				});
 			});
+
+			describe("NDArray.sliceDim()", () => {
+				it("slices 2D along axis 0", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const s = arr.sliceDim(0, 0, 1);
+					assert.deepStrictEqual(s.shape, [1, 3]);
+					assertArrayEqual(Array.from(s.data), [1, 2, 3]);
+				});
+
+				it("slices 2D along axis 1", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const s = arr.sliceDim(1, 1, 3);
+					assert.deepStrictEqual(s.shape, [2, 2]);
+					assertArrayEqual(Array.from(s.data), [2, 3, 5, 6]);
+				});
+
+				it("slices 3D along middle axis", () => {
+					const data = new Float32Array([
+						1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+					]);
+					const arr = new NDArray(data, [2, 3, 2], "float32");
+					const s = arr.sliceDim(1, 0, 2);
+					assert.deepStrictEqual(s.shape, [2, 2, 2]);
+					assertArrayEqual(
+						Array.from(s.data),
+						[1, 2, 3, 4, 7, 8, 9, 10],
+					);
+				});
+
+				it("supports negative dim", () => {
+					const data = new Float32Array([1, 2, 3, 4, 5, 6]);
+					const arr = new NDArray(data, [2, 3], "float32");
+					const s = arr.sliceDim(-1, 0, 2);
+					assert.deepStrictEqual(s.shape, [2, 2]);
+					assertArrayEqual(Array.from(s.data), [1, 2, 4, 5]);
+				});
+
+				it("preserves dtype", () => {
+					const data = new Int32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "int32");
+					const s = arr.sliceDim(0, 0, 1);
+					assert.strictEqual(s.dtype, "int32");
+					assert.ok(s.data instanceof Int32Array);
+				});
+
+				it("throws on out of bounds dim", () => {
+					const data = new Float32Array([1, 2]);
+					const arr = new NDArray(data, [2], "float32");
+					assert.throws(
+						() => arr.sliceDim(5, 0, 1),
+						/out of bounds/,
+					);
+				});
+
+				it("throws on invalid slice range", () => {
+					const data = new Float32Array([1, 2, 3, 4]);
+					const arr = new NDArray(data, [2, 2], "float32");
+					assert.throws(
+						() => arr.sliceDim(0, -1, 1),
+						/Invalid slice/,
+					);
+					assert.throws(
+						() => arr.sliceDim(0, 0, 5),
+						/Invalid slice/,
+					);
+					assert.throws(
+						() => arr.sliceDim(0, 1, 0),
+						/Invalid slice/,
+					);
+				});
+
+				it("matches slice() for axis 0", () => {
+					const data = new Float32Array([
+						1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+					]);
+					const arr = new NDArray(data, [3, 4], "float32");
+					const s1 = arr.slice([1, 3]);
+					const s2 = arr.sliceDim(0, 1, 3);
+					assert.deepStrictEqual(s1.shape, s2.shape);
+					assertArrayEqual(
+						Array.from(s1.data),
+						Array.from(s2.data),
+					);
+				});
+			});
 		</script>
 	</body>
 </html>

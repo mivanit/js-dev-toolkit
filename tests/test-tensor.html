@@ -1,0 +1,536 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Tensor Tests</title>
+	</head>
+	<body>
+		<h1>Tensor Tests</h1>
+		<p>Check console for results...</p>
+
+		<!-- Load test framework -->
+		<script src="test-framework.js"></script>
+
+		<!-- Load source files (array.js must come first) -->
+		<script src="../src/array.js"></script>
+		<script src="../src/tensor.js"></script>
+
+		<!-- Tests -->
+		<script>
+			describe("Tensor constructor", () => {
+				it("creates from Float32Array", () => {
+					const t = new Tensor(
+						new Float32Array([1, 2, 3]),
+						[3],
+					);
+					assert.ok(t instanceof Tensor);
+					assert.ok(t instanceof NDArray);
+					assert.deepStrictEqual(t.shape, [3]);
+					assert.strictEqual(t.dtype, "float32");
+				});
+
+				it("defaults to float32 dtype", () => {
+					const t = new Tensor(
+						new Float32Array([1]),
+						[1],
+					);
+					assert.strictEqual(t.dtype, "float32");
+				});
+
+				it("auto-converts plain arrays", () => {
+					const t = new Tensor([1, 2, 3], [3]);
+					assert.ok(t.data instanceof Float32Array);
+					assert.strictEqual(t.data.length, 3);
+				});
+
+				it("accepts explicit dtype", () => {
+					const t = new Tensor(
+						new Float64Array([1, 2]),
+						[2],
+						"float64",
+					);
+					assert.strictEqual(t.dtype, "float64");
+					assert.ok(t.data instanceof Float64Array);
+				});
+
+				it("auto-converts plain array with non-float32 dtype", () => {
+					const t = new Tensor([1, 2, 3], [3], "int32");
+					assert.ok(t.data instanceof Int32Array);
+					assert.strictEqual(t.dtype, "int32");
+				});
+
+				it("validates data length matches shape", () => {
+					assert.throws(
+						() => new Tensor([1, 2, 3], [2, 2]),
+						/doesn't match shape/,
+					);
+				});
+			});
+
+			describe("Tensor.zeros()", () => {
+				it("creates zero tensor", () => {
+					const t = Tensor.zeros([2, 3]);
+					assert.deepStrictEqual(t.shape, [2, 3]);
+					assert.strictEqual(t.size, 6);
+					for (let i = 0; i < t.data.length; i++) {
+						assert.strictEqual(t.data[i], 0);
+					}
+				});
+
+				it("defaults to float32", () => {
+					const t = Tensor.zeros([2]);
+					assert.strictEqual(t.dtype, "float32");
+					assert.ok(t.data instanceof Float32Array);
+				});
+
+				it("accepts explicit dtype", () => {
+					const t = Tensor.zeros([3], "float64");
+					assert.strictEqual(t.dtype, "float64");
+					assert.ok(t.data instanceof Float64Array);
+				});
+			});
+
+			describe("Tensor.add()", () => {
+				it("adds same-shape tensors", () => {
+					const a = new Tensor([1, 2, 3], [3]);
+					const b = new Tensor([4, 5, 6], [3]);
+					const c = a.add(b);
+					assert.ok(c instanceof Tensor);
+					assertArrayEqual(Array.from(c.data), [5, 7, 9]);
+				});
+
+				it("broadcasts 1D bias over last dim", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const b = new Tensor([10, 20, 30], [3]);
+					const c = a.add(b);
+					assert.deepStrictEqual(c.shape, [2, 3]);
+					assertArrayEqual(
+						Array.from(c.data),
+						[11, 22, 33, 14, 25, 36],
+					);
+				});
+			});
+
+			describe("Tensor.scale()", () => {
+				it("scales all elements", () => {
+					const t = new Tensor([1, 2, 3], [3]);
+					const s = t.scale(2);
+					assert.ok(s instanceof Tensor);
+					assertArrayEqual(Array.from(s.data), [2, 4, 6]);
+				});
+
+				it("scales by zero", () => {
+					const t = new Tensor([1, 2, 3], [3]);
+					assertArrayEqual(
+						Array.from(t.scale(0).data),
+						[0, 0, 0],
+					);
+				});
+
+				it("scales by negative", () => {
+					const t = new Tensor([1, 2, 3], [3]);
+					assertArrayEqual(
+						Array.from(t.scale(-1).data),
+						[-1, -2, -3],
+					);
+				});
+			});
+
+			describe("Tensor.matmul()", () => {
+				it("multiplies 2D matrices", () => {
+					// [1, 2]   [5, 6]   [19, 22]
+					// [3, 4] x [7, 8] = [43, 50]
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					const b = new Tensor([5, 6, 7, 8], [2, 2]);
+					const c = a.matmul(b);
+					assert.deepStrictEqual(c.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(c.data),
+						[19, 22, 43, 50],
+					);
+				});
+
+				it("handles non-square matrices", () => {
+					// [1, 2, 3]   [7,  8]    [58,  64]
+					// [4, 5, 6] x [9,  10] = [139, 154]
+					//             [11, 12]
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const b = new Tensor(
+						[7, 8, 9, 10, 11, 12],
+						[3, 2],
+					);
+					const c = a.matmul(b);
+					assert.deepStrictEqual(c.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(c.data),
+						[58, 64, 139, 154],
+					);
+				});
+
+				it("handles batched matmul", () => {
+					// batch of 2, each 2x2 times 2x2
+					const a = new Tensor(
+						[1, 0, 0, 1, 2, 0, 0, 2],
+						[2, 2, 2],
+					);
+					const b = new Tensor([3, 4], [2, 1]);
+					const c = a.matmul(b);
+					assert.deepStrictEqual(c.shape, [2, 2, 1]);
+					assertArrayEqual(
+						Array.from(c.data),
+						[3, 4, 6, 8],
+					);
+				});
+
+				it("throws on shape mismatch (batched)", () => {
+					const a = new Tensor(
+						[1, 2, 3, 4, 5, 6, 7, 8],
+						[2, 2, 2],
+					);
+					const b = new Tensor([1, 2, 3], [3, 1]);
+					assert.throws(
+						() => a.matmul(b),
+						/matmul shape mismatch/,
+					);
+				});
+			});
+
+			describe("Tensor.matmulBatched()", () => {
+				it("batched matmul with matching batch dims", () => {
+					// 2 batches of 1x2 times 2x1
+					const a = new Tensor([1, 2, 3, 4], [2, 1, 2]);
+					const b = new Tensor([1, 1, 1, 1], [2, 2, 1]);
+					const c = a.matmulBatched(b);
+					assert.deepStrictEqual(c.shape, [2, 1, 1]);
+					assertArrayEqual(Array.from(c.data), [3, 7]);
+				});
+
+				it("throws on K mismatch", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 1, 2]);
+					const b = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3, 1],
+					);
+					assert.throws(
+						() => a.matmulBatched(b),
+						/K mismatch/,
+					);
+				});
+			});
+
+			describe("Tensor.transpose()", () => {
+				it("swaps last two dims (no args)", () => {
+					// [[1, 2, 3], [4, 5, 6]] -> [[1, 4], [2, 5], [3, 6]]
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const tr = t.transpose();
+					assert.ok(tr instanceof Tensor);
+					assert.deepStrictEqual(tr.shape, [3, 2]);
+					assertArrayEqual(
+						Array.from(tr.data),
+						[1, 4, 2, 5, 3, 6],
+					);
+				});
+
+				it("handles 1D (no-op)", () => {
+					const t = new Tensor([1, 2, 3], [3]);
+					const tr = t.transpose();
+					assert.deepStrictEqual(tr.shape, [3]);
+					assertArrayEqual(Array.from(tr.data), [1, 2, 3]);
+				});
+
+				it("handles batched transpose", () => {
+					// (2, 2, 3) -> (2, 3, 2) swapping last two dims
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+						[2, 2, 3],
+					);
+					const tr = t.transpose();
+					assert.deepStrictEqual(tr.shape, [2, 3, 2]);
+				});
+
+				it("delegates to NDArray with explicit axes", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6, 7, 8],
+						[2, 2, 2],
+					);
+					const tr = t.transpose([2, 0, 1]);
+					assert.ok(tr instanceof Tensor);
+					assert.deepStrictEqual(tr.shape, [2, 2, 2]);
+				});
+
+				it("double transpose restores original", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const tt = t.transpose().transpose();
+					assert.deepStrictEqual(tt.shape, [2, 3]);
+					assertArrayEqual(
+						Array.from(tt.data),
+						Array.from(t.data),
+					);
+				});
+			});
+
+			describe("Tensor.layernorm()", () => {
+				it("normalizes over last dimension", () => {
+					const x = new Tensor([1, 2, 3, 4], [2, 2]);
+					const w = new Tensor([1, 1], [2]);
+					const b = new Tensor([0, 0], [2]);
+					const result = x.layernorm(w, b);
+					assert.ok(result instanceof Tensor);
+					assert.deepStrictEqual(result.shape, [2, 2]);
+
+					// Each row should have mean ~0 and unit variance
+					const row0 = [result.data[0], result.data[1]];
+					const mean0 =
+						(row0[0] + row0[1]) / 2;
+					assert.ok(
+						Math.abs(mean0) < 1e-5,
+						`mean should be ~0, got ${mean0}`,
+					);
+				});
+
+				it("applies weight and bias", () => {
+					const x = new Tensor([1, 3], [1, 2]);
+					const w = new Tensor([2, 2], [2]);
+					const b = new Tensor([1, 1], [2]);
+					const result = x.layernorm(w, b);
+					// After normalization: [-1, 1], scale by 2: [-2, 2], add bias 1: [-1, 3]
+					assertArrayEqual(
+						Array.from(result.data),
+						[-1, 3],
+						null,
+						1e-4,
+					);
+				});
+			});
+
+			describe("Tensor.softmax()", () => {
+				it("sums to 1", () => {
+					const t = new Tensor([1, 2, 3], [1, 3]);
+					const s = t.softmax();
+					assert.ok(s instanceof Tensor);
+					assert.deepStrictEqual(s.shape, [1, 3]);
+					const sum = s.data[0] + s.data[1] + s.data[2];
+					assert.ok(
+						Math.abs(sum - 1.0) < 1e-6,
+						`softmax should sum to 1, got ${sum}`,
+					);
+				});
+
+				it("is numerically stable with large values", () => {
+					const t = new Tensor(
+						[1000, 1001, 1002],
+						[1, 3],
+					);
+					const s = t.softmax();
+					const sum = s.data[0] + s.data[1] + s.data[2];
+					assert.ok(
+						Math.abs(sum - 1.0) < 1e-6,
+						`softmax should sum to 1, got ${sum}`,
+					);
+					assert.ok(!isNaN(s.data[0]), "should not be NaN");
+				});
+
+				it("handles batched input", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const s = t.softmax();
+					assert.deepStrictEqual(s.shape, [2, 3]);
+					// Each row should sum to 1
+					const sum0 = s.data[0] + s.data[1] + s.data[2];
+					const sum1 = s.data[3] + s.data[4] + s.data[5];
+					assert.ok(Math.abs(sum0 - 1.0) < 1e-6);
+					assert.ok(Math.abs(sum1 - 1.0) < 1e-6);
+				});
+
+				it("produces correct ordering", () => {
+					const t = new Tensor([1, 3, 2], [1, 3]);
+					const s = t.softmax();
+					// softmax preserves ordering
+					assert.ok(s.data[1] > s.data[2]);
+					assert.ok(s.data[2] > s.data[0]);
+				});
+			});
+
+			describe("Tensor.gelu()", () => {
+				it("gelu(0) is 0", () => {
+					const t = new Tensor([0], [1]);
+					const g = t.gelu();
+					assert.ok(g instanceof Tensor);
+					assert.ok(
+						Math.abs(g.data[0]) < 1e-6,
+						`gelu(0) should be ~0, got ${g.data[0]}`,
+					);
+				});
+
+				it("gelu of large positive is approximately identity", () => {
+					const t = new Tensor([5], [1]);
+					const g = t.gelu();
+					assert.ok(
+						Math.abs(g.data[0] - 5.0) < 0.01,
+						`gelu(5) should be ~5, got ${g.data[0]}`,
+					);
+				});
+
+				it("gelu of large negative is approximately 0", () => {
+					const t = new Tensor([-5], [1]);
+					const g = t.gelu();
+					assert.ok(
+						Math.abs(g.data[0]) < 0.01,
+						`gelu(-5) should be ~0, got ${g.data[0]}`,
+					);
+				});
+
+				it("preserves shape", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const g = t.gelu();
+					assert.deepStrictEqual(g.shape, [2, 3]);
+				});
+			});
+
+			describe("Tensor.addMask()", () => {
+				it("adds 2D mask to batched tensor", () => {
+					const x = new Tensor(
+						[1, 2, 3, 4, 5, 6, 7, 8],
+						[2, 2, 2],
+					);
+					const mask = new Tensor([0, -Infinity, 0, 0], [2, 2]);
+					const result = x.addMask(mask);
+					assert.deepStrictEqual(result.shape, [2, 2, 2]);
+					assert.strictEqual(result.data[0], 1);
+					assert.strictEqual(result.data[1], -Infinity);
+					assert.strictEqual(result.data[2], 3);
+					assert.strictEqual(result.data[3], 4);
+				});
+			});
+
+			describe("Tensor.embedding()", () => {
+				it("looks up embeddings", () => {
+					// 4 vocab, 2 dim
+					const table = new Tensor(
+						[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+						[4, 2],
+					);
+					const result = Tensor.embedding([0, 2, 1], table);
+					assert.ok(result instanceof Tensor);
+					assert.deepStrictEqual(result.shape, [3, 2]);
+					assertArrayEqual(
+						Array.from(result.data),
+						[0.1, 0.2, 0.5, 0.6, 0.3, 0.4],
+						null,
+						1e-5,
+					);
+				});
+			});
+
+			describe("Tensor.causalMask()", () => {
+				it("creates correct mask", () => {
+					const m = Tensor.causalMask(3);
+					assert.ok(m instanceof Tensor);
+					assert.deepStrictEqual(m.shape, [3, 3]);
+					// Row 0: [0, -Inf, -Inf]
+					assert.strictEqual(m.data[0], 0);
+					assert.strictEqual(m.data[1], -Infinity);
+					assert.strictEqual(m.data[2], -Infinity);
+					// Row 1: [0, 0, -Inf]
+					assert.strictEqual(m.data[3], 0);
+					assert.strictEqual(m.data[4], 0);
+					assert.strictEqual(m.data[5], -Infinity);
+					// Row 2: [0, 0, 0]
+					assert.strictEqual(m.data[6], 0);
+					assert.strictEqual(m.data[7], 0);
+					assert.strictEqual(m.data[8], 0);
+				});
+			});
+
+			describe("Tensor inherits NDArray methods", () => {
+				it("reshape works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[6],
+					);
+					const r = t.reshape([2, 3]);
+					assert.deepStrictEqual(r.shape, [2, 3]);
+				});
+
+				it("sum works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					assert.strictEqual(t.sum(), 21);
+				});
+
+				it("mean works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					assert.strictEqual(t.mean(), 3.5);
+				});
+
+				it("slice works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const s = t.slice(0);
+					assert.deepStrictEqual(s.shape, [1, 3]);
+					assertArrayEqual(
+						Array.from(s.data),
+						[1, 2, 3],
+					);
+				});
+
+				it("get works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4],
+						[2, 2],
+					);
+					assert.strictEqual(t.get(1, 0), 3);
+				});
+
+				it("flatten works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4],
+						[2, 2],
+					);
+					const f = t.flatten();
+					assert.deepStrictEqual(f.shape, [4]);
+				});
+
+				it("sliceDim works", () => {
+					const t = new Tensor(
+						[1, 2, 3, 4, 5, 6],
+						[2, 3],
+					);
+					const s = t.sliceDim(1, 0, 2);
+					assert.deepStrictEqual(s.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(s.data),
+						[1, 2, 4, 5],
+					);
+				});
+
+				it("min/max work", () => {
+					const t = new Tensor(
+						[3, 1, 4, 1, 5, 9],
+						[6],
+					);
+					assert.strictEqual(t.min(), 1);
+					assert.strictEqual(t.max(), 9);
+				});
+			});
+		</script>
+	</body>
+</html>

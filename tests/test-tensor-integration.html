@@ -1,0 +1,317 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Tensor-NDArray Integration Tests</title>
+	</head>
+	<body>
+		<h1>Tensor-NDArray Integration Tests</h1>
+		<p>Check console for results...</p>
+
+		<!-- Load test framework -->
+		<script src="test-framework.js"></script>
+
+		<!-- Load source files (array.js must come first) -->
+		<script src="../src/array.js"></script>
+		<script src="../src/tensor.js"></script>
+
+		<!-- Tests -->
+		<script>
+			describe("NDArray.toTensor()", () => {
+				it("converts float32 NDArray to Tensor", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[3],
+						"float32",
+					);
+					const t = arr.toTensor();
+					assert.ok(t instanceof Tensor);
+					assert.ok(t instanceof NDArray);
+					assert.deepStrictEqual(t.shape, [3]);
+					assert.strictEqual(t.dtype, "float32");
+					assertArrayEqual(Array.from(t.data), [1, 2, 3]);
+				});
+
+				it("converts float64 NDArray to float32 Tensor", () => {
+					const arr = new NDArray(
+						new Float64Array([1.5, 2.5, 3.5]),
+						[3],
+						"float64",
+					);
+					const t = arr.toTensor();
+					assert.ok(t instanceof Tensor);
+					assert.strictEqual(t.dtype, "float32");
+					assert.ok(t.data instanceof Float32Array);
+					assertArrayEqual(
+						Array.from(t.data),
+						[1.5, 2.5, 3.5],
+						null,
+						1e-5,
+					);
+				});
+
+				it("preserves shape through conversion", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const t = arr.toTensor();
+					assert.deepStrictEqual(t.shape, [2, 3]);
+				});
+
+				it("converts to specified dtype", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[3],
+						"float32",
+					);
+					const t = arr.toTensor("float64");
+					assert.strictEqual(t.dtype, "float64");
+					assert.ok(t.data instanceof Float64Array);
+				});
+
+				it("shares data buffer for same dtype", () => {
+					const data = new Float32Array([1, 2, 3]);
+					const arr = new NDArray(data, [3], "float32");
+					const t = arr.toTensor();
+					assert.strictEqual(
+						t.data,
+						arr.data,
+						"should share buffer when dtypes match",
+					);
+				});
+			});
+
+			describe("NDArray.fromTensor()", () => {
+				it("creates NDArray from Tensor", () => {
+					const t = new Tensor([1, 2, 3], [3]);
+					const arr = NDArray.fromTensor(t);
+					assert.ok(arr instanceof NDArray);
+					assert.deepStrictEqual(arr.shape, [3]);
+					assert.strictEqual(arr.dtype, "float32");
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
+				});
+
+				it("creates NDArray from plain tensor object", () => {
+					const plain = {
+						data: new Float32Array([4, 5, 6]),
+						shape: [3],
+					};
+					const arr = NDArray.fromTensor(plain);
+					assert.ok(arr instanceof NDArray);
+					assert.strictEqual(arr.dtype, "float32");
+					assertArrayEqual(Array.from(arr.data), [4, 5, 6]);
+				});
+
+				it("allows dtype override", () => {
+					const t = new Tensor(
+						new Float64Array([1, 2]),
+						[2],
+						"float64",
+					);
+					const arr = NDArray.fromTensor(t, "float64");
+					assert.strictEqual(arr.dtype, "float64");
+				});
+
+				it("throws on invalid input", () => {
+					assert.throws(
+						() => NDArray.fromTensor(null),
+						/Expected object/,
+					);
+					assert.throws(
+						() => NDArray.fromTensor({}),
+						/Expected object/,
+					);
+				});
+			});
+
+			describe("Round-trip: NDArray -> Tensor -> NDArray", () => {
+				it("preserves data through round trip", () => {
+					const original = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const tensor = original.toTensor();
+					const result = NDArray.fromTensor(tensor);
+					assert.deepStrictEqual(result.shape, [2, 3]);
+					assertArrayEqual(
+						Array.from(result.data),
+						Array.from(original.data),
+					);
+				});
+
+				it("supports operations in between", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const t = arr.toTensor();
+					const scaled = t.scale(2);
+					const result = NDArray.fromTensor(scaled);
+					assertArrayEqual(
+						Array.from(result.data),
+						[2, 4, 6, 8],
+					);
+				});
+			});
+
+			describe("Tensor ops on NDArray-loaded data", () => {
+				it("matmul after toTensor", () => {
+					const a = new NDArray(
+						new Float32Array([1, 2, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const b = new NDArray(
+						new Float32Array([5, 6, 7, 8]),
+						[2, 2],
+						"float32",
+					);
+					const result = a.toTensor().matmul(b.toTensor());
+					assert.deepStrictEqual(result.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(result.data),
+						[19, 22, 43, 50],
+					);
+				});
+
+				it("softmax after toTensor", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[1, 3],
+						"float32",
+					);
+					const result = arr.toTensor().softmax();
+					const sum =
+						result.data[0] + result.data[1] + result.data[2];
+					assert.ok(Math.abs(sum - 1.0) < 1e-6);
+				});
+
+				it("chain: toTensor -> scale -> add -> fromTensor", () => {
+					const a = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[3],
+						"float32",
+					);
+					const b = new NDArray(
+						new Float32Array([10, 20, 30]),
+						[3],
+						"float32",
+					);
+					const result = NDArray.fromTensor(
+						a.toTensor().scale(2).add(b.toTensor()),
+					);
+					assert.ok(result instanceof NDArray);
+					assertArrayEqual(
+						Array.from(result.data),
+						[12, 24, 36],
+					);
+				});
+			});
+
+			describe("NDArray.sliceDim()", () => {
+				it("slices 2D along axis 0", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const s = arr.sliceDim(0, 0, 1);
+					assert.deepStrictEqual(s.shape, [1, 3]);
+					assertArrayEqual(Array.from(s.data), [1, 2, 3]);
+				});
+
+				it("slices 2D along axis 1", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const s = arr.sliceDim(1, 1, 3);
+					assert.deepStrictEqual(s.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(s.data),
+						[2, 3, 5, 6],
+					);
+				});
+
+				it("slices 3D along middle axis", () => {
+					// shape [2, 3, 2]
+					const arr = new NDArray(
+						new Float32Array([
+							1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+						]),
+						[2, 3, 2],
+						"float32",
+					);
+					const s = arr.sliceDim(1, 0, 2);
+					assert.deepStrictEqual(s.shape, [2, 2, 2]);
+					assertArrayEqual(
+						Array.from(s.data),
+						[1, 2, 3, 4, 7, 8, 9, 10],
+					);
+				});
+
+				it("supports negative dim", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const s = arr.sliceDim(-1, 0, 2);
+					assert.deepStrictEqual(s.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(s.data),
+						[1, 2, 4, 5],
+					);
+				});
+
+				it("preserves dtype", () => {
+					const arr = new NDArray(
+						new Int32Array([1, 2, 3, 4]),
+						[2, 2],
+						"int32",
+					);
+					const s = arr.sliceDim(0, 0, 1);
+					assert.strictEqual(s.dtype, "int32");
+					assert.ok(s.data instanceof Int32Array);
+				});
+
+				it("throws on out of bounds dim", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2]),
+						[2],
+						"float32",
+					);
+					assert.throws(
+						() => arr.sliceDim(5, 0, 1),
+						/out of bounds/,
+					);
+				});
+
+				it("throws on invalid slice range", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					assert.throws(
+						() => arr.sliceDim(0, -1, 1),
+						/Invalid slice/,
+					);
+					assert.throws(
+						() => arr.sliceDim(0, 0, 5),
+						/Invalid slice/,
+					);
+					assert.throws(
+						() => arr.sliceDim(0, 1, 0),
+						/Invalid slice/,
+					);
+				});
+			});
+		</script>
+	</body>
+</html>
