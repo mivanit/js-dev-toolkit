@@ -350,7 +350,7 @@ class npyjs {
 		const data = dtype.converter ? dtype.converter.call(this, nums) : nums;
 
 		return {
-			dtype: dtype.name,
+			dtype: dtype.converter ? "float32" : dtype.name,
 			data: data,
 			shape,
 			fortranOrder: header.fortran_order,
@@ -1359,7 +1359,11 @@ class NDArray {
 		// Construct sliced shape
 		const slicedShape = [end - start, ...info.shape.slice(1)];
 
-		return new NDArray(data, slicedShape, dtypeInfo.name);
+		return new NDArray(
+			data,
+			slicedShape,
+			dtypeInfo.converter ? "float32" : dtypeInfo.name,
+		);
 	}
 
 	/**
@@ -1475,7 +1479,7 @@ class NDArray {
 			const data = new dtypeInfo.arrayConstructor(processedList);
 			if (dtypeInfo.converter) {
 				const converted = dtypeInfo.converter(data);
-				return new NDArray(converted, shape, dtypeName);
+				return new NDArray(converted, shape, "float32");
 			}
 			return new NDArray(data, shape, dtypeName);
 		}
@@ -1505,7 +1509,7 @@ class NDArray {
 			const data = new dtypeInfo.arrayConstructor(bytes.buffer);
 			if (dtypeInfo.converter) {
 				const converted = dtypeInfo.converter(data);
-				return new NDArray(converted, shape, dtypeName);
+				return new NDArray(converted, shape, "float32");
 			}
 			return new NDArray(data, shape, dtypeName);
 		}
@@ -1528,7 +1532,7 @@ class NDArray {
 			const data = new dtypeInfo.arrayConstructor(bytes.buffer);
 			if (dtypeInfo.converter) {
 				const converted = dtypeInfo.converter(data);
-				return new NDArray(converted, shape, dtypeName);
+				return new NDArray(converted, shape, "float32");
 			}
 			return new NDArray(data, shape, dtypeName);
 		}
