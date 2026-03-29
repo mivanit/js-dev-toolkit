@@ -611,3 +611,173 @@ class NeuralNet {
 		return new Tensor(out, [S, D], table.dtype || "float32");
 	}
 }
+
+/**
+ * Einstein summation. Supports explicit notation only (no ellipsis, no implicit output).
+ *
+ * Examples:
+ *   einsum("ij,jk->ik", A, B)   // matrix multiply
+ *   einsum("ij->ji", A)          // transpose
+ *   einsum("ii->", A)            // trace (scalar)
+ *   einsum("ii->i", A)           // diagonal
+ *   einsum("i,j->ij", a, b)     // outer product
+ *   einsum("i,i->", a, b)       // dot product
+ *   einsum("ij->i", A)          // sum over j
+ *   einsum("bij,bjk->bik", A, B) // batched matmul
+ *
+ * @param {string} notation - Einsum notation, e.g. "ij,jk->ik"
+ * @param {...(Tensor|NDArray)} operands - Input tensors
+ * @returns {Tensor}
+ */
+function einsum(notation, ...operands) {
+	// --- Parse notation ---
+	const arrowIdx = notation.indexOf("->");
+	if (arrowIdx === -1) {
+		throw new Error(
+			"einsum: notation must contain '->' (implicit output not supported)",
+		);
+	}
+	const lhs = notation.slice(0, arrowIdx).replace(/\s/g, "");
+	const rhs = notation.slice(arrowIdx + 2).replace(/\s/g, "");
+
+	const inputSpecs = lhs.split(",");
+	if (inputSpecs.length !== operands.length) {
+		throw new Error(
+			`einsum: expected ${inputSpecs.length} operands from notation, got ${operands.length}`,
+		);
+	}
+
+	// Parse per-operand labels and validate ndim
+	const opLabels = [];
+	for (let o = 0; o < operands.length; o++) {
+		const labels = inputSpecs[o].split("");
+		if (labels.length !== operands[o].shape.length) {
+			throw new Error(
+				`einsum: operand ${o} has ${operands[o].shape.length} dims but notation specifies ${labels.length} ("${inputSpecs[o]}")`,
+			);
+		}
+		opLabels.push(labels);
+	}
+
+	const outLabels = rhs.split("");
+
+	// --- Build dimension map: label → size ---
+	const dimSize = {};
+	for (let o = 0; o < operands.length; o++) {
+		for (let d = 0; d < opLabels[o].length; d++) {
+			const label = opLabels[o][d];
+			const size = operands[o].shape[d];
+			if (label in dimSize) {
+				if (dimSize[label] !== size) {
+					throw new Error(
+						`einsum: dimension mismatch for label '${label}': ${dimSize[label]} vs ${size}`,
+					);
+				}
+			} else {
+				dimSize[label] = size;
+			}
+		}
+	}
+
+	// Validate output labels exist in inputs
+	for (const label of outLabels) {
+		if (!(label in dimSize)) {
+			throw new Error(
+				`einsum: output label '${label}' not found in inputs`,
+			);
+		}
+	}
+
+	// Contracted labels: appear in inputs but not in output
+	const allInputLabels = new Set(opLabels.flat());
+	const outLabelSet = new Set(outLabels);
+	const contractedLabels = [];
+	for (const label of allInputLabels) {
+		if (!outLabelSet.has(label)) {
+			contractedLabels.push(label);
+		}
+	}
+
+	// --- Compute output shape ---
+	const outShape = outLabels.map((l) => dimSize[l]);
+	const outSize = outShape.reduce((a, b) => a * b, 1);
+
+	// --- Compute strides for output ---
+	const outNdim = outShape.length;
+	const outStrides = new Array(outNdim);
+	if (outNdim > 0) {
+		outStrides[outNdim - 1] = 1;
+		for (let i = outNdim - 2; i >= 0; i--) {
+			outStrides[i] = outStrides[i + 1] * outShape[i + 1];
+		}
+	}
+
+	// --- Precompute operand strides ---
+	const opStrides = [];
+	for (let o = 0; o < operands.length; o++) {
+		const nd = operands[o].shape.length;
+		const s = new Array(nd);
+		if (nd > 0) {
+			s[nd - 1] = 1;
+			for (let i = nd - 2; i >= 0; i--) {
+				s[i] = s[i + 1] * operands[o].shape[i + 1];
+			}
+		}
+		opStrides.push(s);
+	}
+
+	// --- Contracted dimensions sizes and count ---
+	const contractedSizes = contractedLabels.map((l) => dimSize[l]);
+	const nContracted = contractedLabels.length;
+	const contractedTotal = contractedSizes.reduce((a, b) => a * b, 1);
+
+	// --- Allocate output ---
+	const dtype = operands[0].dtype || "float32";
+	const dtypeInfo = _DTYPE_BY_NAME[dtype];
+	const result = new dtypeInfo.arrayConstructor(outSize);
+
+	// --- Build index-mapping tables for fast inner loop ---
+	// For each operand, precompute: for each (outLabel, contractedLabel),
+	// which dimension does it correspond to, and what stride?
+	// We map: label → current value in the iteration
+	const labelIdx = {}; // label → current index value (mutated during iteration)
+
+	// --- Main summation loop ---
+	for (let outFlat = 0; outFlat < outSize; outFlat++) {
+		// Decode output flat index → per-label indices
+		let rem = outFlat;
+		for (let d = 0; d < outNdim; d++) {
+			labelIdx[outLabels[d]] = Math.floor(rem / outStrides[d]);
+			rem %= outStrides[d];
+		}
+
+		let sum = 0;
+
+		// Iterate over all contracted index combinations
+		for (let cFlat = 0; cFlat < contractedTotal; cFlat++) {
+			// Decode contracted flat index
+			let cRem = cFlat;
+			for (let c = nContracted - 1; c >= 0; c--) {
+				labelIdx[contractedLabels[c]] = cRem % contractedSizes[c];
+				cRem = Math.floor(cRem / contractedSizes[c]);
+			}
+
+			// Compute product of operand values at these indices
+			let prod = 1;
+			for (let o = 0; o < operands.length; o++) {
+				let flatIdx = 0;
+				const labels = opLabels[o];
+				const strides = opStrides[o];
+				for (let d = 0; d < labels.length; d++) {
+					flatIdx += labelIdx[labels[d]] * strides[d];
+				}
+				prod *= operands[o].data[flatIdx];
+			}
+			sum += prod;
+		}
+
+		result[outFlat] = sum;
+	}
+
+	return new Tensor(result, outShape, dtype);
+}

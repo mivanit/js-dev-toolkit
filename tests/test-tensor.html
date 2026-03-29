@@ -1605,6 +1605,245 @@
 					assert.throws(() => NeuralNet.softmax(t), /at least 1D/);
 				});
 			});
+			// ============================================================
+			// einsum tests
+			// ============================================================
+
+			describe("einsum — matrix multiply", () => {
+				it("ij,jk->ik matches matmul", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const b = new Tensor([7, 8, 9, 10, 11, 12], [3, 2]);
+					const r = einsum("ij,jk->ik", a, b);
+					assert.deepStrictEqual(r.shape, [2, 2]);
+					// [1,2,3]*[7,9,11]=58, [1,2,3]*[8,10,12]=64
+					// [4,5,6]*[7,9,11]=139, [4,5,6]*[8,10,12]=154
+					assertArrayEqual(Array.from(r.data), [58, 64, 139, 154]);
+					// Cross-check with matmul
+					const m = a.matmul(b);
+					assertArrayEqual(Array.from(r.data), Array.from(m.data));
+				});
+			});
+
+			describe("einsum — transpose", () => {
+				it("ij->ji transposes a matrix", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const r = einsum("ij->ji", a);
+					assert.deepStrictEqual(r.shape, [3, 2]);
+					assertArrayEqual(Array.from(r.data), [1, 4, 2, 5, 3, 6]);
+				});
+			});
+
+			describe("einsum — trace", () => {
+				it("ii-> computes trace (scalar)", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					const r = einsum("ii->", a);
+					assert.deepStrictEqual(r.shape, []);
+					assert.strictEqual(r.data[0], 5); // 1 + 4
+				});
+			});
+
+			describe("einsum — diagonal extraction", () => {
+				it("ii->i extracts diagonal", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6, 7, 8, 9], [3, 3]);
+					const r = einsum("ii->i", a);
+					assert.deepStrictEqual(r.shape, [3]);
+					assertArrayEqual(Array.from(r.data), [1, 5, 9]);
+				});
+			});
+
+			describe("einsum — outer product", () => {
+				it("i,j->ij computes outer product", () => {
+					const a = new Tensor([1, 2, 3], [3]);
+					const b = new Tensor([4, 5], [2]);
+					const r = einsum("i,j->ij", a, b);
+					assert.deepStrictEqual(r.shape, [3, 2]);
+					assertArrayEqual(Array.from(r.data), [4, 5, 8, 10, 12, 15]);
+				});
+			});
+
+			describe("einsum — dot product", () => {
+				it("i,i-> computes dot product", () => {
+					const a = new Tensor([1, 2, 3], [3]);
+					const b = new Tensor([4, 5, 6], [3]);
+					const r = einsum("i,i->", a, b);
+					assert.deepStrictEqual(r.shape, []);
+					assert.strictEqual(r.data[0], 32); // 4+10+18
+				});
+			});
+
+			describe("einsum — sum over axis", () => {
+				it("ij->i sums over j", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const r = einsum("ij->i", a);
+					assert.deepStrictEqual(r.shape, [2]);
+					assertArrayEqual(Array.from(r.data), [6, 15]);
+				});
+
+				it("ij->j sums over i", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const r = einsum("ij->j", a);
+					assert.deepStrictEqual(r.shape, [3]);
+					assertArrayEqual(Array.from(r.data), [5, 7, 9]);
+				});
+			});
+
+			describe("einsum — batched matmul", () => {
+				it("bij,bjk->bik computes batched matmul", () => {
+					// batch 0: [[1,2],[3,4]] x [[1,0],[0,1]] = [[1,2],[3,4]]
+					// batch 1: [[5,6],[7,8]] x [[1,0],[0,1]] = [[5,6],[7,8]]
+					const a = new Tensor([1, 2, 3, 4, 5, 6, 7, 8], [2, 2, 2]);
+					const b = new Tensor([1, 0, 0, 1, 1, 0, 0, 1], [2, 2, 2]);
+					const r = einsum("bij,bjk->bik", a, b);
+					assert.deepStrictEqual(r.shape, [2, 2, 2]);
+					assertArrayEqual(
+						Array.from(r.data),
+						[1, 2, 3, 4, 5, 6, 7, 8],
+					);
+				});
+			});
+
+			describe("einsum — validation", () => {
+				it("throws on missing ->", () => {
+					const a = new Tensor([1, 2], [2]);
+					assert.throws(() => einsum("i", a), /must contain/);
+				});
+
+				it("throws on wrong operand count", () => {
+					const a = new Tensor([1, 2], [2]);
+					assert.throws(
+						() => einsum("i,j->ij", a),
+						/expected 2.*got 1/i,
+					);
+				});
+
+				it("throws on ndim mismatch", () => {
+					const a = new Tensor([1, 2, 3, 4], [2, 2]);
+					assert.throws(() => einsum("ijk->ijk", a), /2 dims.*3/);
+				});
+
+				it("throws on dimension size mismatch", () => {
+					const a = new Tensor([1, 2, 3], [3]);
+					const b = new Tensor([1, 2], [2]);
+					assert.throws(() => einsum("i,i->", a, b), /mismatch.*'i'/);
+				});
+
+				it("throws on output label not in inputs", () => {
+					const a = new Tensor([1, 2], [2]);
+					assert.throws(() => einsum("i->j", a), /output label 'j'/);
+				});
+			});
+
+			describe("einsum — scalar output (empty shape)", () => {
+				it("global sum i-> on 1D", () => {
+					const a = new Tensor([1, 2, 3, 4], [4]);
+					const r = einsum("i->", a);
+					assert.deepStrictEqual(r.shape, []);
+					assert.strictEqual(r.data[0], 10);
+				});
+			});
+
+			describe("einsum — cross-validation with existing ops", () => {
+				it("ij,jk->ik matches matmul (3x2 @ 2x4)", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [3, 2]);
+					const b = new Tensor([7, 8, 9, 10, 11, 12, 13, 14], [2, 4]);
+					const expected = a.matmul(b);
+					const result = einsum("ij,jk->ik", a, b);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} matmul=${expected.data[i]}`,
+						);
+					}
+				});
+
+				it("bij,bjk->bik matches matmulBatched ([2,3,2] @ [2,2,4])", () => {
+					const aData = new Float32Array(12);
+					const bData = new Float32Array(16);
+					for (let i = 0; i < 12; i++) aData[i] = i + 1;
+					for (let i = 0; i < 16; i++) bData[i] = i + 1;
+					const a = new Tensor(aData, [2, 3, 2]);
+					const b = new Tensor(bData, [2, 2, 4]);
+					const expected = a.matmulBatched(b);
+					const result = einsum("bij,bjk->bik", a, b);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} matmulBatched=${expected.data[i]}`,
+						);
+					}
+				});
+
+				it("ij->ji matches transpose() (3x4)", () => {
+					const data = new Float32Array(12);
+					for (let i = 0; i < 12; i++) data[i] = i + 1;
+					const a = new Tensor(data, [3, 4]);
+					const expected = a.transpose();
+					const result = einsum("ij->ji", a);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} transpose=${expected.data[i]}`,
+						);
+					}
+				});
+
+				it("ijk->kij matches transpose([2,0,1]) (2x3x4)", () => {
+					const data = new Float32Array(24);
+					for (let i = 0; i < 24; i++) data[i] = i;
+					const a = new Tensor(data, [2, 3, 4]);
+					const expected = a.transpose([2, 0, 1]);
+					const result = einsum("ijk->kij", a);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} transpose=${expected.data[i]}`,
+						);
+					}
+				});
+
+				it("ij-> matches sum() (global)", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const expected = a.sum();
+					const result = einsum("ij->", a);
+					assert.strictEqual(result.data[0], expected);
+				});
+
+				it("ij->j matches sum(0)", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const expected = a.sum(0);
+					const result = einsum("ij->j", a);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} sum(0)=${expected.data[i]}`,
+						);
+					}
+				});
+
+				it("ij->i matches sum(1)", () => {
+					const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+					const expected = a.sum(1);
+					const result = einsum("ij->i", a);
+					assert.deepStrictEqual(result.shape, expected.shape);
+					for (let i = 0; i < expected.data.length; i++) {
+						assert.strictEqual(
+							result.data[i],
+							expected.data[i],
+							`index ${i}: einsum=${result.data[i]} sum(1)=${expected.data[i]}`,
+						);
+					}
+				});
+			});
 		</script>
 	</body>
 </html>
