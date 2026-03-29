@@ -751,12 +751,16 @@ class NDArray {
 				(acc, dim) => (dim === -1 ? acc : acc * dim),
 				1,
 			);
-			if (this._size % knownSize !== 0) {
-				throw new Error(
-					`cannot reshape array of size ${this._size} into shape ${newShape}`,
-				);
+			if (knownSize === 0) {
+				finalShape[autoIdx] = 0;
+			} else {
+				if (this._size % knownSize !== 0) {
+					throw new Error(
+						`cannot reshape array of size ${this._size} into shape ${newShape}`,
+					);
+				}
+				finalShape[autoIdx] = this._size / knownSize;
 			}
-			finalShape[autoIdx] = this._size / knownSize;
 		}
 
 		// Validate new shape has same total size
