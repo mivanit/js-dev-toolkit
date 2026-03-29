@@ -1026,6 +1026,22 @@
 					assert.strictEqual(arr.data[1], 2);
 				});
 
+				it("fromJSON zero_dim float16 produces float32 dtype", () => {
+					const obj = {
+						__muutils_format__: "zero_dim",
+						shape: [],
+						dtype: "float16",
+						data: 0x3c00,
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.dtype, "float32");
+					assert.ok(
+						arr.data instanceof Float32Array,
+						"data should be Float32Array",
+					);
+					assert.strictEqual(arr.data[0], 1);
+				});
+
 				it("fromJSON array_hex_meta float16 produces float32 dtype", () => {
 					// 0x3C00 = 1.0 in float16, stored little-endian as "003c"
 					const obj = {

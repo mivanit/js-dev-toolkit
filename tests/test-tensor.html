@@ -2144,6 +2144,18 @@
 					const a = new Tensor([1, 2], [2]);
 					assert.throws(() => einsum("->i", a), /1 dims.*0/);
 				});
+
+				it("throws on BigInt dtype (int64)", () => {
+					const a = new Tensor(
+						new BigInt64Array([1n, 2n, 3n, 4n]),
+						[2, 2],
+						"int64",
+					);
+					assert.throws(
+						() => einsum("ij->ji", a),
+						/BigInt/,
+					);
+				});
 			});
 
 			describe("einsum — cross-validation with existing ops", () => {

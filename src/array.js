@@ -1459,6 +1459,10 @@ class NDArray {
 				dataValue = BigInt(dataValue);
 			}
 			const data = new dtypeInfo.arrayConstructor([dataValue]);
+			if (dtypeInfo.converter) {
+				const converted = dtypeInfo.converter(data);
+				return new NDArray(converted, shape, "float32");
+			}
 			return new NDArray(data, shape, dtypeName);
 		}
 
