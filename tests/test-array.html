@@ -586,10 +586,10 @@
 					assertArrayEqual(Array.from(result.data), [2, 5]);
 				});
 
-				it("returns NaN for empty array", () => {
+				it("throws for empty array", () => {
 					const data = new Float32Array([]);
 					const arr = new NDArray(data, [0], "float32");
-					assert.ok(isNaN(arr.mean()));
+					assert.throws(() => arr.mean(), /empty slice/i);
 				});
 
 				it("handles single element", () => {
@@ -2104,24 +2104,22 @@
 			});
 
 			describe("NDArray — empty mean (matches NumPy)", () => {
-				it("mean(null) returns NaN for empty float array", () => {
+				it("mean(null) throws for empty float array", () => {
 					const arr = new NDArray(
 						new Float32Array([]),
 						[0],
 						"float32",
 					);
-					assert.ok(isNaN(arr.mean()));
+					assert.throws(() => arr.mean(), /empty slice|undefined/i);
 				});
 
-				it("mean(axis) returns NaN for float 0-size axis", () => {
+				it("mean(axis) throws for float 0-size axis", () => {
 					const arr = new NDArray(
 						new Float32Array([]),
 						[0, 3],
 						"float32",
 					);
-					const m = arr.mean(0);
-					assert.deepStrictEqual(m.shape, [3]);
-					assert.ok(isNaN(m.data[0]));
+					assert.throws(() => arr.mean(0), /empty slice|undefined/i);
 				});
 
 				it("mean(null) throws for empty BigInt array", () => {
