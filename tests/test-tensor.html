@@ -1868,6 +1868,32 @@
 				});
 			});
 
+			describe("einsum — three operands", () => {
+				it("ij,jk,kl->il contracts through 3 matrices", () => {
+					const A = new Tensor(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+					);
+					const B = new Tensor(
+						new Float32Array([1, 0, 0, 1, 1, 0]),
+						[3, 2],
+					);
+					const C = new Tensor(
+						new Float32Array([2, 1, 0, 3]),
+						[2, 2],
+					);
+					const r = einsum("ij,jk,kl->il", A, B, C);
+					// Cross-validate against chained matmul
+					const abc = A.matmul(B).matmul(C);
+					assert.deepStrictEqual(r.shape, [2, 2]);
+					assertArrayEqual(
+						Array.from(r.data),
+						Array.from(abc.data),
+						"3-op einsum matches chained matmul",
+					);
+				});
+			});
+
 			describe("einsum — validation", () => {
 				it("throws on missing ->", () => {
 					const a = new Tensor([1, 2], [2]);

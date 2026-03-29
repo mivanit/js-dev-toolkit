@@ -1261,6 +1261,170 @@
 				});
 			});
 
+			describe("NPY parse() — header with trailing comma+space", () => {
+				// Reuse makeNPYBuffer but with a space before closing paren
+				function makeNPYBufferSpacedTuple(shape, dtype, data) {
+					const descrMap = {
+						float32: "<f4",
+						float64: "<f8",
+					};
+					const descr = descrMap[dtype] || "<f4";
+					// Build shape string with space before closing paren: (3, )
+					const shapeStr =
+						"(" +
+						shape.join(", ") +
+						(shape.length === 1 ? ", )" : " )");
+					const headerDict = `{'descr': '${descr}', 'fortran_order': False, 'shape': ${shapeStr}, }`;
+					const minLen = headerDict.length + 1;
+					const totalMin = 10 + minLen;
+					const padded = Math.ceil(totalMin / 64) * 64 - 10;
+					const headerStr =
+						headerDict +
+						" ".repeat(padded - headerDict.length - 1) +
+						"\n";
+					const headerLen = headerStr.length;
+
+					const bytesPerElement = dtype === "float64" ? 8 : 4;
+					const dataBytes = data.length * bytesPerElement;
+					const totalBytes = 10 + headerLen + dataBytes;
+					const buf = new ArrayBuffer(totalBytes);
+					const view = new DataView(buf);
+					const bytes = new Uint8Array(buf);
+
+					bytes[0] = 0x93;
+					bytes[1] = 0x4e;
+					bytes[2] = 0x55;
+					bytes[3] = 0x4d;
+					bytes[4] = 0x50;
+					bytes[5] = 0x59;
+					bytes[6] = 1;
+					bytes[7] = 0;
+					view.setUint16(8, headerLen, true);
+					for (let i = 0; i < headerStr.length; i++) {
+						bytes[10 + i] = headerStr.charCodeAt(i);
+					}
+					const dataView = new DataView(buf, 10 + headerLen);
+					for (let i = 0; i < data.length; i++) {
+						if (dtype === "float64") {
+							dataView.setFloat64(i * 8, data[i], true);
+						} else {
+							dataView.setFloat32(i * 4, data[i], true);
+						}
+					}
+					return buf;
+				}
+
+				it("parses 1D header with (3, ) spaced trailing comma", () => {
+					const buf = makeNPYBufferSpacedTuple(
+						[3],
+						"float32",
+						[1, 2, 3],
+					);
+					const arr = NDArray.parse(buf);
+					assert.deepStrictEqual(arr.shape, [3]);
+					assert.strictEqual(arr.dtype, "float32");
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3]);
+				});
+
+				it("parses 2D header with (2, 3 ) spaced closing", () => {
+					const buf = makeNPYBufferSpacedTuple(
+						[2, 3],
+						"float32",
+						[1, 2, 3, 4, 5, 6],
+					);
+					const arr = NDArray.parse(buf);
+					assert.deepStrictEqual(arr.shape, [2, 3]);
+					assertArrayEqual(Array.from(arr.data), [1, 2, 3, 4, 5, 6]);
+				});
+			});
+
+			describe("NPY parse() — version check", () => {
+				it("rejects NPY v2.0 with clear error", () => {
+					// Build minimal v2.0 buffer (just magic + version)
+					const buf = new ArrayBuffer(64);
+					const bytes = new Uint8Array(buf);
+					bytes[0] = 0x93;
+					bytes[1] = 0x4e;
+					bytes[2] = 0x55;
+					bytes[3] = 0x4d;
+					bytes[4] = 0x50;
+					bytes[5] = 0x59;
+					bytes[6] = 2; // v2.0
+					bytes[7] = 0;
+
+					assert.throws(
+						() => NDArray.parse(buf),
+						/v2\.0 is not supported/,
+					);
+				});
+
+				it("rejects NPY v3.0 with clear error", () => {
+					const buf = new ArrayBuffer(64);
+					const bytes = new Uint8Array(buf);
+					bytes[0] = 0x93;
+					bytes[1] = 0x4e;
+					bytes[2] = 0x55;
+					bytes[3] = 0x4d;
+					bytes[4] = 0x50;
+					bytes[5] = 0x59;
+					bytes[6] = 3; // v3.0
+					bytes[7] = 0;
+
+					assert.throws(
+						() => NDArray.parse(buf),
+						/v3\.0 is not supported/,
+					);
+				});
+
+				it("accepts NPY v1.0", () => {
+					// Inline minimal v1.0 buffer (can't access makeNPYBuffer from other describe)
+					const headerDict =
+						"{'descr': '<f4', 'fortran_order': False, 'shape': (2,), }";
+					const padded =
+						Math.ceil((10 + headerDict.length + 1) / 64) * 64 - 10;
+					const headerStr =
+						headerDict +
+						" ".repeat(padded - headerDict.length - 1) +
+						"\n";
+					const buf = new ArrayBuffer(10 + headerStr.length + 8);
+					const view = new DataView(buf);
+					const bytes = new Uint8Array(buf);
+					bytes[0] = 0x93;
+					bytes[1] = 0x4e;
+					bytes[2] = 0x55;
+					bytes[3] = 0x4d;
+					bytes[4] = 0x50;
+					bytes[5] = 0x59;
+					bytes[6] = 1;
+					bytes[7] = 0;
+					view.setUint16(8, headerStr.length, true);
+					for (let i = 0; i < headerStr.length; i++) {
+						bytes[10 + i] = headerStr.charCodeAt(i);
+					}
+					const dv = new DataView(buf, 10 + headerStr.length);
+					dv.setFloat32(0, 7, true);
+					dv.setFloat32(4, 8, true);
+
+					const arr = NDArray.parse(buf);
+					assert.deepStrictEqual(arr.shape, [2]);
+					assertArrayEqual(Array.from(arr.data), [7, 8]);
+				});
+			});
+
+			describe("NDArray.load() — NPZ rejection", () => {
+				it("throws for .npz files", async () => {
+					try {
+						await NDArray.load("test.npz");
+						assert.ok(false, "should have thrown");
+					} catch (e) {
+						assert.ok(
+							e.message.includes("does not support .npz"),
+							`expected NPZ rejection, got: ${e.message}`,
+						);
+					}
+				});
+			});
+
 			describe("fromJSON('list') — nested arrays (Bug #5)", () => {
 				it("deserializes 2D nested list", () => {
 					const arr = NDArray.fromJSON([
@@ -1633,6 +1797,15 @@
 
 				it("sum(null) on empty int64 returns 0n", () => {
 					const arr = new NDArray(new BigInt64Array(0), [0], "int64");
+					assert.strictEqual(arr.sum(), 0n);
+				});
+
+				it("sum(null) on empty uint64 returns 0n", () => {
+					const arr = new NDArray(
+						new BigUint64Array(0),
+						[0],
+						"uint64",
+					);
 					assert.strictEqual(arr.sum(), 0n);
 				});
 			});

@@ -56,6 +56,19 @@ function _isBigIntArray(arr) {
 	return arr instanceof BigInt64Array || arr instanceof BigUint64Array;
 }
 
+// Parse NPY header dict (Python dict literal → JS object)
+function _parseNPYHeader(text) {
+	return JSON.parse(
+		text
+			.replace(/True/g, "true")
+			.replace(/False/g, "false")
+			.replace(/'/g, '"')
+			.replace(/\(/g, "[")
+			.replace(/,*\),*/g, "]")
+			.replace(/,\s*]/g, "]"),
+	);
+}
+
 // Canonical dtype list - single source of truth
 const _DTYPES = [
 	{
@@ -212,6 +225,14 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 
 	const initialBytes = await initialResponse.arrayBuffer();
 
+	// Reject NPY v2.0+ (uses uint32 header length at different offset)
+	const majorVersion = new Uint8Array(initialBytes)[6];
+	if (majorVersion > 1) {
+		throw new Error(
+			`NPY format v${majorVersion}.0 is not supported (only v1.0)`,
+		);
+	}
+
 	// Parse header length (uint16 little-endian at bytes 8-9 for v1.0)
 	const headerLength = new DataView(initialBytes, 8, 2).getUint16(0, true);
 	const headerStart = 10;
@@ -249,14 +270,8 @@ async function fetchNPYHeader(url, fetchArgs = {}) {
 		new Uint8Array(headerBytes),
 	);
 
-	// Parse header dict (reuse existing parsing logic)
-	const header = JSON.parse(
-		headerText
-			.toLowerCase()
-			.replace(/'/g, '"')
-			.replace(/\(/g, "[")
-			.replace(/,*\),*/g, "]"),
-	);
+	// Parse header dict
+	const header = _parseNPYHeader(headerText);
 
 	if (header.fortran_order) {
 		throw new Error(
@@ -296,7 +311,13 @@ class npyjs {
 	}
 
 	parse(arrayBufferContents) {
-		// const version = arrayBufferContents.slice(6, 8); // Uint8-encoded
+		// Reject NPY v2.0+ (uses uint32 header length at different offset)
+		const majorVersion = new Uint8Array(arrayBufferContents)[6];
+		if (majorVersion > 1) {
+			throw new Error(
+				`NPY format v${majorVersion}.0 is not supported (only v1.0)`,
+			);
+		}
 		const headerLength = new DataView(
 			arrayBufferContents.slice(8, 10),
 		).getUint16(0, true);
@@ -305,13 +326,7 @@ class npyjs {
 		const hcontents = new TextDecoder("utf-8").decode(
 			new Uint8Array(arrayBufferContents.slice(10, 10 + headerLength)),
 		);
-		const header = JSON.parse(
-			hcontents
-				.toLowerCase() // True -> true
-				.replace(/'/g, '"')
-				.replace(/\(/g, "[")
-				.replace(/,*\),*/g, "]"),
-		);
+		const header = _parseNPYHeader(hcontents);
 		const shape = header.shape;
 
 		if (header.fortran_order) {
@@ -1207,26 +1222,39 @@ class NDArray {
 	}
 
 	static async load(filename, callback, fetchArgs) {
-		const npy = new npyjs({ convertFloat16: true });
-
 		if (filename.endsWith(".npz")) {
-			// Load NPZ (ZIP archive with NPY files)
-			const arrays = await npy.loadNPZ(filename, fetchArgs);
-			// Return the first array as NDArray
-			const arrayName = Object.keys(arrays)[0];
-			const npyData = arrays[arrayName];
-			if (!npyData) {
-				throw new Error("Failed to load NPZ data");
-			}
-			return new NDArray(npyData.data, npyData.shape, npyData.dtype);
-		} else {
-			// Load regular NPY
-			const npyData = await npy.load(filename, null, fetchArgs);
-			if (!npyData) {
-				throw new Error("Failed to load NPY data");
-			}
-			return new NDArray(npyData.data, npyData.shape, npyData.dtype);
+			throw new Error(
+				"NDArray.load() does not support .npz files. Use NDArray.loadNPZ() instead.",
+			);
 		}
+		const npy = new npyjs({ convertFloat16: true });
+		const npyData = await npy.load(filename, null, fetchArgs);
+		if (!npyData) {
+			throw new Error("Failed to load NPY data");
+		}
+		return new NDArray(npyData.data, npyData.shape, npyData.dtype);
+	}
+
+	/**
+	 * Load an NPZ file and return a dict of NDArrays keyed by array name.
+	 * Requires JSZip to be loaded globally.
+	 *
+	 * @param {string} filename - URL or path to the NPZ file
+	 * @param {Object} [fetchArgs] - Additional fetch arguments
+	 * @returns {Promise<Object<string, NDArray>>} - Dict of NDArrays
+	 */
+	static async loadNPZ(filename, fetchArgs) {
+		const npy = new npyjs({ convertFloat16: true });
+		const arrays = await npy.loadNPZ(filename, fetchArgs);
+		const result = {};
+		for (const [name, npyData] of Object.entries(arrays)) {
+			result[name] = new NDArray(
+				npyData.data,
+				npyData.shape,
+				npyData.dtype,
+			);
+		}
+		return result;
 	}
 
 	/**
