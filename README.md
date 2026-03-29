@@ -14,6 +14,9 @@ A collection of zero-dependency vanilla JavaScript utilities for frontend develo
 | [Sparklines](#sparklines)       | SVG sparkline and sparkbar generation                              |
 | [ColorUtil](#colorutil)         | Colormaps and color generation utilities                           |
 | [NDArray](#ndarray)             | NumPy format (NPY/NPZ) parsing and array operations                |
+| [Tensor](#tensor)               | ML tensor operations: matmul, broadcasting, masking                |
+| [NeuralNet](#neuralnet)         | Activation functions, normalization, softmax                       |
+| [einsum](#einsum)               | Einstein summation notation                                        |
 | [Notifications](#notifications) | Toast notifications with spinners and progress bars                |
 | [Config](#config)               | Configuration management with URL persistence                      |
 | [Token Display](#token-display) | LLM token visualization with activation coloring                   |
@@ -29,6 +32,8 @@ Include the modules you need directly in your HTML, and call the APIs from your 
 <script src="src/DataFrame.js"></script>
 <script src="src/sparklines.js"></script>
 <script src="src/ColorUtil.js"></script>
+<script src="src/array.js"></script>
+<script src="src/tensor.js"></script> <!-- requires array.js -->
 <script src="src/notif.js"></script>
 <link rel="stylesheet" href="src/notif.css">
 ```
@@ -39,6 +44,7 @@ Open these HTML files in a browser to see the modules in action:
 
 - `index.html` - Comprehensive functionality test
 - `docs/array.html` - NDArray range request demo
+- `docs/tensor.html` - Tensor and NeuralNet operations demo
 - `docs/grid.html` - DataTable demo
 - `docs/sparklines.html` - Sparklines gallery
 - `docs/token-display.html` - Token visualization
@@ -198,6 +204,123 @@ const singleRow = arr.slice(5);       // just row 5
 **Supported dtypes:** uint8, uint16, uint32, uint64, int8, int16, int32, int64, float16, float32, float64, bool
 
 **Range requests:** `loadSlice` uses HTTP Range headers to download only the requested portion of an NPY file. This is useful for large arrays where you only need a subset. Falls back to full download with a console warning if the server doesn't support Range requests. Not supported for NPZ files (compressed archives).
+
+
+## Tensor
+
+ML tensor class extending NDArray with operations for transformer inference. Requires `array.js` to be loaded first.
+
+```javascript
+// Create tensors
+const a = Tensor.zeros([3, 4]);                // 3x4 zeros
+const b = Tensor.rand_uniform([3, 4]);         // uniform [0, 1)
+const c = Tensor.rand_normal([3, 4]);          // standard normal N(0, 1)
+const d = new Tensor([1, 2, 3, 4], [2, 2]);   // from plain array (auto-converts to Float32Array)
+
+// Arithmetic
+const sum = a.add(b);                          // element-wise add (same shape)
+const biased = a.add(new Tensor([1, 2, 3, 4], [4]));  // broadcast 1D bias over last dim
+const scaled = a.scale(0.5);                   // scalar multiply
+
+// Matrix multiplication
+const W = Tensor.rand_normal([4, 8]);
+const out = a.matmul(W);                       // (3, 4) x (4, 8) -> (3, 8)
+
+// Batched matmul: (..., M, K) x (K, N)
+const batched = new Tensor(new Float32Array(2 * 3 * 4), [2, 3, 4]);
+const result = batched.matmul(W);              // (2, 3, 4) x (4, 8) -> (2, 3, 8)
+
+// Transpose (swaps last 2 dims by default)
+const aT = a.transpose();                     // (3, 4) -> (4, 3)
+
+// Causal mask for attention
+const mask = Tensor.causalMask(5);             // (5, 5): 0 on/below diagonal, -Infinity above
+const masked = out.addMask(mask);              // broadcast 2D mask over batch dims
+
+// Embedding lookup
+const table = Tensor.rand_normal([1000, 64]);  // vocab=1000, dim=64
+const tokens = Tensor.embedding([3, 7, 12], table);  // (3, 64)
+```
+
+**Static constructors:**
+- `Tensor.zeros(shape, dtype)` - All zeros
+- `Tensor.rand_uniform(shape, dtype)` - Uniform [0, 1)
+- `Tensor.rand_normal(shape, dtype)` - Normal N(0, 1) via Box-Muller
+- `Tensor.causalMask(S)` - Causal attention mask (S, S)
+- `Tensor.embedding(indices, table)` - Embedding lookup
+
+**Instance methods:**
+- `add(other)` - Element-wise add; broadcasts 1D bias over last dimension
+- `scale(s)` - Scalar multiplication
+- `matmul(other)` - Matrix multiply; `other` must be 2D, `this` can be batched
+- `matmulBatched(other)` - Both operands can have matching batch dimensions
+- `transpose(axes?)` - Swap last 2 dims (default) or arbitrary permutation
+- `addMask(mask)` - Add 2D mask broadcast over batch dimensions
+
+**Inherited from NDArray:** `sum`, `mean`, `min`, `max`, `range`, `reshape`, `slice`, `sliceDim`, `get`, `set`, `flatten`, `transpose`
+
+
+
+## NeuralNet
+
+Static utility class with activation functions and normalization layers. All methods take a Tensor and return a new Tensor.
+
+```javascript
+// Activations
+const h = NeuralNet.relu(t);           // max(0, x)
+const h2 = NeuralNet.squared_relu(t);  // max(0, x)^2
+const h3 = NeuralNet.gelu(t);          // GELU (tanh approximation)
+const h4 = NeuralNet.silu(t);          // SiLU/Swish: x * sigmoid(x)
+const h5 = NeuralNet.sigmoid(t);       // 1 / (1 + exp(-x))
+const h6 = NeuralNet.tanh(t);          // tanh(x)
+
+// Softmax (over last dimension, numerically stable)
+const probs = NeuralNet.softmax(logits);
+
+// Layer normalization
+const weight = new Tensor(new Float32Array(D).fill(1), [D]);
+const bias = Tensor.zeros([D]);
+const normed = NeuralNet.layernorm(t, weight, bias, 1e-5);
+
+// RMS normalization
+const rmsNormed = NeuralNet.rmsnorm(t, weight, 1e-5);
+
+// Embedding (same as Tensor.embedding)
+const embeddings = NeuralNet.embedding([0, 5, 2], table);
+```
+
+**Activations:** `relu`, `squared_relu`, `sigmoid`, `tanh`, `gelu`, `silu`
+
+**Normalization:**
+- `layernorm(t, weight, bias, eps?)` - Layer normalization over last dimension
+- `rmsnorm(t, weight, eps?)` - RMS normalization over last dimension
+
+**Other:**
+- `softmax(t)` - Softmax over last dimension (handles -Infinity, +Infinity, NaN edge cases)
+- `embedding(indices, table)` - Embedding table lookup
+
+
+
+## einsum
+
+Einstein summation with explicit notation. Supports arbitrary contractions over Tensor/NDArray operands.
+
+```javascript
+const A = new Tensor([1,2,3,4,5,6], [2, 3]);
+const B = new Tensor([1,2,3,4,5,6], [3, 2]);
+
+einsum('ij,jk->ik', A, B);    // matrix multiply
+einsum('ij->ji', A);           // transpose
+einsum('ii->', sq);            // trace (scalar output)
+einsum('ii->i', sq);           // diagonal
+einsum('i,j->ij', a, b);      // outer product
+einsum('i,i->', a, b);        // dot product
+einsum('ij->i', A);           // sum over columns
+einsum('bij,bjk->bik', A, B); // batched matmul
+```
+
+Requires explicit notation with `->` (implicit output mode not supported). All operand dtypes must match. BigInt dtypes (int64/uint64) are not supported.
+
 
 
 ## ColorUtil
@@ -388,7 +511,8 @@ js-dev-toolkit/
 │   ├── DataFrame.js     # DataFrame class
 │   ├── sparklines.js    # Sparkline generation
 │   ├── ColorUtil.js     # Color utilities
-│   ├── array.js         # NumPy parsing
+│   ├── array.js         # NumPy parsing, NDArray
+│   ├── tensor.js        # Tensor, NeuralNet, einsum
 │   ├── notif.js         # Notifications
 │   ├── notif.css
 │   ├── config.js        # Configuration management
