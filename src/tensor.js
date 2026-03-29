@@ -292,15 +292,16 @@ class Tensor extends NDArray {
 			for (let d = 0; d < D; d++) {
 				if (this.data[off + d] > max) max = this.data[off + d];
 			}
-			let sum = 0;
-			for (let d = 0; d < D; d++) {
-				out[off + d] = Math.exp(this.data[off + d] - max);
-				sum += out[off + d];
-			}
-			if (sum === 0) {
+			if (!isFinite(max)) {
+				// All values are -Infinity or NaN — return uniform distribution
 				const uniform = 1 / D;
 				for (let d = 0; d < D; d++) out[off + d] = uniform;
 			} else {
+				let sum = 0;
+				for (let d = 0; d < D; d++) {
+					out[off + d] = Math.exp(this.data[off + d] - max);
+					sum += out[off + d];
+				}
 				for (let d = 0; d < D; d++) out[off + d] /= sum;
 			}
 		}
