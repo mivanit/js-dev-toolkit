@@ -435,6 +435,22 @@ class NeuralNet {
 	}
 
 	/**
+	 * Squared ReLU activation: max(0, x)².
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static squared_relu(t) {
+		NeuralNet._requireFloat(t, "squared_relu");
+		const out = new t.data.constructor(t.data.length);
+		for (let i = 0; i < t.data.length; i++) {
+			const v = t.data[i];
+			out[i] = v !== v ? NaN : v > 0 ? v * v : 0;
+		}
+		return new Tensor(out, [...t.shape], t.dtype);
+	}
+
+	/**
 	 * Sigmoid activation: 1 / (1 + exp(-x)).
 	 *
 	 * @param {Tensor} t - Input tensor
