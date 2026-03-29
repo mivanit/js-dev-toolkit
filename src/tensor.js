@@ -292,8 +292,8 @@ class Tensor extends NDArray {
 			for (let d = 0; d < D; d++) {
 				if (this.data[off + d] > max) max = this.data[off + d];
 			}
-			if (!isFinite(max)) {
-				// All values are -Infinity or NaN — return uniform distribution
+			if (max === -Infinity) {
+				// All values are -Infinity — return uniform distribution
 				const uniform = 1 / D;
 				for (let d = 0; d < D; d++) out[off + d] = uniform;
 			} else {
