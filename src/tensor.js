@@ -103,7 +103,7 @@ class Tensor extends NDArray {
 	 * 2D matrix multiply: (M, K) x (K, N) -> (M, N)
 	 * Also handles batched: (..., M, K) x (K, N) -> (..., M, N)
 	 *
-	 * @param {Tensor|NDArray} other - Right-hand matrix (K, N) or (..., K, N)
+	 * @param {Tensor|NDArray} other - Right-hand matrix, must be 2D (K, N)
 	 * @returns {Tensor}
 	 */
 	matmul(other) {
@@ -112,9 +112,9 @@ class Tensor extends NDArray {
 				`matmul requires this to be at least 2D, got shape [${this.shape}]`,
 			);
 		}
-		if (other.shape.length < 2) {
+		if (other.shape.length !== 2) {
 			throw new Error(
-				`matmul requires other to be at least 2D, got shape [${other.shape}]`,
+				`matmul requires other to be 2D, got shape [${other.shape}]. Use matmulBatched() for batched operations`,
 			);
 		}
 		const K = other.shape[0];
