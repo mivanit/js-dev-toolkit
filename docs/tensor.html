@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Tensor &amp; Neural Net Demo</title>
+		<style>
+			body {
+				font-family:
+					-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+					sans-serif;
+				margin: 0;
+				padding: 20px;
+				background: #f8f9fa;
+			}
+
+			.container {
+				max-width: 900px;
+				margin: 0 auto;
+			}
+
+			h1 {
+				text-align: center;
+				color: #2c3e50;
+				margin-bottom: 10px;
+			}
+
+			.subtitle {
+				text-align: center;
+				color: #7f8c8d;
+				margin-bottom: 30px;
+			}
+
+			.section {
+				background: white;
+				border-radius: 8px;
+				padding: 25px;
+				margin-bottom: 20px;
+				box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+			}
+
+			.section h2 {
+				color: #34495e;
+				border-bottom: 2px solid #9b59b6;
+				padding-bottom: 10px;
+				margin-top: 0;
+				margin-bottom: 20px;
+			}
+
+			pre {
+				background: #f4f4f4;
+				border-radius: 4px;
+				padding: 15px;
+				overflow-x: auto;
+				font-size: 13px;
+				line-height: 1.5;
+				margin: 0;
+			}
+
+			.label {
+				font-size: 12px;
+				color: #7f8c8d;
+				text-transform: uppercase;
+				margin-bottom: 6px;
+			}
+
+			table {
+				border-collapse: collapse;
+				width: 100%;
+				margin: 10px 0;
+			}
+
+			th,
+			td {
+				text-align: left;
+				padding: 8px 12px;
+				border: 1px solid #e0e0e0;
+				font-family: monospace;
+				font-size: 13px;
+			}
+
+			th {
+				background: #f8f9fa;
+				font-weight: 600;
+			}
+
+			.mask-grid {
+				display: inline-grid;
+				gap: 2px;
+				margin: 10px 0;
+			}
+
+			.mask-cell {
+				width: 40px;
+				height: 40px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-family: monospace;
+				font-size: 12px;
+				border-radius: 3px;
+			}
+
+			.mask-cell.neg {
+				background: #fadbd8;
+				color: #c0392b;
+			}
+
+			.mask-cell.zero {
+				background: #d5f4e6;
+				color: #27ae60;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h1>Tensor &amp; Neural Net Demo</h1>
+			<p class="subtitle">
+				ML tensor operations, activations, normalization, and einsum
+			</p>
+
+			<div class="section" id="section-creation">
+				<h2>1. Tensor Creation</h2>
+				<pre id="out-creation"></pre>
+			</div>
+
+			<div class="section" id="section-arithmetic">
+				<h2>2. Arithmetic</h2>
+				<pre id="out-arithmetic"></pre>
+			</div>
+
+			<div class="section" id="section-matmul">
+				<h2>3. Matrix Multiply</h2>
+				<pre id="out-matmul"></pre>
+			</div>
+
+			<div class="section" id="section-transpose">
+				<h2>4. Transpose</h2>
+				<pre id="out-transpose"></pre>
+			</div>
+
+			<div class="section" id="section-activations">
+				<h2>5. Activations</h2>
+				<div id="out-activations"></div>
+			</div>
+
+			<div class="section" id="section-normalization">
+				<h2>6. Normalization</h2>
+				<pre id="out-normalization"></pre>
+			</div>
+
+			<div class="section" id="section-einsum">
+				<h2>7. Einsum</h2>
+				<pre id="out-einsum"></pre>
+			</div>
+
+			<div class="section" id="section-mask-embed">
+				<h2>8. Causal Mask &amp; Embedding</h2>
+				<div id="out-mask-embed"></div>
+			</div>
+		</div>
+
+		<script src="src/array.js"></script>
+		<script src="src/tensor.js"></script>
+		<script>
+			function fmt(arr, decimals = 4) {
+				return Array.from(arr)
+					.map((v) => Number(v).toFixed(decimals))
+					.join(", ");
+			}
+
+			function runSection(id, fn) {
+				try {
+					fn();
+				} catch (e) {
+					console.error(`Section ${id} failed: ${e.message}`);
+					const el = document.getElementById(`out-${id}`);
+					if (el) el.textContent = `ERROR: ${e.message}`;
+				}
+			}
+
+			// 1. Creation
+			runSection("creation", () => {
+				const el = document.getElementById("out-creation");
+				const lines = [];
+
+				const t1 = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				lines.push(`new Tensor([1..6], [2,3])`);
+				lines.push(`  shape: [${t1.shape}]  dtype: ${t1.dtype}`);
+				lines.push(`  data:  [${fmt(t1.data)}]`);
+				lines.push("");
+
+				const z = Tensor.zeros([3, 4]);
+				lines.push(`Tensor.zeros([3,4])`);
+				lines.push(`  shape: [${z.shape}]  size: ${z.size}`);
+				lines.push("");
+
+				const u = Tensor.rand_uniform([2, 3]);
+				lines.push(`Tensor.rand_uniform([2,3])`);
+				lines.push(`  shape: [${u.shape}]  data: [${fmt(u.data)}]`);
+				lines.push("");
+
+				const n = Tensor.rand_normal([2, 3]);
+				lines.push(`Tensor.rand_normal([2,3])`);
+				lines.push(`  shape: [${n.shape}]  data: [${fmt(n.data)}]`);
+
+				el.textContent = lines.join("\n");
+			});
+
+			// 2. Arithmetic
+			runSection("arithmetic", () => {
+				const el = document.getElementById("out-arithmetic");
+				const lines = [];
+
+				const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const b = new Tensor([10, 20, 30, 40, 50, 60], [2, 3]);
+
+				const sum = a.add(b);
+				lines.push(`a = [${fmt(a.data, 0)}]  shape [${a.shape}]`);
+				lines.push(`b = [${fmt(b.data, 0)}]  shape [${b.shape}]`);
+				lines.push(`a.add(b) = [${fmt(sum.data, 0)}]`);
+				lines.push("");
+
+				const scaled = a.scale(3);
+				lines.push(`a.scale(3) = [${fmt(scaled.data, 0)}]`);
+
+				el.textContent = lines.join("\n");
+			});
+
+			// 3. Matrix Multiply
+			runSection("matmul", () => {
+				const el = document.getElementById("out-matmul");
+				const lines = [];
+
+				const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const b = new Tensor([7, 8, 9, 10, 11, 12], [3, 2]);
+				const c = a.matmul(b);
+
+				lines.push(`A (2x3): [${fmt(a.data, 0)}]`);
+				lines.push(`B (3x2): [${fmt(b.data, 0)}]`);
+				lines.push(`A.matmul(B) (2x2): [${fmt(c.data, 0)}]`);
+				lines.push(`  shape: [${c.shape}]`);
+
+				el.textContent = lines.join("\n");
+			});
+
+			// 4. Transpose
+			runSection("transpose", () => {
+				const el = document.getElementById("out-transpose");
+				const lines = [];
+
+				const t = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const tt = t.transpose();
+
+				lines.push(`Original (2x3): [${fmt(t.data, 0)}]`);
+				lines.push(`Transposed (3x2): [${fmt(tt.data, 0)}]`);
+				lines.push(`  shape: [${tt.shape}]`);
+
+				el.textContent = lines.join("\n");
+			});
+
+			// 5. Activations
+			runSection("activations", () => {
+				const container = document.getElementById("out-activations");
+				const input = new Tensor([-2, -1, 0, 1, 2], [5]);
+
+				const activations = {
+					relu: NeuralNet.relu(input),
+					squared_relu: NeuralNet.squared_relu(input),
+					sigmoid: NeuralNet.sigmoid(input),
+					tanh: NeuralNet.tanh(input),
+					gelu: NeuralNet.gelu(input),
+					silu: NeuralNet.silu(input),
+				};
+
+				let html = `<div class="label">Input: [${fmt(input.data, 1)}]</div>`;
+				html += "<table><tr><th>Activation</th><th>Output</th></tr>";
+				for (const [name, result] of Object.entries(activations)) {
+					html += `<tr><td>${name}</td><td>[${fmt(result.data)}]</td></tr>`;
+				}
+				html += "</table>";
+
+				const softIn = new Tensor([1, 2, 3, 4], [4]);
+				const softOut = NeuralNet.softmax(softIn);
+				html += `<div class="label" style="margin-top:15px">Softmax</div>`;
+				html += `<pre>input:  [${fmt(softIn.data, 1)}]\noutput: [${fmt(softOut.data)}]\nsum:    ${Array.from(
+					softOut.data,
+				)
+					.reduce((a, b) => a + b, 0)
+					.toFixed(6)}</pre>`;
+
+				container.innerHTML = html;
+			});
+
+			// 6. Normalization
+			runSection("normalization", () => {
+				const el = document.getElementById("out-normalization");
+				const lines = [];
+
+				const t = new Tensor([1, 2, 3, 4, 5, 6, 7, 8], [2, 4]);
+				const w = new Tensor([1, 1, 1, 1], [4]);
+				const b = new Tensor([0, 0, 0, 0], [4]);
+
+				const ln = NeuralNet.layernorm(t, w, b);
+				lines.push(`Input (2x4): [${fmt(t.data, 1)}]`);
+				lines.push(`LayerNorm:   [${fmt(ln.data)}]`);
+				lines.push("");
+
+				const rms = NeuralNet.rmsnorm(t, w);
+				lines.push(`RMSNorm:     [${fmt(rms.data)}]`);
+
+				el.textContent = lines.join("\n");
+			});
+
+			// 7. Einsum
+			runSection("einsum", () => {
+				const el = document.getElementById("out-einsum");
+				const lines = [];
+
+				// Matrix multiply
+				const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const b = new Tensor([7, 8, 9, 10, 11, 12], [3, 2]);
+				const mm = einsum("ij,jk->ik", a, b);
+				lines.push(`einsum("ij,jk->ik", A, B)  # matmul`);
+				lines.push(
+					`  result: [${fmt(mm.data, 0)}]  shape: [${mm.shape}]`,
+				);
+				lines.push("");
+
+				// Transpose
+				const tr = einsum("ij->ji", a);
+				lines.push(`einsum("ij->ji", A)  # transpose`);
+				lines.push(
+					`  result: [${fmt(tr.data, 0)}]  shape: [${tr.shape}]`,
+				);
+				lines.push("");
+
+				// Dot product
+				const v1 = new Tensor([1, 2, 3], [3]);
+				const v2 = new Tensor([4, 5, 6], [3]);
+				const dot = einsum("i,i->", v1, v2);
+				lines.push(`einsum("i,i->", [1,2,3], [4,5,6])  # dot product`);
+				lines.push(`  result: ${fmt(dot.data, 0)}`);
+				lines.push("");
+
+				// Outer product
+				const outer = einsum("i,j->ij", v1, v2);
+				lines.push(
+					`einsum("i,j->ij", [1,2,3], [4,5,6])  # outer product`,
+				);
+				lines.push(
+					`  result: [${fmt(outer.data, 0)}]  shape: [${outer.shape}]`,
+				);
+
+				el.textContent = lines.join("\n");
+			});
+
+			// 8. Causal Mask & Embedding
+			runSection("mask-embed", () => {
+				const container = document.getElementById("out-mask-embed");
+				let html = "";
+
+				// Causal mask
+				const mask = Tensor.causalMask(5);
+				html += `<div class="label">Causal Mask (5x5)</div>`;
+				html += `<div class="mask-grid" style="grid-template-columns: repeat(5, 40px)">`;
+				for (let i = 0; i < 5; i++) {
+					for (let j = 0; j < 5; j++) {
+						const val = mask.get(i, j);
+						const cls = val === 0 ? "zero" : "neg";
+						html += `<div class="mask-cell ${cls}">${val === 0 ? "0" : "-Inf"}</div>`;
+					}
+				}
+				html += `</div>`;
+
+				// Embedding
+				html += `<div class="label" style="margin-top:20px">Embedding Lookup</div>`;
+				const table = new Tensor(
+					[
+						0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1,
+						1.2,
+					],
+					[3, 4],
+				);
+				const indices = new NDArray(
+					new Int32Array([0, 2, 1]),
+					[3],
+					"int32",
+				);
+				const emb = Tensor.embedding(indices, table);
+				html += `<pre>`;
+				html += `Table (3x4):\n`;
+				for (let i = 0; i < 3; i++) {
+					html += `  row ${i}: [${fmt(table.get(i, null).data)}]\n`;
+				}
+				html += `\nIndices: [0, 2, 1]\n`;
+				html += `\nResult (3x4):\n`;
+				for (let i = 0; i < 3; i++) {
+					html += `  [${fmt(emb.get(i, null).data)}]\n`;
+				}
+				html += `</pre>`;
+
+				container.innerHTML = html;
+			});
+		</script>
+	</body>
+</html>

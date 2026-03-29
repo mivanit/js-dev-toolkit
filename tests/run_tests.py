@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Pytest-based browser test runner"""
 
+import functools
+import http.server
+import threading
 from pathlib import Path
+
 import pytest
 from playwright.sync_api import sync_playwright
 
@@ -13,20 +17,39 @@ def get_test_files():
 
 def get_demo_files():
     """Get all demo HTML files to smoke test"""
-    project_root = Path(__file__).parent.parent
-    demo_files = []
-
-    # Add main index.html from docs/
-    index_html = project_root / "docs" / "index.html"
-    if index_html.exists():
-        demo_files.append(index_html)
-
-    # Add all docs/*.html files (demo pages)
-    demos_dir = project_root / "docs"
+    demos_dir = Path(__file__).parent.parent / "docs"
     if demos_dir.exists():
-        demo_files.extend(sorted(demos_dir.glob("*.html")))
+        return sorted(demos_dir.glob("*.html"))
+    return []
 
-    return demo_files
+
+class _QuietHTTPHandler(http.server.SimpleHTTPRequestHandler):
+    """HTTP handler that suppresses request logging."""
+
+    def log_message(self, format, *args):
+        pass
+
+
+_demo_server = None
+_demo_server_port = None
+
+
+def _ensure_demo_server():
+    """Start a local HTTP server serving docs/ directory (singleton)."""
+    global _demo_server, _demo_server_port
+    if _demo_server is not None:
+        return _demo_server_port
+
+    project_root = Path(__file__).parent.parent
+    docs_dir = project_root / "docs"
+
+    handler = functools.partial(_QuietHTTPHandler, directory=str(docs_dir))
+    _demo_server = http.server.HTTPServer(("127.0.0.1", 0), handler)
+    _demo_server_port = _demo_server.server_address[1]
+
+    thread = threading.Thread(target=_demo_server.serve_forever, daemon=True)
+    thread.start()
+    return _demo_server_port
 
 
 def run_test_file(test_file, browser_type="chromium"):
@@ -103,8 +126,9 @@ def run_demo_file(demo_file, browser_type="chromium"):
         page.on("console", handle_console)
         page.on("pageerror", handle_error)
 
-        # Load the demo file
-        page.goto(f"file://{demo_file.absolute()}", wait_until="networkidle")
+        # Load the demo file via HTTP server
+        port = _ensure_demo_server()
+        page.goto(f"http://127.0.0.1:{port}/{demo_file.name}", wait_until="networkidle")
 
         # Wait a bit for any dynamic content to load
         page.wait_for_timeout(1000)

@@ -346,9 +346,27 @@
 					Array operations will appear here
 				</div>
 			</div>
+			<!-- Tensor / ML Operations -->
+			<div class="module">
+				<h2>4. Tensor / ML Operations (tensor.js)</h2>
+				<div class="controls">
+					<button onclick="testTensorCreate()">Create Tensor</button>
+					<button onclick="testTensorMatmul()">Matmul</button>
+					<button onclick="testTensorActivations()">
+						Activations
+					</button>
+					<button onclick="testTensorEinsum()">Einsum</button>
+					<a href="tensor.html"
+						><button class="secondary">Full Demo</button></a
+					>
+				</div>
+				<div class="output" id="tensor-output">
+					Tensor operations will appear here
+				</div>
+			</div>
 			<!-- DataFrame -->
 			<div class="module">
-				<h2>4. DataFrame (DataFrame.js)</h2>
+				<h2>5. DataFrame (DataFrame.js)</h2>
 				<div class="controls">
 					<button onclick="createDataFrame()">
 						Create DataFrame
@@ -384,7 +402,7 @@ Bob,35,Chicago</textarea
 			</div>
 			<!-- DataTable with Sparklines -->
 			<div class="module">
-				<h2>5. DataTable with Sparklines (table.js)</h2>
+				<h2>6. DataTable with Sparklines (table.js)</h2>
 				<div class="controls">
 					<button onclick="loadCSVWithSparklines()">
 						Load CSV with Sparklines
@@ -425,7 +443,7 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 			</div>
 			<!-- Configuration System -->
 			<div class="module">
-				<h2>6. Configuration System (config.js)</h2>
+				<h2>7. Configuration System (config.js)</h2>
 				<div class="controls">
 					<button onclick="initializeConfig()">
 						Initialize Config
@@ -462,7 +480,7 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 			</div>
 			<!-- Token Display -->
 			<div class="module">
-				<h2>7. Token Display (token-display.js)</h2>
+				<h2>8. Token Display (token-display.js)</h2>
 				<p style="color: #666; font-size: 14px; margin-bottom: 15px">
 					Visualize LLM tokens with color-coded activation values.
 					Hover over tokens to see details.
@@ -491,7 +509,7 @@ Widget D,7200,8.6.10.9.11.7.12.15.13.16</textarea
 			</div>
 			<!-- YAML Serialization -->
 			<div class="module">
-				<h2>8. YAML Serialization (yaml.js)</h2>
+				<h2>9. YAML Serialization (yaml.js)</h2>
 				<div class="controls">
 					<button onclick="testYAMLSimple()">Simple Object</button>
 					<button onclick="testYAMLNested()">Nested Object</button>
@@ -521,6 +539,7 @@ Click a button to see an example</pre
 		<script src="src/notif.js"></script>
 		<script src="src/ColorUtil.js"></script>
 		<script src="src/array.js"></script>
+		<script src="src/tensor.js"></script>
 		<script src="src/DataFrame.js"></script>
 		<script src="src/table.js"></script>
 		<script src="src/sparklines.js"></script>
@@ -824,7 +843,74 @@ Click a button to see an example</pre
 					`Get element [1,0]: original=${arr.get(1, 0)}, transposed=${transposed.get(1, 0)}`;
 			}
 
-			// 4. DataFrame Tests
+			// 4. Tensor / ML Operations
+			function testTensorCreate() {
+				const t = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const z = Tensor.zeros([3, 4]);
+				const u = Tensor.rand_uniform([2, 3]);
+
+				const output = document.getElementById("tensor-output");
+				output.textContent =
+					`Created Tensor:\n` +
+					`  shape: [${t.shape}]  dtype: ${t.dtype}\n` +
+					`  data: [${Array.from(t.data).join(", ")}]\n\n` +
+					`Tensor.zeros([3,4]): shape [${z.shape}], size ${z.size}\n\n` +
+					`Tensor.rand_uniform([2,3]): shape [${u.shape}]\n` +
+					`  data: [${Array.from(u.data)
+						.map((v) => v.toFixed(4))
+						.join(", ")}]`;
+			}
+
+			function testTensorMatmul() {
+				const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const b = new Tensor([7, 8, 9, 10, 11, 12], [3, 2]);
+				const c = a.matmul(b);
+
+				const output = document.getElementById("tensor-output");
+				output.textContent =
+					`A (2x3): [${Array.from(a.data).join(", ")}]\n` +
+					`B (3x2): [${Array.from(b.data).join(", ")}]\n\n` +
+					`A.matmul(B) (2x2): [${Array.from(c.data).join(", ")}]\n` +
+					`  shape: [${c.shape}]`;
+			}
+
+			function testTensorActivations() {
+				const t = new Tensor([-2, -1, 0, 1, 2], [5]);
+				const fmtArr = (arr) =>
+					Array.from(arr)
+						.map((v) => v.toFixed(4))
+						.join(", ");
+
+				const output = document.getElementById("tensor-output");
+				output.textContent =
+					`Input: [${fmtArr(t.data)}]\n\n` +
+					`relu:     [${fmtArr(NeuralNet.relu(t).data)}]\n` +
+					`sigmoid:  [${fmtArr(NeuralNet.sigmoid(t).data)}]\n` +
+					`tanh:     [${fmtArr(NeuralNet.tanh(t).data)}]\n` +
+					`gelu:     [${fmtArr(NeuralNet.gelu(t).data)}]\n` +
+					`silu:     [${fmtArr(NeuralNet.silu(t).data)}]\n\n` +
+					`softmax([1,2,3,4]):\n` +
+					`  [${fmtArr(NeuralNet.softmax(new Tensor([1, 2, 3, 4], [4])).data)}]`;
+			}
+
+			function testTensorEinsum() {
+				const a = new Tensor([1, 2, 3, 4, 5, 6], [2, 3]);
+				const b = new Tensor([7, 8, 9, 10, 11, 12], [3, 2]);
+				const mm = einsum("ij,jk->ik", a, b);
+
+				const v1 = new Tensor([1, 2, 3], [3]);
+				const v2 = new Tensor([4, 5, 6], [3]);
+				const dot = einsum("i,i->", v1, v2);
+
+				const output = document.getElementById("tensor-output");
+				output.textContent =
+					`einsum("ij,jk->ik", A, B)  # matmul\n` +
+					`  result: [${Array.from(mm.data).join(", ")}]  shape: [${mm.shape}]\n\n` +
+					`einsum("i,i->", [1,2,3], [4,5,6])  # dot product\n` +
+					`  result: ${Array.from(dot.data)[0]}`;
+			}
+
+			// 5. DataFrame Tests
 			function createDataFrame() {
 				const data = [
 					{ name: "Alice", age: 28, city: "Boston" },
