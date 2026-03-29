@@ -25,7 +25,11 @@ class Tensor extends NDArray {
 			if (!dtypeInfo) {
 				throw new Error(`Unsupported dtype: ${dtype}`);
 			}
-			data = new dtypeInfo.arrayConstructor(data);
+			if (dtypeInfo.arrayConstructor === BigInt64Array || dtypeInfo.arrayConstructor === BigUint64Array) {
+				data = new dtypeInfo.arrayConstructor(data.map(v => BigInt(v)));
+			} else {
+				data = new dtypeInfo.arrayConstructor(data);
+			}
 		}
 		super(data, shape, dtype);
 	}
@@ -568,7 +572,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static embedding(indices, table) {
-		if (table.shape.length < 2) {
+		if (table.shape.length !== 2) {
 			throw new Error(
 				`embedding requires 2D table, got shape [${table.shape}]`,
 			);
