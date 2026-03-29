@@ -1468,6 +1468,14 @@
 				});
 			});
 			describe("NeuralNet.embedding() — dimension validation", () => {
+				it("rejects 1D table", () => {
+					const table = new Tensor(new Float32Array(6), [6]);
+					assert.throws(
+						() => NeuralNet.embedding([0], table),
+						/2D table/,
+					);
+				});
+
 				it("rejects 3D table", () => {
 					const table = new Tensor(new Float32Array(24), [2, 3, 4]);
 					assert.throws(
