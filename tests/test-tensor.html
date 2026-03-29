@@ -176,8 +176,7 @@
 						sumSq += t.data[i] * t.data[i];
 					}
 					const mean = sum / t.data.length;
-					const variance =
-						sumSq / t.data.length - mean * mean;
+					const variance = sumSq / t.data.length - mean * mean;
 					const stddev = Math.sqrt(variance);
 					assert.ok(
 						Math.abs(stddev - 1) < 0.1,
