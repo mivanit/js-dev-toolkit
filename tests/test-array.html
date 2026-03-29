@@ -1008,6 +1008,38 @@
 				});
 			});
 
+			describe("float16 conversion — dtype consistency", () => {
+				it("fromJSON array_list_meta float16 produces float32 dtype", () => {
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_list_meta",
+						shape: [2],
+						dtype: "float16",
+						data: [0x3c00, 0x4000],
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.dtype, "float32");
+					assert.ok(
+						arr.data instanceof Float32Array,
+						"data should be Float32Array",
+					);
+					assert.strictEqual(arr.data[0], 1);
+					assert.strictEqual(arr.data[1], 2);
+				});
+
+				it("fromJSON array_hex_meta float16 produces float32 dtype", () => {
+					// 0x3C00 = 1.0 in float16, stored little-endian as "003c"
+					const obj = {
+						__muutils_format__: "numpy.ndarray:array_hex_meta",
+						shape: [1],
+						dtype: "float16",
+						data: "003c",
+					};
+					const arr = NDArray.fromJSON(obj);
+					assert.strictEqual(arr.dtype, "float32");
+					assert.strictEqual(arr.data[0], 1);
+				});
+			});
+
 			describe("NDArray.slice()", () => {
 				it("slices 1D array", () => {
 					const data = new Float32Array([1, 2, 3, 4, 5]);
