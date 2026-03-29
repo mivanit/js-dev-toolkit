@@ -25,8 +25,13 @@ class Tensor extends NDArray {
 			if (!dtypeInfo) {
 				throw new Error(`Unsupported dtype: ${dtype}`);
 			}
-			if (dtypeInfo.arrayConstructor === BigInt64Array || dtypeInfo.arrayConstructor === BigUint64Array) {
-				data = new dtypeInfo.arrayConstructor(data.map(v => BigInt(v)));
+			if (
+				dtypeInfo.arrayConstructor === BigInt64Array ||
+				dtypeInfo.arrayConstructor === BigUint64Array
+			) {
+				data = new dtypeInfo.arrayConstructor(
+					data.map((v) => BigInt(v)),
+				);
 			} else {
 				data = new dtypeInfo.arrayConstructor(data);
 			}
