@@ -1359,7 +1359,11 @@ class NDArray {
 		// Construct sliced shape
 		const slicedShape = [end - start, ...info.shape.slice(1)];
 
-		return new NDArray(data, slicedShape, dtypeInfo.converter ? "float32" : dtypeInfo.name);
+		return new NDArray(
+			data,
+			slicedShape,
+			dtypeInfo.converter ? "float32" : dtypeInfo.name,
+		);
 	}
 
 	/**
