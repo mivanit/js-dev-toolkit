@@ -43,7 +43,11 @@ class Tensor extends NDArray {
 			throw new Error(`Unsupported dtype: ${dtype}`);
 		}
 		const size = shape.reduce((a, b) => a * b, 1);
-		return new Tensor(new dtypeInfo.arrayConstructor(size), [...shape], dtype);
+		return new Tensor(
+			new dtypeInfo.arrayConstructor(size),
+			[...shape],
+			dtype,
+		);
 	}
 
 	/**
@@ -100,6 +104,11 @@ class Tensor extends NDArray {
 	 * @returns {Tensor}
 	 */
 	matmul(other) {
+		if (this.shape.length < 2) {
+			throw new Error(
+				`matmul requires this to be at least 2D, got shape [${this.shape}]`,
+			);
+		}
 		if (other.shape.length < 2) {
 			throw new Error(
 				`matmul requires other to be at least 2D, got shape [${other.shape}]`,
@@ -162,6 +171,11 @@ class Tensor extends NDArray {
 	 * @returns {Tensor}
 	 */
 	matmulBatched(other) {
+		if (this.shape.length < 2) {
+			throw new Error(
+				`matmulBatched requires this to be at least 2D, got shape [${this.shape}]`,
+			);
+		}
 		const batchDims = this.shape.slice(0, -2);
 		const M = this.shape[this.shape.length - 2];
 		const K = this.shape[this.shape.length - 1];
@@ -239,101 +253,29 @@ class Tensor extends NDArray {
 	}
 
 	/**
-	 * Layer normalization over last dimension.
-	 *
-	 * @param {Tensor|NDArray} weight - Scale parameter (1D, size = last dim)
-	 * @param {Tensor|NDArray} bias - Bias parameter (1D, size = last dim)
-	 * @param {number} [eps=1e-5] - Epsilon for numerical stability
-	 * @returns {Tensor}
-	 */
-	layernorm(weight, bias, eps = 1e-5) {
-		const shape = [...this.shape];
-		const D = shape[shape.length - 1];
-		const n = this.data.length / D;
-		const out = new this.data.constructor(this.data.length);
-
-		for (let i = 0; i < n; i++) {
-			const off = i * D;
-			let mean = 0;
-			for (let d = 0; d < D; d++) mean += this.data[off + d];
-			mean /= D;
-
-			let variance = 0;
-			for (let d = 0; d < D; d++) {
-				const diff = this.data[off + d] - mean;
-				variance += diff * diff;
-			}
-			variance /= D;
-			const invStd = 1.0 / Math.sqrt(variance + eps);
-
-			for (let d = 0; d < D; d++) {
-				out[off + d] =
-					(this.data[off + d] - mean) * invStd * weight.data[d] +
-					bias.data[d];
-			}
-		}
-		return new Tensor(out, shape, this.dtype);
-	}
-
-	/**
-	 * Softmax over last dimension (numerically stable).
-	 *
-	 * @returns {Tensor}
-	 */
-	softmax() {
-		const shape = [...this.shape];
-		const D = shape[shape.length - 1];
-		const n = this.data.length / D;
-		const out = new this.data.constructor(this.data.length);
-
-		for (let i = 0; i < n; i++) {
-			const off = i * D;
-			let max = -Infinity;
-			for (let d = 0; d < D; d++) {
-				if (this.data[off + d] > max) max = this.data[off + d];
-			}
-			if (max === -Infinity) {
-				// All values are -Infinity — return uniform distribution
-				const uniform = 1 / D;
-				for (let d = 0; d < D; d++) out[off + d] = uniform;
-			} else {
-				let sum = 0;
-				for (let d = 0; d < D; d++) {
-					out[off + d] = Math.exp(this.data[off + d] - max);
-					sum += out[off + d];
-				}
-				for (let d = 0; d < D; d++) out[off + d] /= sum;
-			}
-		}
-		return new Tensor(out, shape, this.dtype);
-	}
-
-	/**
-	 * GELU activation (tanh approximation).
-	 *
-	 * @returns {Tensor}
-	 */
-	gelu() {
-		const out = new this.data.constructor(this.data.length);
-		const sqrt2pi = Math.sqrt(2.0 / Math.PI);
-		for (let i = 0; i < this.data.length; i++) {
-			const v = this.data[i];
-			out[i] =
-				0.5 *
-				v *
-				(1.0 + Math.tanh(sqrt2pi * (v + 0.044715 * v * v * v)));
-		}
-		return new Tensor(out, [...this.shape], this.dtype);
-	}
-
-	/**
 	 * Add a 2D mask to a batched tensor: (..., M, N) + (M, N) -> (..., M, N)
 	 *
 	 * @param {Tensor|NDArray} mask - 2D mask to broadcast
 	 * @returns {Tensor}
 	 */
 	addMask(mask) {
-		const MN = mask.data.length;
+		if (this.shape.length < 2) {
+			throw new Error(
+				`addMask requires at least 2D tensor, got shape [${this.shape}]`,
+			);
+		}
+		const M = this.shape[this.shape.length - 2];
+		const N = this.shape[this.shape.length - 1];
+		if (
+			mask.shape.length !== 2 ||
+			mask.shape[0] !== M ||
+			mask.shape[1] !== N
+		) {
+			throw new Error(
+				`addMask shape mismatch: mask [${mask.shape}] vs last 2 dims [${M}, ${N}]`,
+			);
+		}
+		const MN = M * N;
 		const out = new this.data.constructor(this.data.length);
 		for (let i = 0; i < this.data.length; i++) {
 			out[i] = this.data[i] + mask.data[i % MN];
@@ -343,29 +285,14 @@ class Tensor extends NDArray {
 
 	/**
 	 * Embedding lookup: indices (int array) into table (vocab, dim) -> (seq, dim).
+	 * Delegates to NeuralNet.embedding.
 	 *
 	 * @param {Array<number>|Int32Array} indices - Token indices
 	 * @param {Tensor|NDArray} table - Embedding table of shape (vocab, dim)
 	 * @returns {Tensor}
 	 */
 	static embedding(indices, table) {
-		const D = table.shape[1];
-		const S = indices.length;
-		const out = new table.data.constructor(S * D);
-		for (let s = 0; s < S; s++) {
-			const row = indices[s];
-			if (row < 0 || row >= table.shape[0]) {
-				throw new Error(
-					`embedding index ${row} out of bounds for vocab size ${table.shape[0]}`,
-				);
-			}
-			const srcOff = row * D;
-			const dstOff = s * D;
-			for (let d = 0; d < D; d++) {
-				out[dstOff + d] = table.data[srcOff + d];
-			}
-		}
-		return new Tensor(out, [S, D], table.dtype || "float32");
+		return NeuralNet.embedding(indices, table);
 	}
 
 	/**
@@ -382,5 +309,256 @@ class Tensor extends NDArray {
 			}
 		}
 		return new Tensor(out, [S, S], "float32");
+	}
+}
+
+/**
+ * @fileoverview Neural network operations for Tensor.
+ *
+ * All methods are static, taking a Tensor as the first argument and returning
+ * a new Tensor. Usage: `NeuralNet.gelu(t)`, `NeuralNet.softmax(t)`, etc.
+ */
+class NeuralNet {
+	/**
+	 * ReLU activation: max(0, x).
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static relu(t) {
+		const out = new t.data.constructor(t.data.length);
+		for (let i = 0; i < t.data.length; i++) {
+			const v = t.data[i];
+			out[i] = v !== v ? NaN : v > 0 ? v : 0;
+		}
+		return new Tensor(out, [...t.shape], t.dtype);
+	}
+
+	/**
+	 * Sigmoid activation: 1 / (1 + exp(-x)).
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static sigmoid(t) {
+		const out = new t.data.constructor(t.data.length);
+		for (let i = 0; i < t.data.length; i++) {
+			out[i] = 1 / (1 + Math.exp(-t.data[i]));
+		}
+		return new Tensor(out, [...t.shape], t.dtype);
+	}
+
+	/**
+	 * Tanh activation: element-wise tanh.
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static tanh(t) {
+		const out = new t.data.constructor(t.data.length);
+		for (let i = 0; i < t.data.length; i++) {
+			out[i] = Math.tanh(t.data[i]);
+		}
+		return new Tensor(out, [...t.shape], t.dtype);
+	}
+
+	/**
+	 * GELU activation (tanh approximation).
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static gelu(t) {
+		const out = new t.data.constructor(t.data.length);
+		const sqrt2pi = Math.sqrt(2.0 / Math.PI);
+		for (let i = 0; i < t.data.length; i++) {
+			const v = t.data[i];
+			if (v === -Infinity) {
+				out[i] = 0;
+			} else {
+				out[i] =
+					0.5 *
+					v *
+					(1.0 + Math.tanh(sqrt2pi * (v + 0.044715 * v * v * v)));
+			}
+		}
+		return new Tensor(out, [...t.shape], t.dtype);
+	}
+
+	/**
+	 * SiLU (Swish) activation: x * sigmoid(x).
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static silu(t) {
+		const out = new t.data.constructor(t.data.length);
+		for (let i = 0; i < t.data.length; i++) {
+			const v = t.data[i];
+			if (v === -Infinity) {
+				out[i] = 0;
+			} else {
+				out[i] = v / (1 + Math.exp(-v));
+			}
+		}
+		return new Tensor(out, [...t.shape], t.dtype);
+	}
+
+	/**
+	 * Softmax over last dimension (numerically stable).
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @returns {Tensor}
+	 */
+	static softmax(t) {
+		const shape = [...t.shape];
+		const D = shape[shape.length - 1];
+		const n = t.data.length / D;
+		const out = new t.data.constructor(t.data.length);
+
+		for (let i = 0; i < n; i++) {
+			const off = i * D;
+			let max = -Infinity;
+			for (let d = 0; d < D; d++) {
+				if (t.data[off + d] > max) max = t.data[off + d];
+			}
+			if (!isFinite(max)) {
+				let hasNaN = false;
+				for (let d = 0; d < D; d++) {
+					if (isNaN(t.data[off + d])) {
+						hasNaN = true;
+						break;
+					}
+				}
+				if (hasNaN) {
+					for (let d = 0; d < D; d++) out[off + d] = NaN;
+				} else {
+					const uniform = 1 / D;
+					for (let d = 0; d < D; d++) out[off + d] = uniform;
+				}
+			} else {
+				let sum = 0;
+				for (let d = 0; d < D; d++) {
+					out[off + d] = Math.exp(t.data[off + d] - max);
+					sum += out[off + d];
+				}
+				for (let d = 0; d < D; d++) out[off + d] /= sum;
+			}
+		}
+		return new Tensor(out, shape, t.dtype);
+	}
+
+	/**
+	 * Layer normalization over last dimension.
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @param {Tensor|NDArray} weight - Scale parameter (1D, size = last dim)
+	 * @param {Tensor|NDArray} bias - Bias parameter (1D, size = last dim)
+	 * @param {number} [eps=1e-5] - Epsilon for numerical stability
+	 * @returns {Tensor}
+	 */
+	static layernorm(t, weight, bias, eps = 1e-5) {
+		const shape = [...t.shape];
+		const D = shape[shape.length - 1];
+		if (weight.data.length !== D) {
+			throw new Error(
+				`layernorm: weight length ${weight.data.length} !== last dim ${D}`,
+			);
+		}
+		if (bias.data.length !== D) {
+			throw new Error(
+				`layernorm: bias length ${bias.data.length} !== last dim ${D}`,
+			);
+		}
+		const n = t.data.length / D;
+		const out = new t.data.constructor(t.data.length);
+
+		for (let i = 0; i < n; i++) {
+			const off = i * D;
+			let mean = 0;
+			for (let d = 0; d < D; d++) mean += t.data[off + d];
+			mean /= D;
+
+			let variance = 0;
+			for (let d = 0; d < D; d++) {
+				const diff = t.data[off + d] - mean;
+				variance += diff * diff;
+			}
+			variance /= D;
+			const invStd = 1.0 / Math.sqrt(variance + eps);
+
+			for (let d = 0; d < D; d++) {
+				out[off + d] =
+					(t.data[off + d] - mean) * invStd * weight.data[d] +
+					bias.data[d];
+			}
+		}
+		return new Tensor(out, shape, t.dtype);
+	}
+
+	/**
+	 * RMS normalization over last dimension.
+	 *
+	 * @param {Tensor} t - Input tensor
+	 * @param {Tensor|NDArray} weight - Scale parameter (1D, size = last dim)
+	 * @param {number} [eps=1e-5] - Epsilon for numerical stability
+	 * @returns {Tensor}
+	 */
+	static rmsnorm(t, weight, eps = 1e-5) {
+		const shape = [...t.shape];
+		const D = shape[shape.length - 1];
+		if (weight.data.length !== D) {
+			throw new Error(
+				`rmsnorm: weight length ${weight.data.length} !== last dim ${D}`,
+			);
+		}
+		const n = t.data.length / D;
+		const out = new t.data.constructor(t.data.length);
+
+		for (let i = 0; i < n; i++) {
+			const off = i * D;
+			let sumSq = 0;
+			for (let d = 0; d < D; d++) {
+				sumSq += t.data[off + d] * t.data[off + d];
+			}
+			const invRms = 1.0 / Math.sqrt(sumSq / D + eps);
+
+			for (let d = 0; d < D; d++) {
+				out[off + d] = t.data[off + d] * invRms * weight.data[d];
+			}
+		}
+		return new Tensor(out, shape, t.dtype);
+	}
+
+	/**
+	 * Embedding lookup: indices (int array) into table (vocab, dim) -> (seq, dim).
+	 *
+	 * @param {Array<number>|Int32Array} indices - Token indices
+	 * @param {Tensor|NDArray} table - Embedding table of shape (vocab, dim)
+	 * @returns {Tensor}
+	 */
+	static embedding(indices, table) {
+		if (table.shape.length < 2) {
+			throw new Error(
+				`embedding requires 2D table, got shape [${table.shape}]`,
+			);
+		}
+		const D = table.shape[1];
+		const S = indices.length;
+		const out = new table.data.constructor(S * D);
+		for (let s = 0; s < S; s++) {
+			const row = indices[s];
+			if (!Number.isInteger(row) || row < 0 || row >= table.shape[0]) {
+				throw new Error(
+					`embedding index ${row} is invalid (must be integer in [0, ${table.shape[0]}))`,
+				);
+			}
+			const srcOff = row * D;
+			const dstOff = s * D;
+			for (let d = 0; d < D; d++) {
+				out[dstOff + d] = table.data[srcOff + d];
+			}
+		}
+		return new Tensor(out, [S, D], table.dtype || "float32");
 	}
 }
