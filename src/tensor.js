@@ -188,6 +188,11 @@ class Tensor extends NDArray {
 				`matmulBatched requires this to be at least 2D, got shape [${this.shape}]`,
 			);
 		}
+		if (other.shape.length < 2) {
+			throw new Error(
+				`matmulBatched requires other to be at least 2D, got shape [${other.shape}]`,
+			);
+		}
 		const batchDims = this.shape.slice(0, -2);
 		const M = this.shape[this.shape.length - 2];
 		const K = this.shape[this.shape.length - 1];
@@ -340,6 +345,16 @@ class Tensor extends NDArray {
  * a new Tensor. Usage: `NeuralNet.gelu(t)`, `NeuralNet.softmax(t)`, etc.
  */
 class NeuralNet {
+	/** @private */
+	static _requireFloat(t, op) {
+		if (
+			t.data instanceof BigInt64Array ||
+			t.data instanceof BigUint64Array
+		) {
+			throw new Error(`${op} requires float dtype, got ${t.dtype}`);
+		}
+	}
+
 	/**
 	 * ReLU activation: max(0, x).
 	 *
@@ -347,6 +362,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static relu(t) {
+		NeuralNet._requireFloat(t, "relu");
 		const out = new t.data.constructor(t.data.length);
 		for (let i = 0; i < t.data.length; i++) {
 			const v = t.data[i];
@@ -362,6 +378,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static sigmoid(t) {
+		NeuralNet._requireFloat(t, "sigmoid");
 		const out = new t.data.constructor(t.data.length);
 		for (let i = 0; i < t.data.length; i++) {
 			out[i] = 1 / (1 + Math.exp(-t.data[i]));
@@ -376,6 +393,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static tanh(t) {
+		NeuralNet._requireFloat(t, "tanh");
 		const out = new t.data.constructor(t.data.length);
 		for (let i = 0; i < t.data.length; i++) {
 			out[i] = Math.tanh(t.data[i]);
@@ -390,6 +408,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static gelu(t) {
+		NeuralNet._requireFloat(t, "gelu");
 		const out = new t.data.constructor(t.data.length);
 		const sqrt2pi = Math.sqrt(2.0 / Math.PI);
 		for (let i = 0; i < t.data.length; i++) {
@@ -413,6 +432,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static silu(t) {
+		NeuralNet._requireFloat(t, "silu");
 		const out = new t.data.constructor(t.data.length);
 		for (let i = 0; i < t.data.length; i++) {
 			const v = t.data[i];
@@ -432,6 +452,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static softmax(t) {
+		NeuralNet._requireFloat(t, "softmax");
 		if (t.shape.length === 0) {
 			throw new Error(
 				"softmax requires at least 1D input, got 0D (scalar)",
@@ -507,6 +528,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static layernorm(t, weight, bias, eps = 1e-5) {
+		NeuralNet._requireFloat(t, "layernorm");
 		const shape = [...t.shape];
 		const D = shape[shape.length - 1];
 		if (weight.data.length !== D) {
@@ -554,6 +576,7 @@ class NeuralNet {
 	 * @returns {Tensor}
 	 */
 	static rmsnorm(t, weight, eps = 1e-5) {
+		NeuralNet._requireFloat(t, "rmsnorm");
 		const shape = [...t.shape];
 		const D = shape[shape.length - 1];
 		if (weight.data.length !== D) {
@@ -657,6 +680,18 @@ function einsum(notation, ...operands) {
 			);
 		}
 		opLabels.push(labels);
+	}
+
+	// Validate all operand dtypes match
+	for (let o = 1; o < operands.length; o++) {
+		if (
+			(operands[o].dtype || "float32") !==
+			(operands[0].dtype || "float32")
+		) {
+			throw new Error(
+				`einsum: dtype mismatch — operand 0 is '${operands[0].dtype || "float32"}' but operand ${o} is '${operands[o].dtype || "float32"}'`,
+			);
+		}
 	}
 
 	const outLabels = rhs.split("");
