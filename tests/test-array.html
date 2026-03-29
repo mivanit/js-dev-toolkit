@@ -1553,16 +1553,18 @@
 					assert.strictEqual(result.data[1], 60n);
 				});
 
-				it("mean() on int64 returns BigInt (integer-truncated)", () => {
+				it("mean() on int64 returns float", () => {
 					const arr = new NDArray(
 						new BigInt64Array([2n, 4n, 6n]),
 						[3],
 						"int64",
 					);
-					assert.strictEqual(arr.mean(), 4n);
+					const m = arr.mean();
+					assert.strictEqual(typeof m, "number");
+					assert.strictEqual(m, 4);
 				});
 
-				it("mean(axis=0) on int64 2D array", () => {
+				it("mean(axis=0) on int64 returns float64 array", () => {
 					const arr = new NDArray(
 						new BigInt64Array([2n, 4n, 6n, 8n]),
 						[2, 2],
@@ -1570,8 +1572,10 @@
 					);
 					const result = arr.mean(0);
 					assert.deepStrictEqual(result.shape, [2]);
-					assert.strictEqual(result.data[0], 4n);
-					assert.strictEqual(result.data[1], 6n);
+					assert.strictEqual(result.dtype, "float64");
+					assert.ok(result.data instanceof Float64Array);
+					assert.strictEqual(result.data[0], 4);
+					assert.strictEqual(result.data[1], 6);
 				});
 
 				it("min() on int64 returns BigInt scalar", () => {
@@ -2138,20 +2142,6 @@
 						"int64",
 					);
 					assert.throws(() => arr.mean(0), /empty slice|undefined/i);
-				});
-			});
-
-			describe("NDArray.mean(axis) — BigInt happy path", () => {
-				it("mean(axis) works on BigInt64Array", () => {
-					const arr = new NDArray(
-						new BigInt64Array([2n, 4n, 6n, 8n]),
-						[2, 2],
-						"int64",
-					);
-					const m = arr.mean(0);
-					assert.deepStrictEqual(m.shape, [2]);
-					assert.strictEqual(m.data[0], 4n);
-					assert.strictEqual(m.data[1], 6n);
 				});
 			});
 

@@ -564,29 +564,32 @@ class NDArray {
 				throw new Error("mean of empty slice is undefined");
 			}
 			const total = this.sum(null);
-			const div = _isBigIntArray(this.data)
-				? BigInt(this._size)
-				: this._size;
-			return total / div;
+			return Number(total) / this._size;
 		}
 
 		// Mean along specific axis
 		const sumResult = this.sum(axis);
-		const isBigInt = _isBigIntArray(sumResult.data);
 		if (this.shape[axis] === 0) {
 			throw new Error("mean of empty slice is undefined");
 		}
-		const divisor = isBigInt ? BigInt(this.shape[axis]) : this.shape[axis];
+		const divisor = this.shape[axis];
+		const isBigInt = _isBigIntArray(sumResult.data);
 
-		// Divide all elements by the count
-		const resultData = new sumResult.data.constructor(
-			sumResult.data.length,
-		);
+		// Always return float for mean (convert BigInt sums to Number)
+		const resultData = isBigInt
+			? new Float64Array(sumResult.data.length)
+			: new sumResult.data.constructor(sumResult.data.length);
 		for (let i = 0; i < sumResult.data.length; i++) {
-			resultData[i] = sumResult.data[i] / divisor;
+			resultData[i] =
+				(isBigInt ? Number(sumResult.data[i]) : sumResult.data[i]) /
+				divisor;
 		}
 
-		return new this.constructor(resultData, sumResult.shape, this.dtype);
+		return new this.constructor(
+			resultData,
+			sumResult.shape,
+			isBigInt ? "float64" : this.dtype,
+		);
 	}
 
 	/**

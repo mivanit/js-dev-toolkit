@@ -222,6 +222,10 @@
 					);
 					const tr = t.transpose();
 					assert.deepStrictEqual(tr.shape, [2, 3, 2]);
+					assertArrayEqual(
+						Array.from(tr.data),
+						[1, 4, 2, 5, 3, 6, 7, 10, 8, 11, 9, 12],
+					);
 				});
 
 				it("delegates to NDArray with explicit axes", () => {
@@ -229,6 +233,10 @@
 					const tr = t.transpose([2, 0, 1]);
 					assert.ok(tr instanceof Tensor);
 					assert.deepStrictEqual(tr.shape, [2, 2, 2]);
+					assertArrayEqual(
+						Array.from(tr.data),
+						[1, 3, 5, 7, 2, 4, 6, 8],
+					);
 				});
 
 				it("double transpose restores original", () => {
