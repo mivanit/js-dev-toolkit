@@ -783,6 +783,14 @@ function einsum(notation, ...operands) {
 		}
 	}
 
+	// Reject BigInt dtypes (int64/uint64) — arithmetic with Number literals would throw
+	if (
+		operands[0].data instanceof BigInt64Array ||
+		operands[0].data instanceof BigUint64Array
+	) {
+		throw new Error("einsum does not support BigInt dtypes (int64/uint64)");
+	}
+
 	const outLabels = rhs.split("");
 
 	// Reject repeated output labels (e.g. "ij->ii")

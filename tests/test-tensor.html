@@ -2151,10 +2151,7 @@
 						[2, 2],
 						"int64",
 					);
-					assert.throws(
-						() => einsum("ij->ji", a),
-						/BigInt/,
-					);
+					assert.throws(() => einsum("ij->ji", a), /BigInt/);
 				});
 			});
 
