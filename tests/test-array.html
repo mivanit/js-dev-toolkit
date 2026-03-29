@@ -1481,10 +1481,7 @@
 					// get(0, null, 1) → elements at [0,0,1], [0,1,1], [0,2,1] = 1, 5, 9
 					const result = arr.get(0, null, 1);
 					assert.deepStrictEqual(result.shape, [3]);
-					assertArrayEqual(
-						Array.from(result.data),
-						[1, 5, 9],
-					);
+					assertArrayEqual(Array.from(result.data), [1, 5, 9]);
 				});
 
 				it("get(null, 1) on 2D returns column", () => {
@@ -1496,10 +1493,7 @@
 					// get(null, 1) → elements at [0,1], [1,1] = 2, 5
 					const result = arr.get(null, 1);
 					assert.deepStrictEqual(result.shape, [2]);
-					assertArrayEqual(
-						Array.from(result.data),
-						[2, 5],
-					);
+					assertArrayEqual(Array.from(result.data), [2, 5]);
 				});
 			});
 
@@ -1513,6 +1507,415 @@
 					const s = arr.toString();
 					assert.ok(typeof s === "string");
 					assert.ok(s.length > 0);
+				});
+			});
+
+			// ============================================================
+			// HIGH-PRIORITY TESTS
+			// ============================================================
+
+			describe("NDArray BigInt (int64/uint64) reductions", () => {
+				it("sum() on int64 returns BigInt scalar", () => {
+					const arr = new NDArray(
+						new BigInt64Array([1n, 2n, 3n, 4n]),
+						[4],
+						"int64",
+					);
+					assert.strictEqual(arr.sum(), 10n);
+				});
+
+				it("sum(axis=0) on int64 2D array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([1n, 2n, 3n, 4n, 5n, 6n]),
+						[2, 3],
+						"int64",
+					);
+					const result = arr.sum(0);
+					assert.deepStrictEqual(result.shape, [3]);
+					// [[1, 2, 3], [4, 5, 6]] → sum(0) = [5, 7, 9]
+					assert.strictEqual(result.data[0], 5n);
+					assert.strictEqual(result.data[1], 7n);
+					assert.strictEqual(result.data[2], 9n);
+				});
+
+				it("sum(axis=1) on int64 2D array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([1n, 2n, 3n, 4n, 5n, 6n]),
+						[2, 3],
+						"int64",
+					);
+					const result = arr.sum(1);
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 6n);
+					assert.strictEqual(result.data[1], 15n);
+				});
+
+				it("sum(axis=0) on uint64 2D array", () => {
+					const arr = new NDArray(
+						new BigUint64Array([10n, 20n, 30n, 40n]),
+						[2, 2],
+						"uint64",
+					);
+					const result = arr.sum(0);
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 40n);
+					assert.strictEqual(result.data[1], 60n);
+				});
+
+				it("mean() on int64 returns BigInt (integer-truncated)", () => {
+					const arr = new NDArray(
+						new BigInt64Array([2n, 4n, 6n]),
+						[3],
+						"int64",
+					);
+					assert.strictEqual(arr.mean(), 4n);
+				});
+
+				it("mean(axis=0) on int64 2D array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([2n, 4n, 6n, 8n]),
+						[2, 2],
+						"int64",
+					);
+					const result = arr.mean(0);
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 4n);
+					assert.strictEqual(result.data[1], 6n);
+				});
+
+				it("min() on int64 returns BigInt scalar", () => {
+					const arr = new NDArray(
+						new BigInt64Array([3n, 1n, 4n, 1n, 5n]),
+						[5],
+						"int64",
+					);
+					assert.strictEqual(arr.min(), 1n);
+				});
+
+				it("max() on int64 returns BigInt scalar", () => {
+					const arr = new NDArray(
+						new BigInt64Array([3n, 1n, 4n, 1n, 5n]),
+						[5],
+						"int64",
+					);
+					assert.strictEqual(arr.max(), 5n);
+				});
+
+				it("min(axis=0) on int64 2D array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([3n, 1n, 2n, 4n]),
+						[2, 2],
+						"int64",
+					);
+					const result = arr.min(0);
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 2n);
+					assert.strictEqual(result.data[1], 1n);
+				});
+
+				it("max(axis=1) on int64 2D array", () => {
+					const arr = new NDArray(
+						new BigInt64Array([3n, 1n, 2n, 4n]),
+						[2, 2],
+						"int64",
+					);
+					const result = arr.max(1);
+					assert.deepStrictEqual(result.shape, [2]);
+					assert.strictEqual(result.data[0], 3n);
+					assert.strictEqual(result.data[1], 4n);
+				});
+
+				it("range() on int64 returns [min, max]", () => {
+					const arr = new NDArray(
+						new BigInt64Array([5n, 2n, 8n, 1n]),
+						[4],
+						"int64",
+					);
+					const result = arr.range();
+					assert.strictEqual(result.data[0], 1n);
+					assert.strictEqual(result.data[1], 8n);
+				});
+
+				it("sum(null) on empty int64 returns 0n", () => {
+					const arr = new NDArray(new BigInt64Array(0), [0], "int64");
+					assert.strictEqual(arr.sum(), 0n);
+				});
+			});
+
+			describe("NDArray NaN/Infinity in axis reductions", () => {
+				it("sum(axis=0) with NaN propagates NaN", () => {
+					const arr = new NDArray(
+						new Float32Array([1, NaN, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const result = arr.sum(0);
+					assert.ok(!isNaN(result.data[0]), "sum of 1+3 should be 4");
+					assert.ok(
+						isNaN(result.data[1]),
+						"sum with NaN should be NaN",
+					);
+				});
+
+				it("mean(axis=0) with NaN propagates NaN", () => {
+					const arr = new NDArray(
+						new Float32Array([1, NaN, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const result = arr.mean(0);
+					assert.ok(!isNaN(result.data[0]));
+					assert.ok(isNaN(result.data[1]));
+				});
+
+				it("sum(axis=0) with Infinity propagates Infinity", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, Infinity, 4]),
+						[2, 2],
+						"float32",
+					);
+					const result = arr.sum(0);
+					assert.strictEqual(result.data[0], Infinity);
+					assert.strictEqual(result.data[1], 6);
+				});
+
+				it("min(axis=0) with -Infinity finds -Infinity", () => {
+					const arr = new NDArray(
+						new Float32Array([1, -Infinity, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const result = arr.min(0);
+					assert.strictEqual(result.data[0], 1);
+					assert.strictEqual(result.data[1], -Infinity);
+				});
+
+				it("max(axis=0) with Infinity finds Infinity", () => {
+					const arr = new NDArray(
+						new Float32Array([1, Infinity, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const result = arr.max(0);
+					assert.strictEqual(result.data[0], 3);
+					assert.strictEqual(result.data[1], Infinity);
+				});
+
+				it("min/max with NaN: NaN poisons when seeded first", () => {
+					// range() seeds with first element per group. If NaN is
+					// first, x < NaN and x > NaN are both false, so NaN
+					// sticks as both min and max for that group.
+					const arr = new NDArray(
+						new Float32Array([NaN, 2, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const result = arr.min(0);
+					// Column 0: NaN seeded first, 3 can't displace it
+					assert.ok(isNaN(result.data[0]), "NaN seeded first sticks");
+					// Column 1: 2 seeded first, 4 doesn't displace min
+					assert.strictEqual(result.data[1], 2);
+				});
+			});
+
+			describe("NDArray dtype preservation", () => {
+				it("sum(axis) preserves int32 dtype", () => {
+					const arr = new NDArray(
+						new Int32Array([1, 2, 3, 4]),
+						[2, 2],
+						"int32",
+					);
+					const result = arr.sum(0);
+					assert.strictEqual(result.dtype, "int32");
+					assert.ok(result.data instanceof Int32Array);
+				});
+
+				it("sum(axis) preserves float64 dtype", () => {
+					const arr = new NDArray(
+						new Float64Array([1, 2, 3, 4]),
+						[2, 2],
+						"float64",
+					);
+					const result = arr.sum(0);
+					assert.strictEqual(result.dtype, "float64");
+					assert.ok(result.data instanceof Float64Array);
+				});
+
+				it("reshape preserves uint8 dtype", () => {
+					const arr = new NDArray(
+						new Uint8Array([1, 2, 3, 4]),
+						[4],
+						"uint8",
+					);
+					const result = arr.reshape([2, 2]);
+					assert.strictEqual(result.dtype, "uint8");
+					assert.ok(result.data instanceof Uint8Array);
+				});
+
+				it("flatten preserves int16 dtype", () => {
+					const arr = new NDArray(
+						new Int16Array([1, 2, 3, 4]),
+						[2, 2],
+						"int16",
+					);
+					const result = arr.flatten();
+					assert.strictEqual(result.dtype, "int16");
+					assert.ok(result.data instanceof Int16Array);
+				});
+
+				it("transpose preserves float64 dtype", () => {
+					const arr = new NDArray(
+						new Float64Array([1, 2, 3, 4]),
+						[2, 2],
+						"float64",
+					);
+					const result = arr.transpose();
+					assert.strictEqual(result.dtype, "float64");
+					assert.ok(result.data instanceof Float64Array);
+				});
+
+				it("slice preserves int32 dtype", () => {
+					const arr = new NDArray(
+						new Int32Array([1, 2, 3, 4, 5, 6]),
+						[3, 2],
+						"int32",
+					);
+					const result = arr.slice([0, 2]);
+					assert.strictEqual(result.dtype, "int32");
+					assert.ok(result.data instanceof Int32Array);
+				});
+
+				it("sliceDim preserves uint8 dtype", () => {
+					const arr = new NDArray(
+						new Uint8Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"uint8",
+					);
+					const result = arr.sliceDim(1, 0, 2);
+					assert.strictEqual(result.dtype, "uint8");
+					assert.ok(result.data instanceof Uint8Array);
+				});
+			});
+
+			// ============================================================
+			// MEDIUM-PRIORITY TESTS
+			// ============================================================
+
+			describe("NDArray empty array operations", () => {
+				it("flatten on shape [0] returns shape [0]", () => {
+					const arr = new NDArray(
+						new Float32Array(0),
+						[0],
+						"float32",
+					);
+					const result = arr.flatten();
+					assert.deepStrictEqual(result.shape, [0]);
+				});
+
+				it("reshape [0] to [0, 5] works", () => {
+					const arr = new NDArray(
+						new Float32Array(0),
+						[0],
+						"float32",
+					);
+					const result = arr.reshape([0, 5]);
+					assert.deepStrictEqual(result.shape, [0, 5]);
+				});
+
+				it("transpose on [0, 3] gives [3, 0]", () => {
+					const arr = new NDArray(
+						new Float32Array(0),
+						[0, 3],
+						"float32",
+					);
+					const result = arr.transpose();
+					assert.deepStrictEqual(result.shape, [3, 0]);
+				});
+			});
+
+			describe("NDArray get/set edge cases", () => {
+				it("set() with negative index on 1D", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3]),
+						[3],
+						"float32",
+					);
+					arr.set(-1, 99);
+					assert.strictEqual(arr.data[2], 99);
+				});
+
+				it("get() with too many indices throws", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					assert.throws(() => arr.get(0, 0, 0), /Too many indices/);
+				});
+			});
+			// ========================================
+			// Plan audit — remaining tests
+			// ========================================
+
+			describe("NDArray reshape/flatten — view semantics", () => {
+				it("reshape shares underlying data buffer", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6]),
+						[2, 3],
+						"float32",
+					);
+					const reshaped = arr.reshape([3, 2]);
+					// Mutate through reshaped view
+					reshaped.data[0] = 99;
+					assert.strictEqual(
+						arr.data[0],
+						99,
+						"original should reflect mutation through reshape",
+					);
+				});
+
+				it("flatten shares underlying data buffer", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4]),
+						[2, 2],
+						"float32",
+					);
+					const flat = arr.flatten();
+					flat.data[3] = 42;
+					assert.strictEqual(
+						arr.data[3],
+						42,
+						"original should reflect mutation through flatten",
+					);
+				});
+			});
+
+			describe("NDArray.transpose() — identity permutation", () => {
+				it("[0,1,2] on 3D returns same data order", () => {
+					const arr = new NDArray(
+						new Float32Array([1, 2, 3, 4, 5, 6, 7, 8]),
+						[2, 2, 2],
+						"float32",
+					);
+					const t = arr.transpose([0, 1, 2]);
+					assert.deepStrictEqual(t.shape, [2, 2, 2]);
+					assertArrayEqual(
+						Array.from(t.data),
+						[1, 2, 3, 4, 5, 6, 7, 8],
+					);
+				});
+			});
+			describe("NDArray.reshape() — negative dimension validation", () => {
+				it("throws on negative non-(-1) dimension", () => {
+					const arr = new NDArray(
+						new Float32Array(6),
+						[6],
+						"float32",
+					);
+					assert.throws(
+						() => arr.reshape([-6, -1]),
+						/invalid/i,
+					);
 				});
 			});
 		</script>
