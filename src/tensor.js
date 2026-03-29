@@ -726,7 +726,7 @@ class NeuralNet {
 			const row = indices[s];
 			if (!Number.isInteger(row) || row < 0 || row >= table.shape[0]) {
 				throw new Error(
-					`embedding index ${row} is invalid (must be integer in [0, ${table.shape[0]}))`,
+					`embedding index ${row} is invalid (must be integer in [0, ${table.shape[0]})`,
 				);
 			}
 			const srcOff = row * D;
