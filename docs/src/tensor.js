@@ -617,9 +617,19 @@ class NeuralNet {
 		NeuralNet._requireFloat(t, "layernorm");
 		const shape = [...t.shape];
 		const D = shape[shape.length - 1];
+		if (weight.shape.length !== 1) {
+			throw new Error(
+				`layernorm: weight must be 1D, got shape [${weight.shape}]`,
+			);
+		}
 		if (weight.data.length !== D) {
 			throw new Error(
 				`layernorm: weight length ${weight.data.length} !== last dim ${D}`,
+			);
+		}
+		if (bias.shape.length !== 1) {
+			throw new Error(
+				`layernorm: bias must be 1D, got shape [${bias.shape}]`,
 			);
 		}
 		if (bias.data.length !== D) {
@@ -665,6 +675,11 @@ class NeuralNet {
 		NeuralNet._requireFloat(t, "rmsnorm");
 		const shape = [...t.shape];
 		const D = shape[shape.length - 1];
+		if (weight.shape.length !== 1) {
+			throw new Error(
+				`rmsnorm: weight must be 1D, got shape [${weight.shape}]`,
+			);
+		}
 		if (weight.data.length !== D) {
 			throw new Error(
 				`rmsnorm: weight length ${weight.data.length} !== last dim ${D}`,
