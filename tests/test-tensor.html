@@ -1019,6 +1019,35 @@
 					assert.throws(() => NeuralNet.rmsnorm(t, w), /weight/i);
 				});
 
+				it("layernorm rejects 2D weight", () => {
+					const t = new Tensor([1, 2, 3, 4], [1, 4]);
+					const w = new Tensor([1, 1, 1, 1], [2, 2]);
+					const b = new Tensor([0, 0, 0, 0], [4]);
+					assert.throws(
+						() => NeuralNet.layernorm(t, w, b),
+						/weight must be 1D/i,
+					);
+				});
+
+				it("layernorm rejects 2D bias", () => {
+					const t = new Tensor([1, 2, 3, 4], [1, 4]);
+					const w = new Tensor([1, 1, 1, 1], [4]);
+					const b = new Tensor([0, 0, 0, 0], [2, 2]);
+					assert.throws(
+						() => NeuralNet.layernorm(t, w, b),
+						/bias must be 1D/i,
+					);
+				});
+
+				it("rmsnorm rejects 2D weight", () => {
+					const t = new Tensor([1, 2, 3, 4], [1, 4]);
+					const w = new Tensor([1, 1, 1, 1], [2, 2]);
+					assert.throws(
+						() => NeuralNet.rmsnorm(t, w),
+						/weight must be 1D/i,
+					);
+				});
+
 				it("layernorm with constant input uses eps", () => {
 					const t = new Tensor([5, 5, 5, 5], [1, 4]);
 					const w = new Tensor([1, 1, 1, 1], [4]);
