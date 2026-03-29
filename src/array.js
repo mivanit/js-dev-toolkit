@@ -167,7 +167,12 @@ class NPYHeaderInfo {
 
 		// Get element size in bytes from dtype
 		const dtypeInfo = _DTYPE_BY_DESCRIPTOR[dtype];
-		this.elementSize = dtypeInfo ? dtypeInfo.size / 8 : null;
+		if (!dtypeInfo) {
+			throw new Error(
+				`NPYHeaderInfo: unsupported dtype descriptor "${dtype}"`,
+			);
+		}
+		this.elementSize = dtypeInfo.size / 8;
 
 		// Calculate stride for first axis (bytes per first-axis element)
 		// For shape [d0, d1, d2], stride = d1 * d2 * elementSize
