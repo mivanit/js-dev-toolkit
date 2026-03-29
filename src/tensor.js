@@ -60,6 +60,69 @@ class Tensor extends NDArray {
 	}
 
 	/**
+	 * Create a tensor with values from a uniform distribution over [0, 1).
+	 *
+	 * @param {Array<number>} shape - Shape of the tensor
+	 * @param {string} [dtype='float32'] - Data type (must be a float type)
+	 * @returns {Tensor}
+	 */
+	static rand_uniform(shape, dtype = "float32") {
+		const dtypeInfo = _DTYPE_BY_NAME[dtype];
+		if (!dtypeInfo) {
+			throw new Error(`Unsupported dtype: ${dtype}`);
+		}
+		if (
+			dtypeInfo.arrayConstructor === BigInt64Array ||
+			dtypeInfo.arrayConstructor === BigUint64Array
+		) {
+			throw new Error(
+				`rand_uniform does not support BigInt dtype: ${dtype}`,
+			);
+		}
+		const size = shape.reduce((a, b) => a * b, 1);
+		const data = new dtypeInfo.arrayConstructor(size);
+		for (let i = 0; i < size; i++) {
+			data[i] = Math.random();
+		}
+		return new Tensor(data, [...shape], dtype);
+	}
+
+	/**
+	 * Create a tensor with values from a standard normal distribution N(0, 1).
+	 * Uses the Box-Muller transform.
+	 *
+	 * @param {Array<number>} shape - Shape of the tensor
+	 * @param {string} [dtype='float32'] - Data type (must be a float type)
+	 * @returns {Tensor}
+	 */
+	static rand_normal(shape, dtype = "float32") {
+		const dtypeInfo = _DTYPE_BY_NAME[dtype];
+		if (!dtypeInfo) {
+			throw new Error(`Unsupported dtype: ${dtype}`);
+		}
+		if (
+			dtypeInfo.arrayConstructor === BigInt64Array ||
+			dtypeInfo.arrayConstructor === BigUint64Array
+		) {
+			throw new Error(
+				`rand_normal does not support BigInt dtype: ${dtype}`,
+			);
+		}
+		const size = shape.reduce((a, b) => a * b, 1);
+		const data = new dtypeInfo.arrayConstructor(size);
+		for (let i = 0; i < size; i += 2) {
+			const u1 = Math.random();
+			const u2 = Math.random();
+			const r = Math.sqrt(-2 * Math.log(u1));
+			data[i] = r * Math.cos(2 * Math.PI * u2);
+			if (i + 1 < size) {
+				data[i + 1] = r * Math.sin(2 * Math.PI * u2);
+			}
+		}
+		return new Tensor(data, [...shape], dtype);
+	}
+
+	/**
 	 * Element-wise add. Supports broadcasting b (1D) over last dim of this.
 	 *
 	 * @param {Tensor|NDArray} other - Tensor to add

@@ -84,6 +84,122 @@
 				});
 			});
 
+			describe("Tensor.rand_uniform()", () => {
+				it("creates tensor with correct shape and size", () => {
+					const t = Tensor.rand_uniform([2, 3]);
+					assert.deepStrictEqual(t.shape, [2, 3]);
+					assert.strictEqual(t.size, 6);
+				});
+
+				it("defaults to float32", () => {
+					const t = Tensor.rand_uniform([2]);
+					assert.strictEqual(t.dtype, "float32");
+					assert.ok(t.data instanceof Float32Array);
+				});
+
+				it("accepts explicit dtype", () => {
+					const t = Tensor.rand_uniform([3], "float64");
+					assert.strictEqual(t.dtype, "float64");
+					assert.ok(t.data instanceof Float64Array);
+				});
+
+				it("values are in [0, 1)", () => {
+					const t = Tensor.rand_uniform([1000]);
+					for (let i = 0; i < t.data.length; i++) {
+						assert.ok(t.data[i] >= 0, `value ${t.data[i]} < 0`);
+						assert.ok(t.data[i] < 1, `value ${t.data[i]} >= 1`);
+					}
+				});
+
+				it("mean is approximately 0.5", () => {
+					const t = Tensor.rand_uniform([10000]);
+					let sum = 0;
+					for (let i = 0; i < t.data.length; i++) sum += t.data[i];
+					const mean = sum / t.data.length;
+					assert.ok(
+						Math.abs(mean - 0.5) < 0.05,
+						`mean ${mean} not close to 0.5`,
+					);
+				});
+
+				it("throws on invalid dtype", () => {
+					assert.throws(
+						() => Tensor.rand_uniform([3], "bogus"),
+						/Unsupported dtype/,
+					);
+				});
+
+				it("throws on BigInt dtype", () => {
+					assert.throws(
+						() => Tensor.rand_uniform([3], "int64"),
+						/BigInt/,
+					);
+				});
+			});
+
+			describe("Tensor.rand_normal()", () => {
+				it("creates tensor with correct shape and size", () => {
+					const t = Tensor.rand_normal([2, 3]);
+					assert.deepStrictEqual(t.shape, [2, 3]);
+					assert.strictEqual(t.size, 6);
+				});
+
+				it("defaults to float32", () => {
+					const t = Tensor.rand_normal([2]);
+					assert.strictEqual(t.dtype, "float32");
+					assert.ok(t.data instanceof Float32Array);
+				});
+
+				it("accepts explicit dtype", () => {
+					const t = Tensor.rand_normal([3], "float64");
+					assert.strictEqual(t.dtype, "float64");
+					assert.ok(t.data instanceof Float64Array);
+				});
+
+				it("mean is approximately 0", () => {
+					const t = Tensor.rand_normal([10000]);
+					let sum = 0;
+					for (let i = 0; i < t.data.length; i++) sum += t.data[i];
+					const mean = sum / t.data.length;
+					assert.ok(
+						Math.abs(mean) < 0.05,
+						`mean ${mean} not close to 0`,
+					);
+				});
+
+				it("stddev is approximately 1", () => {
+					const t = Tensor.rand_normal([10000]);
+					let sum = 0;
+					let sumSq = 0;
+					for (let i = 0; i < t.data.length; i++) {
+						sum += t.data[i];
+						sumSq += t.data[i] * t.data[i];
+					}
+					const mean = sum / t.data.length;
+					const variance =
+						sumSq / t.data.length - mean * mean;
+					const stddev = Math.sqrt(variance);
+					assert.ok(
+						Math.abs(stddev - 1) < 0.1,
+						`stddev ${stddev} not close to 1`,
+					);
+				});
+
+				it("throws on invalid dtype", () => {
+					assert.throws(
+						() => Tensor.rand_normal([3], "bogus"),
+						/Unsupported dtype/,
+					);
+				});
+
+				it("throws on BigInt dtype", () => {
+					assert.throws(
+						() => Tensor.rand_normal([3], "int64"),
+						/BigInt/,
+					);
+				});
+			});
+
 			describe("Tensor.add()", () => {
 				it("adds same-shape tensors", () => {
 					const a = new Tensor([1, 2, 3], [3]);
